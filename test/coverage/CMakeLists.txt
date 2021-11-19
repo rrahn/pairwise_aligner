@@ -36,14 +36,18 @@ set (PAIRWISE_ALIGNER_GCOVR_ARGUMENTS "")
 list (APPEND PAIRWISE_ALIGNER_GCOVR_ARGUMENTS "--root;${CMAKE_CURRENT_LIST_DIR}")
 # The build directory.
 list (APPEND PAIRWISE_ALIGNER_GCOVR_ARGUMENTS "${PROJECT_BINARY_DIR}")
-# Include all files whose path match '${SEQAN3_CLONE_DIR}/include/seqan3/.*'.
-list (APPEND PAIRWISE_ALIGNER_GCOVR_ARGUMENTS "--filter;\'${SEQAN3_CLONE_DIR}/include/seqan3/.*\'")
-# Include all files whose path match '${SEQAN3_CLONE_DIR}/test/include/seqan3/test/.*'.
-list (APPEND PAIRWISE_ALIGNER_GCOVR_ARGUMENTS "--filter;\'${SEQAN3_CLONE_DIR}/test/include/seqan3/test/.*\'")
-# Remove all files whose path match '${SEQAN3_CLONE_DIR}/include/seqan3/contrib/.*'.
-list (APPEND PAIRWISE_ALIGNER_GCOVR_ARGUMENTS "--exclude;\'${SEQAN3_CLONE_DIR}/include/seqan3/contrib/.*\'")
-# Remove all files whose path match '${SEQAN3_CLONE_DIR}/include/seqan3/std/.*'.
-list (APPEND PAIRWISE_ALIGNER_GCOVR_ARGUMENTS "--exclude;\'${SEQAN3_CLONE_DIR}/include/seqan3/std/.*\'")
+# Include all files whose path match '${PAIRWISE_ALIGNER_CLONE_DIR}/include/pairwise_aligner/.*'.
+list (APPEND PAIRWISE_ALIGNER_GCOVR_ARGUMENTS "--filter;\'${PAIRWISE_ALIGNER_CLONE_DIR}/include/pairwise_aligner/.*\'")
+# Include all files whose path match '${PAIRWISE_ALIGNER_CLONE_DIR}/test/include/pairwise_aligner/test/.*'.
+list (APPEND PAIRWISE_ALIGNER_GCOVR_ARGUMENTS "--filter;\'${PAIRWISE_ALIGNER_CLONE_DIR}/test/include/pairwise_aligner/test/.*\'")
+# Include all files whose path match '${PAIRWISE_ALIGNER_CLONE_DIR}/lib/seqan3/include/seqan3/.*'.
+list (APPEND SEQAN3_GCOVR_ARGUMENTS "--filter;\'${PAIRWISE_ALIGNER_CLONE_DIR}/lib/seqan3/include/seqan3/.*\'")
+# Include all files whose path match '${PAIRWISE_ALIGNER_CLONE_DIR}/lib/seqan3/test/include/seqan3/test/.*'.
+list (APPEND SEQAN3_GCOVR_ARGUMENTS "--filter;\'${PAIRWISE_ALIGNER_CLONE_DIR}/lib/seqan3/test/include/seqan3/test/.*\'")
+# Remove all files whose path match '${PAIRWISE_ALIGNER_CLONE_DIR}/lib/seqan3/include/seqan3/contrib/.*'.
+list (APPEND SEQAN3_GCOVR_ARGUMENTS "--exclude;\'${PAIRWISE_ALIGNER_CLONE_DIR}/lib/seqan3/include/seqan3/contrib/.*\'")
+# Remove all files whose path match '${PAIRWISE_ALIGNER_CLONE_DIR}/lib/seqan3/include/seqan3/std/.*'.
+list (APPEND SEQAN3_GCOVR_ARGUMENTS "--exclude;\'${PAIRWISE_ALIGNER_CLONE_DIR}/lib/seqan3/include/seqan3/std/.*\'")
 # Remove line coverage for all lines that match '^\s*$', i.e. empty lines.
 list (APPEND PAIRWISE_ALIGNER_GCOVR_ARGUMENTS "--exclude-lines-by-pattern;\\\'^\\\\s*$$\\\'")
 # Remove line coverage for all lines that match "^\s*[\{\}]\s*\;*\s*(//.*)?$", i.e. lines with a single '{' or '}' which
