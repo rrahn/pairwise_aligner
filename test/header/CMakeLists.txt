@@ -2,13 +2,13 @@
 # Copyright (c) 2006-2021, Knut Reinert & Freie Universität Berlin
 # Copyright (c) 2016-2021, Knut Reinert & MPI für molekulare Genetik
 # This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
-# shipped with this file and also available at: https://github.com/rrahn/lib_template/blob/master/LICENSE.md
+# shipped with this file and also available at: https://github.com/rrahn/pairwise_aligner/blob/master/LICENSE.md
 # -----------------------------------------------------------------------------------------------------
 
 cmake_minimum_required (VERSION 3.10)
-project (lib_template_header_test CXX)
+project (pairwise_aligner_header_test CXX)
 
-include (../cmake/lib_template-test.cmake)
+include (../cmake/pairwise_aligner-test.cmake)
 
 set (target "header_test")
 
@@ -18,7 +18,7 @@ file (GLOB_RECURSE header_files RELATIVE "${header_base_path}" "${header_base_pa
 
 file (WRITE "${PROJECT_BINARY_DIR}/${target}.cpp" "")
 add_executable (${target} ${PROJECT_BINARY_DIR}/${target}.cpp)
-target_link_libraries (${target} seqan::lib_template::test::header)
+target_link_libraries (${target} seqan::pairwise_aligner::test::header)
 add_test (NAME "header/${target}" COMMAND ${target})
 
 foreach (header ${header_files})
@@ -38,24 +38,24 @@ foreach (header ${header_files})
                                     "-DHEADER_FILE_INCLUDE=${header}"
                                     "-DHEADER_TARGET_SOURCE=${header_target_source}"
                                     "-DHEADER_TEST_NAME_SAFE=${header_test_name_safe}"
-                                    "-DHEADER_COMPONENT=lib_template"
+                                    "-DHEADER_COMPONENT=pairwise_aligner"
                                     "-DHEADER_SUB_TEST=${header_sub_test}"
                                     "-P"
-                                    "${LIB_TEMPLATE_CLONE_DIR}/lib/seqan3/test/header/generate_header_source.cmake"
+                                    "${PAIRWISE_ALIGNER_CLONE_DIR}/lib/seqan3/test/header/generate_header_source.cmake"
                             DEPENDS "${header_base_path}/${header}"
-                                    "${LIB_TEMPLATE_CLONE_DIR}/lib/seqan3/test/header/generate_header_source.cmake")
+                                    "${PAIRWISE_ALIGNER_CLONE_DIR}/lib/seqan3/test/header/generate_header_source.cmake")
 
         add_library (${header_target} OBJECT "${header_target_source}")
 
-        # NOTE: a simple target_link_libraries (${header_target} seqan::lib_template::test::header)
+        # NOTE: a simple target_link_libraries (${header_target} seqan::pairwise_aligner::test::header)
         # is not possible for OBJECT libraries before cmake 3.12
         if (CMAKE_VERSION VERSION_LESS 3.12)
-            target_compile_options (${header_target} PRIVATE $<TARGET_PROPERTY:seqan::lib_template::test::header,INTERFACE_COMPILE_OPTIONS>)
-            target_compile_definitions (${header_target} PRIVATE $<TARGET_PROPERTY:seqan::lib_template::test::header,INTERFACE_COMPILE_DEFINITIONS>)
-            target_include_directories (${header_target} PRIVATE $<TARGET_PROPERTY:seqan::lib_template::test::header,INTERFACE_INCLUDE_DIRECTORIES>)
-            add_dependencies (${header_target} "seqan::lib_template::test::header" gtest gtest_main)
+            target_compile_options (${header_target} PRIVATE $<TARGET_PROPERTY:seqan::pairwise_aligner::test::header,INTERFACE_COMPILE_OPTIONS>)
+            target_compile_definitions (${header_target} PRIVATE $<TARGET_PROPERTY:seqan::pairwise_aligner::test::header,INTERFACE_COMPILE_DEFINITIONS>)
+            target_include_directories (${header_target} PRIVATE $<TARGET_PROPERTY:seqan::pairwise_aligner::test::header,INTERFACE_INCLUDE_DIRECTORIES>)
+            add_dependencies (${header_target} "seqan::pairwise_aligner::test::header" gtest gtest_main)
         else ()
-            target_link_libraries (${header_target} seqan::lib_template::test::header)
+            target_link_libraries (${header_target} seqan::pairwise_aligner::test::header)
         endif ()
 
         target_sources (${target} PRIVATE $<TARGET_OBJECTS:${header_target}>)

@@ -1,31 +1,31 @@
-PROJECT_NAME           = "lib_template"
+PROJECT_NAME           = "pairwise_aligner"
 PROJECT_BRIEF          = "A library template for a SeqAn submodule library."
 #PROJECT_LOGO          =
-PROJECT_NUMBER         = ${LIB_TEMPLATE_VERSION}
+PROJECT_NUMBER         = ${PAIRWISE_ALIGNER_VERSION}
 #LAYOUT_FILE           =
 
 ## PATHS
-OUTPUT_DIRECTORY       = ${LIB_TEMPLATE_DOXYGEN_OUTPUT_DIR}
-INCLUDE_PATH           = ${LIB_TEMPLATE_DOXYGEN_SOURCE_DIR}/include
-INPUT                  = ${LIB_TEMPLATE_DOXYGEN_SOURCE_DIR}/include               \
-                         ${LIB_TEMPLATE_DOXYGEN_SOURCE_DIR}/doc                   \
-                         ${LIB_TEMPLATE_DOXYGEN_SOURCE_DIR}/LICENSE.md
-STRIP_FROM_PATH        = ${LIB_TEMPLATE_DOXYGEN_SOURCE_DIR}/include
-STRIP_FROM_INC_PATH    = ${LIB_TEMPLATE_DOXYGEN_SOURCE_DIR}/include
-EXAMPLE_PATH           = ${LIB_TEMPLATE_DOXYGEN_SOURCE_DIR}
-IMAGE_PATH             = ${LIB_TEMPLATE_DOXYGEN_SOURCE_DIR}/doc \
-                         ${LIB_TEMPLATE_DOXYGEN_SOURCE_DIR}/test/doc
+OUTPUT_DIRECTORY       = ${PAIRWISE_ALIGNER_DOXYGEN_OUTPUT_DIR}
+INCLUDE_PATH           = ${PAIRWISE_ALIGNER_DOXYGEN_SOURCE_DIR}/include
+INPUT                  = ${PAIRWISE_ALIGNER_DOXYGEN_SOURCE_DIR}/include               \
+                         ${PAIRWISE_ALIGNER_DOXYGEN_SOURCE_DIR}/doc                   \
+                         ${PAIRWISE_ALIGNER_DOXYGEN_SOURCE_DIR}/LICENSE.md
+STRIP_FROM_PATH        = ${PAIRWISE_ALIGNER_DOXYGEN_SOURCE_DIR}/include
+STRIP_FROM_INC_PATH    = ${PAIRWISE_ALIGNER_DOXYGEN_SOURCE_DIR}/include
+EXAMPLE_PATH           = ${PAIRWISE_ALIGNER_DOXYGEN_SOURCE_DIR}
+IMAGE_PATH             = ${PAIRWISE_ALIGNER_DOXYGEN_SOURCE_DIR}/doc \
+                         ${PAIRWISE_ALIGNER_DOXYGEN_SOURCE_DIR}/test/doc
 
 ## DOT SUPPORT
-HAVE_DOT               = ${LIB_TEMPLATE_DOXYGEN_HAVE_DOT}
-DOT_NUM_THREADS        = ${LIB_TEMPLATE_DOXYGEN_DOT_NUM_THREADS}
+HAVE_DOT               = ${PAIRWISE_ALIGNER_DOXYGEN_HAVE_DOT}
+DOT_NUM_THREADS        = ${PAIRWISE_ALIGNER_DOXYGEN_DOT_NUM_THREADS}
 DOT_IMAGE_FORMAT       = svg
 DOT_GRAPH_MAX_NODES    = 500
-INTERACTIVE_SVG        = ${LIB_TEMPLATE_DOXYGEN_HAVE_DOT}
+INTERACTIVE_SVG        = ${PAIRWISE_ALIGNER_DOXYGEN_HAVE_DOT}
 
 ## MISC OPTIONS
 GENERATE_LATEX         = NO
-USE_MATHJAX            = ${LIB_TEMPLATE_DOXYGEN_USE_MATHJAX}
+USE_MATHJAX            = ${PAIRWISE_ALIGNER_DOXYGEN_USE_MATHJAX}
 HTML_TIMESTAMP         = YES
 EXT_LINKS_IN_WINDOW    = YES
 RECURSIVE              = YES
@@ -50,14 +50,14 @@ PREDEFINED             = "CEREAL_SERIALIZE_FUNCTION_NAME=serialize" \
                          "CEREAL_SAVE_FUNCTION_NAME=save" \
                          "CEREAL_LOAD_MINIMAL_FUNCTION_NAME=load_minimal" \
                          "CEREAL_SAVE_MINIMAL_FUNCTION_NAME=save_minimal" \
-                         "LIB_TEMPLATE_DOXYGEN_ONLY(x)= x" \
-                         "${LIB_TEMPLATE_DOXYGEN_PREDEFINED_NDEBUG}"
+                         "PAIRWISE_ALIGNER_DOXYGEN_ONLY(x)= x" \
+                         "${PAIRWISE_ALIGNER_DOXYGEN_PREDEFINED_NDEBUG}"
 
-EXPAND_AS_DEFINED      = LIB_TEMPLATE_CPO_OVERLOAD_BODY LIB_TEMPLATE_CPO_OVERLOAD
+EXPAND_AS_DEFINED      = PAIRWISE_ALIGNER_CPO_OVERLOAD_BODY PAIRWISE_ALIGNER_CPO_OVERLOAD
 
-TAGFILES               += "${LIB_TEMPLATE_DOXYGEN_STD_TAGFILE}=https://en.cppreference.com/w/"
+TAGFILES               += "${PAIRWISE_ALIGNER_DOXYGEN_STD_TAGFILE}=https://en.cppreference.com/w/"
 
-EXCLUDE_SYMBOLS        = LIB_TEMPLATE::contrib
+EXCLUDE_SYMBOLS        = PAIRWISE_ALIGNER::contrib
 
 FORMULA_FONTSIZE       = 14
 HTML_DYNAMIC_SECTIONS  = YES
@@ -68,9 +68,9 @@ FILE_PATTERNS          = *
 EXCLUDE_PATTERNS       = */doc/*.cpp
 
 ## Developer VS user mode
-EXTRACT_PRIVATE        = ${LIB_TEMPLATE_DOXYGEN_EXTRACT_PRIVATE}
-ENABLED_SECTIONS       = ${LIB_TEMPLATE_DOXYGEN_ENABLED_SECTIONS}
-EXCLUDE_SYMBOLS        += ${LIB_TEMPLATE_DOXYGEN_EXCLUDE_SYMBOLS}
+EXTRACT_PRIVATE        = ${PAIRWISE_ALIGNER_DOXYGEN_EXTRACT_PRIVATE}
+ENABLED_SECTIONS       = ${PAIRWISE_ALIGNER_DOXYGEN_ENABLED_SECTIONS}
+EXCLUDE_SYMBOLS        += ${PAIRWISE_ALIGNER_DOXYGEN_EXCLUDE_SYMBOLS}
 
 ## Custom doxygen commands
 #ALIASES += tutorial_head{4}="<table><tr><th>Difficulty</th><td>\1</td></tr><tr><th>Duration</th><td>\2</td></tr><tr><th>Prerequisite tutorials</th><td>\3</td></tr><tr><th>Recommended reading</th><td>\4</td></tr></table>"
@@ -102,8 +102,8 @@ EXCLUDE_SYMBOLS        += ${LIB_TEMPLATE_DOXYGEN_EXCLUDE_SYMBOLS}
 
 ### Extra files that we can link to
 
-# HTML_EXTRA_FILES       = ${LIB_TEMPLATE_DOXYGEN_SOURCE_DIR}/doc/tutorial/sam_file/example.sam
-# HTML_EXTRA_FILES       += ${LIB_TEMPLATE_DOXYGEN_SOURCE_DIR}/test/documentation/version.js
-# HTML_EXTRA_FILES       += ${LIB_TEMPLATE_DOXYGEN_SOURCE_DIR}/test/documentation/version.php
-# HTML_EXTRA_FILES       += ${LIB_TEMPLATE_DOXYGEN_SOURCE_DIR}/test/documentation/api-stability.js
-${LIB_TEMPLATE_DOXYFILE_OPTION_POWERED_BY_VERCEL}
+# HTML_EXTRA_FILES       = ${PAIRWISE_ALIGNER_DOXYGEN_SOURCE_DIR}/doc/tutorial/sam_file/example.sam
+# HTML_EXTRA_FILES       += ${PAIRWISE_ALIGNER_DOXYGEN_SOURCE_DIR}/test/documentation/version.js
+# HTML_EXTRA_FILES       += ${PAIRWISE_ALIGNER_DOXYGEN_SOURCE_DIR}/test/documentation/version.php
+# HTML_EXTRA_FILES       += ${PAIRWISE_ALIGNER_DOXYGEN_SOURCE_DIR}/test/documentation/api-stability.js
+${PAIRWISE_ALIGNER_DOXYFILE_OPTION_POWERED_BY_VERCEL}

@@ -1,1 +1,1 @@
-lib_template_test (init_test)
+pairwise_aligner_test (init_test)
