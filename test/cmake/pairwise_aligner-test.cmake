@@ -30,6 +30,7 @@ option (PAIRWISE_ALIGNER_BENCHMARK_ALIGN_LOOPS "Pass -falign-loops=32 to the ben
 # Paths to folders.
 # ----------------------------------------------------------------------------
 
+find_path (SEQAN3_TEST_INCLUDE_DIR NAMES seqan3/test/tmp_filename.hpp HINTS "${CMAKE_CURRENT_LIST_DIR}/../../lib/seqan3/test/include/")
 find_path (PAIRWISE_ALIGNER_TEST_CMAKE_MODULE_DIR NAMES seqan3_test_component.cmake HINTS "${CMAKE_CURRENT_LIST_DIR}/../../lib/seqan3/test/cmake/")
 list(APPEND CMAKE_MODULE_PATH "${PAIRWISE_ALIGNER_TEST_CMAKE_MODULE_DIR}")
 
@@ -47,46 +48,63 @@ file(MAKE_DIRECTORY ${SEQAN3_TEST_CLONE_DIR}/googletest/include/)
 
 # seqan::pairwise_aligner::test exposes a base set of required flags, includes, definitions and
 # libraries which are in common for **all** pairwise_aligner tests
-add_library (pairwise_aligner_test INTERFACE)
-target_compile_options (pairwise_aligner_test INTERFACE "-pedantic"  "-Wall" "-Wextra" "-Werror")
-target_link_libraries (pairwise_aligner_test INTERFACE "seqan::pairwise_aligner" "pthread")
-target_include_directories (pairwise_aligner_test INTERFACE "${PAIRWISE_ALIGNER_TEST_INCLUDE_DIR}")
-add_library (seqan::pairwise_aligner::test ALIAS pairwise_aligner_test)
-
-# pairwise_aligner::test::performance specifies required flags, includes and libraries
-# needed for performance test cases in pairwise_aligner/test/performance
-add_library (pairwise_aligner_test_performance INTERFACE)
-target_link_libraries (pairwise_aligner_test_performance INTERFACE "seqan::pairwise_aligner::test" "gbenchmark")
-
-if (PAIRWISE_ALIGNER_BENCHMARK_ALIGN_LOOPS)
-    target_compile_options (pairwise_aligner_test_performance INTERFACE "-falign-loops=32")
+if (NOT TARGET seqan::pairwise_aligner::test)
+    add_library (pairwise_aligner_test INTERFACE)
+    target_compile_options (pairwise_aligner_test INTERFACE "-pedantic"  "-Wall" "-Wextra" "-Werror")
+    target_link_libraries (pairwise_aligner_test INTERFACE "seqan::pairwise_aligner" "pthread")
+    target_include_directories (pairwise_aligner_test INTERFACE "${SEQAN3_TEST_INCLUDE_DIR}")
+    add_library (seqan::pairwise_aligner::test ALIAS pairwise_aligner_test)
 endif ()
 
-target_include_directories (pairwise_aligner_test_performance INTERFACE "${SEQAN3_BENCHMARK_CLONE_DIR}/include/")
-add_library (seqan::pairwise_aligner::test::performance ALIAS pairwise_aligner_test_performance)
+# seqan::pairwise_aligner::test::performance specifies required flags, includes and libraries
+# needed for performance test cases in pairwise_aligner/test/performance
+if (NOT TARGET seqan::pairwise_aligner::test::performance)
+    add_library (pairwise_aligner_test_performance INTERFACE)
+    target_link_libraries (pairwise_aligner_test_performance INTERFACE "seqan::pairwise_aligner::test" "gbenchmark")
 
-# pairwise_aligner::test::unit specifies required flags, includes and libraries
+    if (PAIRWISE_ALIGNER_BENCHMARK_ALIGN_LOOPS)
+        target_compile_options (pairwise_aligner_test_performance INTERFACE "-falign-loops=32")
+    endif ()
+
+    add_library (seqan::pairwise_aligner::test::performance ALIAS pairwise_aligner_test_performance)
+endif ()
+
+# seqan::pairwise_aligner::test::unit specifies required flags, includes and libraries
 # needed for unit test cases in pairwise_aligner/test/unit
-add_library (pairwise_aligner_test_unit INTERFACE)
-target_link_libraries (pairwise_aligner_test_unit INTERFACE "seqan::pairwise_aligner::test" "gtest_main" "gtest")
-target_include_directories (pairwise_aligner_test_unit INTERFACE "${SEQAN3_TEST_CLONE_DIR}/googletest/include/")
-add_library (seqan::pairwise_aligner::test::unit ALIAS pairwise_aligner_test_unit)
+if (NOT TARGET seqan::pairwise_aligner::test::unit)
+    add_library (pairwise_aligner_test_unit INTERFACE)
+    target_link_libraries (pairwise_aligner_test_unit INTERFACE "seqan::pairwise_aligner::test" "gtest_main" "gtest")
+    add_library (seqan::pairwise_aligner::test::unit ALIAS pairwise_aligner_test_unit)
+endif ()
 
-# pairwise_aligner::test::coverage specifies required flags, includes and libraries
+# seqan::pairwise_aligner::test::coverage specifies required flags, includes and libraries
 # needed for coverage test cases in pairwise_aligner/test/coverage
-add_library (pairwise_aligner_test_coverage INTERFACE)
-target_compile_options (pairwise_aligner_test_coverage INTERFACE "--coverage" "-fprofile-arcs" "-ftest-coverage")
-target_link_libraries (pairwise_aligner_test_coverage INTERFACE "seqan::pairwise_aligner::test::unit" "gcov")
-add_library (seqan::pairwise_aligner::test::coverage ALIAS pairwise_aligner_test_coverage)
+if (NOT TARGET seqan::pairwise_aligner::test::coverage)
+    add_library (pairwise_aligner_test_coverage INTERFACE)
+    target_compile_options (pairwise_aligner_test_coverage INTERFACE "--coverage" "-fprofile-arcs" "-ftest-coverage")
+    # -fprofile-abs-path requires at least gcc8, it forces gcov to report absolute instead of relative paths.
+    # gcovr has trouble detecting the headers otherwise.
+    # ccache is not aware of this option, so it needs to be skipped with `--ccache-skip`.
+    find_program (CCACHE_PROGRAM ccache)
+    if (CCACHE_PROGRAM)
+        target_compile_options (pairwise_aligner_test_coverage INTERFACE "--ccache-skip" "-fprofile-abs-path")
+    else ()
+        target_compile_options (pairwise_aligner_test_coverage INTERFACE "-fprofile-abs-path")
+    endif ()
+    target_link_libraries (pairwise_aligner_test_coverage INTERFACE "seqan::pairwise_aligner::test::unit" "gcov")
+    add_library (seqan::pairwise_aligner::test::coverage ALIAS pairwise_aligner_test_coverage)
+endif ()
 
-# pairwise_aligner::test::header specifies required flags, includes and libraries
+# seqan::pairwise_aligner::test::header specifies required flags, includes and libraries
 # needed for header test cases in pairwise_aligner/test/header
-add_library (pairwise_aligner_test_header INTERFACE)
-target_link_libraries (pairwise_aligner_test_header INTERFACE "seqan::pairwise_aligner::test::unit")
-target_link_libraries (pairwise_aligner_test_header INTERFACE "seqan::pairwise_aligner::test::performance")
-target_compile_definitions (pairwise_aligner_test_header INTERFACE -DPAIRWISE_ALIGNER_DISABLE_DEPRECATED_WARNINGS)
-target_compile_definitions (pairwise_aligner_test_header INTERFACE -DPAIRWISE_ALIGNER_HEADER_TEST)
-add_library (seqan::pairwise_aligner::test::header ALIAS pairwise_aligner_test_header)
+if (NOT TARGET seqan::pairwise_aligner::test::header)
+    add_library (pairwise_aligner_test_header INTERFACE)
+    target_link_libraries (pairwise_aligner_test_header INTERFACE "seqan::pairwise_aligner::test::unit")
+    target_link_libraries (pairwise_aligner_test_header INTERFACE "seqan::pairwise_aligner::test::performance")
+    target_compile_definitions (pairwise_aligner_test_header INTERFACE -DPAIRWISE_ALIGNER_DISABLE_DEPRECATED_WARNINGS)
+    target_compile_definitions (pairwise_aligner_test_header INTERFACE -DPAIRWISE_ALIGNER_HEADER_TEST)
+    add_library (seqan::pairwise_aligner::test::header ALIAS pairwise_aligner_test_header)
+endif ()
 
 # ----------------------------------------------------------------------------
 # Commonly shared options for external projects.
