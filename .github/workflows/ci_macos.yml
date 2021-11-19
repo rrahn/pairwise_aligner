@@ -8,7 +8,7 @@ on:
   pull_request:
 
 env:
-  CMAKE_VERSION: 3.8.2
+  CMAKE_VERSION: 3.10.3
   SEQAN3_NO_VERSION_CHECK: 1
   TZ: Europe/Berlin
 
@@ -82,17 +82,17 @@ jobs:
           env cmake --version
           env ${{ matrix.cxx }} --version
 
-      - name: Configure tests
+      - name: Configure unit tests
         env:
           CXX: ${{ matrix.cxx }}
           CC: ${{ matrix.cc }}
         run: |
           mkdir build
           cd build
-          cmake ../${{ env.REPOSITORY_NAME }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-                                              -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}"
+          cmake ../${{ env.REPOSITORY_NAME }}/test/unit -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+                                                        -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}"
 
-      - name: Build application
+      - name: Build unit tests
         env:
           CCACHE_BASEDIR: ${{ github.workspace }}
           CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -103,19 +103,6 @@ jobs:
           ccache -p || true
           cd build
           make -k -j3
-          ccache -s || true
-
-      - name: Build tests
-        env:
-          CCACHE_BASEDIR: ${{ github.workspace }}
-          CCACHE_DIR: ${{ github.workspace }}/.ccache
-          CCACHE_COMPRESS: true
-          CCACHE_COMPRESSLEVEL: 6
-          CCACHE_MAXSIZE: 500M
-        run: |
-          ccache -p || true
-          cd build
-          make -k -j3 api_test cli_test
           ccache -s || true
 
       - name: Run tests
