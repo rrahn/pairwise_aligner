@@ -8,7 +8,7 @@ on:
   pull_request:
 
 env:
-  CMAKE_VERSION: 3.8.2
+  CMAKE_VERSION: 3.10.3
   SEQAN3_NO_VERSION_CHECK: 1
   TZ: Europe/Berlin
 
@@ -29,7 +29,7 @@ jobs:
             cxx: "g++-11"
             cc: "gcc-11"
             build: coverage
-            build_type: Coverage
+            build_type: Debug
 
           - name: "gcc11"
             cxx: "g++-11"
@@ -70,13 +70,13 @@ jobs:
       - name: Install compiler ${{ matrix.cxx }}
         run: sudo apt-get install --yes ${{ matrix.cxx }}
 
-      - name: Install lcov
+      - name: Install gcovr
         if: matrix.build == 'coverage'
         env:
           CC: ${{ matrix.cc }}
         run: |
-          sudo apt-get install --yes lcov
           sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/${CC/gcc/gcov} 100
+          pip install gcovr
 
       - name: Load ccache
         uses: actions/cache@v2
@@ -102,7 +102,8 @@ jobs:
           mkdir build
           cd build
           cmake ../${{ env.REPOSITORY_NAME }}/test/unit -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-                                                        -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}"
+                                                        -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}" \
+                                                        -D${{ env.REPOSITORY_NAME }}_COVERAGE_PARALLEL_LEVEL=2
 
       - name: Build unit tests
         env:
@@ -111,38 +112,22 @@ jobs:
           CCACHE_COMPRESS: true
           CCACHE_COMPRESSLEVEL: 6
           CCACHE_MAXSIZE: 500M
+          GCOV: ${{ github.workspace }}/${{ env.REPOSITORY_NAME }}/lib/seqan3/.github/workflows/scripts/gcov.sh
         run: |
           ccache -p || true
           cd build
           make -k -j2
           ccache -s || true
 
-      - name: Generate coverage baseline
-        if: matrix.build == 'coverage'
-        run: |
-          lcov --directory ./build/ --zerocounters
-          lcov --directory ./build/ --capture --initial --output-file ./build/coverage_report.baseline
-
       - name: Run tests
+        if: matrix.build != 'coverage'
         run: |
           cd build
           ctest . -j2 --output-on-failure
-
-      - name: Generate coverage report
-        if: matrix.build == 'coverage'
-        run: |
-          lcov --directory ./build/ --capture --output-file ./build/coverage_report.captured
-          lcov -a ./build/coverage_report.baseline -a ./build/coverage_report.captured --output-file ./build/coverage_report.total
-          lcov --remove ./build/coverage_report.total \
-                        '/usr/*' \
-                        '${{ github.workspace }}/${{ env.REPOSITORY_NAME }}/lib/*' \
-                        '${{ github.workspace }}/${{ env.REPOSITORY_NAME }}/test/*' \
-                        '${{ github.workspace }}/build/vendor/*' \
-               --output-file ./build/coverage_report
 
       - name: Submit coverage report
         if: matrix.build == 'coverage'
         uses: codecov/codecov-action@v2
         with:
-          files: ${{ github.workspace }}/build/coverage_report
+          files: ${{ github.workspace }}/build/lib_template_coverage.xml
           root_dir: ${{ github.workspace }}/${{ env.REPOSITORY_NAME }}
