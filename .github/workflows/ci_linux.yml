@@ -34,22 +34,28 @@ jobs:
           - name: "gcc11"
             cxx: "g++-11"
             cc: "gcc-11"
+            build: unit
             build_type: Release
 
           - name: "gcc10"
             cxx: "g++-10"
             cc: "gcc-10"
+            build: unit
             build_type: Release
 
           - name: "gcc9 (c++2a)"
             cxx: "g++-9"
             cc: "gcc-9"
+            build: unit
             build_type: Release
             cxx_flags: "-std=c++2a"
 
     steps:
       - name: Set repository name
         run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+
+      - name: Repository name as upper case
+        run: echo "CMAKE_REPOSITORY_NAME=$(echo ${{ env.REPOSITORY_NAME }} | tr '[:lower:]' '[:upper:]')" >> $GITHUB_ENV
 
       - name: Checkout
         uses: actions/checkout@v2
@@ -94,18 +100,19 @@ jobs:
           env cmake --version
           env ${{ matrix.cxx }} --version
 
-      - name: Configure unit tests
+      - name: Configure tests
         env:
           CXX: ${{ matrix.cxx }}
           CC: ${{ matrix.cc }}
         run: |
           mkdir build
           cd build
-          cmake ../${{ env.REPOSITORY_NAME }}/test/unit -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-                                                        -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}" \
-                                                        -D${{ env.REPOSITORY_NAME }}_COVERAGE_PARALLEL_LEVEL=2
+          cmake ../${{ env.REPOSITORY_NAME }}/test/${{ matrix.build }} \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}" \
+            -D${{ env.CMAKE_REPOSITORY_NAME }}_COVERAGE_PARALLEL_LEVEL=2
 
-      - name: Build unit tests
+      - name: Build tests
         env:
           CCACHE_BASEDIR: ${{ github.workspace }}
           CCACHE_DIR: ${{ github.workspace }}/.ccache
