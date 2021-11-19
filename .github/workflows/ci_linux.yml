@@ -129,5 +129,5 @@ jobs:
         if: matrix.build == 'coverage'
         uses: codecov/codecov-action@v2
         with:
-          files: ${{ github.workspace }}/build/lib_template_coverage.xml
+          files: ${{ github.workspace }}/build/${{ env.REPOSITORY_NAME }}_coverage.xml
           root_dir: ${{ github.workspace }}/${{ env.REPOSITORY_NAME }}
