@@ -20,7 +20,7 @@
 
 #include <pairwise_aligner/affine/affine_dp_algorithm.hpp>
 #include <pairwise_aligner/affine/affine_gap_model.hpp>
-#include <pairwise_aligner/affine/initialisation_strategy_affine.hpp>
+#include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
 #include <pairwise_aligner/dp_initialisation_rule.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
 #include <pairwise_aligner/pairwise_aligner.hpp>
@@ -39,7 +39,7 @@ void alignment_global_affine(benchmark::State & state)
     using score_t = int32_t;
     pa::score_model_unitary<score_t> score_model{score_t{4}, score_t{-5}};
     pa::affine_gap_model<score_t> gap_model{-10, -1};
-    pa::initialisation_strategy_affine init{gap_model,
+    pa::affine_initialisation_strategy init{gap_model,
                                             pa::dp_initialisation_rule::regular,
                                             pa::dp_initialisation_rule::regular};
 

@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides seqan::pairwise_aligner::initialisation_strategy_affine.
+ * \brief Provides seqan::pairwise_aligner::affine_initialisation_strategy.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
@@ -21,7 +21,7 @@ inline namespace v1
 {
 
 template <typename affine_gap_model_t>
-class initialisation_strategy_affine
+class affine_initialisation_strategy
 {
 private:
     affine_gap_model_t _gap_model{};
@@ -32,8 +32,8 @@ private:
 
 public:
 
-    initialisation_strategy_affine() = default;
-    explicit initialisation_strategy_affine(affine_gap_model_t affine_gap_model,
+    affine_initialisation_strategy() = default;
+    explicit affine_initialisation_strategy(affine_gap_model_t affine_gap_model,
                                             dp_initialisation_rule const row_initialisation_rule,
                                             dp_initialisation_rule const column_initialisation_rule) noexcept :
 
