@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides seqan::pairwise_aligner::gap_model_affine.hpp.
+ * \brief Provides seqan::pairwise_aligner::affine_gap_model.hpp.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
@@ -18,7 +18,7 @@ inline namespace v1
 {
 
 template <typename score_t>
-struct gap_model_affine
+struct affine_gap_model
 {
     score_t gap_open_score{};
     score_t gap_extension_score{};

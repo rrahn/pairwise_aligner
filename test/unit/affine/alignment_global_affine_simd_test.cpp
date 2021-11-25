@@ -10,7 +10,7 @@
 #include <string_view>
 
 #include <pairwise_aligner/affine/affine_dp_algorithm.hpp>
-#include <pairwise_aligner/affine/gap_model_affine.hpp>
+#include <pairwise_aligner/affine/affine_gap_model.hpp>
 #include <pairwise_aligner/affine/initialisation_strategy_affine.hpp>
 #include <pairwise_aligner/simd_score_type.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
@@ -25,7 +25,7 @@ TEST(affine_test, all_match)
     using simd_score_t = pa::simd_score<score_t>;
     pa::score_model_unitary<simd_score_t> score_model{simd_score_t{4}, simd_score_t{-5}};
 
-    pa::gap_model_affine<score_t> gap_model{score_t{-10}, score_t{-1}};
+    pa::affine_gap_model<score_t> gap_model{score_t{-10}, score_t{-1}};
     pa::initialisation_strategy_affine init{gap_model,
                                             pa::dp_initialisation_rule::regular,
                                             pa::dp_initialisation_rule::regular};
@@ -59,7 +59,7 @@ TEST(affine_test, all_mismatch)
     using simd_score_t = pa::simd_score<score_t>;
     pa::score_model_unitary<simd_score_t> score_model{simd_score_t{4}, simd_score_t{-5}};
 
-    pa::gap_model_affine<score_t> gap_model{score_t{-10}, score_t{-1}};
+    pa::affine_gap_model<score_t> gap_model{score_t{-10}, score_t{-1}};
     pa::initialisation_strategy_affine init{gap_model,
                                             pa::dp_initialisation_rule::regular,
                                             pa::dp_initialisation_rule::regular};

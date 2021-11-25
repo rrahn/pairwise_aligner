@@ -10,7 +10,7 @@
 #include <string_view>
 
 #include <pairwise_aligner/affine/affine_dp_algorithm.hpp>
-#include <pairwise_aligner/affine/gap_model_affine.hpp>
+#include <pairwise_aligner/affine/affine_gap_model.hpp>
 #include <pairwise_aligner/affine/initialisation_strategy_affine.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
 #include <pairwise_aligner/score_model/score_model_unitary.hpp>
@@ -22,7 +22,7 @@ TEST(affine_test, all_match)
 
     pa::score_model_unitary<int32_t> score_model{4, -5};
     using score_t = typename decltype(score_model)::score_type;
-    pa::gap_model_affine<score_t> gap_model{-10, -1};
+    pa::affine_gap_model<score_t> gap_model{-10, -1};
     pa::initialisation_strategy_affine init{gap_model,
                                             pa::dp_initialisation_rule::regular,
                                             pa::dp_initialisation_rule::regular};
@@ -46,7 +46,7 @@ TEST(affine_test, all_mismatch)
 
     pa::score_model_unitary<int32_t> score_model{4, -5};
     using score_t = typename decltype(score_model)::score_type;
-    pa::gap_model_affine<score_t> gap_model{-10, -1};
+    pa::affine_gap_model<score_t> gap_model{-10, -1};
     pa::initialisation_strategy_affine init{gap_model,
                                             pa::dp_initialisation_rule::regular,
                                             pa::dp_initialisation_rule::regular};

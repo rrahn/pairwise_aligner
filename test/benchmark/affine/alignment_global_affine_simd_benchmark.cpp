@@ -19,7 +19,7 @@
 #include <seqan3/core/configuration/configuration.hpp>
 
 #include <pairwise_aligner/affine/affine_dp_algorithm.hpp>
-#include <pairwise_aligner/affine/gap_model_affine.hpp>
+#include <pairwise_aligner/affine/affine_gap_model.hpp>
 #include <pairwise_aligner/affine/initialisation_strategy_affine.hpp>
 #include <pairwise_aligner/dp_initialisation_rule.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
@@ -50,7 +50,7 @@ void alignment_global_affine_bulk_scalar(benchmark::State & state)
     namespace pa = seqan::pairwise_aligner;
     using score_t = int32_t;
     pa::score_model_unitary<score_t> score_model{score_t{4}, score_t{-5}};
-    pa::gap_model_affine<score_t> gap_model{-10, -1};
+    pa::affine_gap_model<score_t> gap_model{-10, -1};
     pa::initialisation_strategy_affine init{gap_model,
                                             pa::dp_initialisation_rule::regular,
                                             pa::dp_initialisation_rule::regular};
@@ -98,7 +98,7 @@ void alignment_global_affine_bulk_simd(benchmark::State & state)
     using simd_score_t = pa::simd_score<score_t>;
     pa::score_model_unitary<simd_score_t> score_model{simd_score_t{4}, simd_score_t{-5}};
 
-    pa::gap_model_affine<int32_t> gap_model{-10, -1};
+    pa::affine_gap_model<int32_t> gap_model{-10, -1};
     pa::initialisation_strategy_affine init{gap_model,
                                             pa::dp_initialisation_rule::regular,
                                             pa::dp_initialisation_rule::regular};
