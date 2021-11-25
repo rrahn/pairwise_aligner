@@ -19,10 +19,12 @@
 #include <seqan3/core/configuration/configuration.hpp>
 
 #include <pairwise_aligner/affine/affine_dp_algorithm.hpp>
+#include <pairwise_aligner/affine/gap_model_affine.hpp>
+#include <pairwise_aligner/affine/initialisation_strategy_affine.hpp>
+#include <pairwise_aligner/dp_initialisation_rule.hpp>
 
 void alignment_global_affine(benchmark::State & state)
 {
-
     size_t sequence_length = 500;
     auto seq1_tmp = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0) | seqan3::views::to_char;
     auto seq2_tmp = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 1) | seqan3::views::to_char;
@@ -30,7 +32,13 @@ void alignment_global_affine(benchmark::State & state)
     std::string seq1{std::ranges::begin(seq1_tmp), std::ranges::end(seq1_tmp)};
     std::string seq2{std::ranges::begin(seq2_tmp), std::ranges::end(seq2_tmp)};
 
-    seqan::pairwise_aligner::pairwise_aligner_affine<> aligner{};
+    namespace pa = seqan::pairwise_aligner;
+    pa::gap_model_affine<int32_t> gap_model{-10, -1};
+    pa::initialisation_strategy_affine init{gap_model,
+                                            pa::dp_initialisation_rule::regular,
+                                            pa::dp_initialisation_rule::regular};
+
+    pa::pairwise_aligner_affine aligner{gap_model, init};
     int32_t score{};
 
     for (auto _ : state)

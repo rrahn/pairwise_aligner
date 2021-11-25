@@ -26,11 +26,11 @@ namespace seqan::pairwise_aligner
 inline namespace v1
 {
 
-using scalar_score_t = int16_t;
-using simd_score_t = simd_score<scalar_score_t>;
+// using scalar_score_t = int16_t;
+// using simd_score_t = simd_score<scalar_score_t>;
 
-template <typename score_t = int32_t>
-using affine_dp_cell_t = std::pair<score_t, score_t>;
+// template <typename score_t = int32_t>
+// using affine_dp_cell_t = std::pair<score_t, score_t>;
 
 template <typename dp_cell_t, typename dp_vector_t = std::vector<dp_cell_t>>
 class intermediate_dp_vector
@@ -108,7 +108,8 @@ public:
             max_sequence_size = std::max<size_t>(max_sequence_size, std::ranges::distance(inner_sequence));
         });
 
-        std::vector<simd_score_t> simd_sequence{};
+        using simd_score_type = typename value_type::score_type;
+        std::vector<simd_score_type> simd_sequence{};
         simd_sequence.resize(max_sequence_size);
 
         _underlying_dp_vector.initialise(simd_sequence, init_strategy);
@@ -121,11 +122,11 @@ public:
     }
 };
 
-template <typename cell_t>
-using dp_column_vector = intermediate_dp_vector<cell_t>;
+// template <typename cell_t>
+// using dp_column_vector = intermediate_dp_vector<cell_t>;
 
-template <typename cell_t>
-using dp_row_vector = intermediate_dp_vector<cell_t>;
+// template <typename cell_t>
+// using dp_row_vector = intermediate_dp_vector<cell_t>;
 
 template <typename derived_t>
 class pairwise_aligner
@@ -134,11 +135,23 @@ private:
 
     friend derived_t;
 
+    template <typename _derived_t>
+    using dp_column_vector_t = typename _derived_t::template column_vector_type<dp_vector_order::column>;
+    template <typename _derived_t>
+    using dp_row_vector_t = typename _derived_t::template column_vector_type<dp_vector_order::row>;
+
+    template <typename _derived_t>
+    using simd_dp_column_vector_t = typename _derived_t::template simd_column_vector_type<dp_vector_order::column>;
+    template <typename _derived_t>
+    using simd_dp_row_vector_t = typename _derived_t::template simd_column_vector_type<dp_vector_order::row>;
+
     pairwise_aligner() = default;
 
 public:
 
-    template <std::ranges::forward_range sequence1_t, std::ranges::forward_range sequence2_t>
+    template <std::ranges::forward_range sequence1_t,
+              std::ranges::forward_range sequence2_t,
+              typename _derived_t = derived_t>
         requires (std::ranges::viewable_range<sequence1_t> &&
                   std::ranges::viewable_range<sequence2_t>)
     auto compute(sequence1_t && sequence1, sequence2_t && sequence2)
@@ -146,20 +159,19 @@ public:
     {
         return compute(std::forward<sequence1_t>(sequence1),
                        std::forward<sequence2_t>(sequence2),
-                       dp_column_vector<affine_dp_cell_t<scalar_score_t>>{},
-                       dp_row_vector<affine_dp_cell_t<scalar_score_t>>{});
+                       dp_column_vector_t<_derived_t>{},
+                       dp_row_vector_t<_derived_t>{});
     }
 
     template <std::ranges::forward_range sequence1_t,
               std::ranges::forward_range sequence2_t,
-              typename dp_column_vector_t,
-              typename dp_row_vector_t>
+              typename _derived_t = derived_t>
         requires (std::ranges::viewable_range<sequence1_t> &&
                   std::ranges::viewable_range<sequence2_t>)
     auto compute(sequence1_t && sequence1,
                  sequence2_t && sequence2,
-                 dp_column_vector_t first_dp_column,
-                 dp_row_vector_t first_dp_row)
+                 dp_column_vector_t<_derived_t> first_dp_column,
+                 dp_row_vector_t<_derived_t> first_dp_row)
         -> int32_t
     {
         auto && [last_dp_column, last_dp_row] = run(std::forward<sequence1_t>(sequence1),
@@ -173,19 +185,20 @@ public:
     // Bulk execute.
     // ----------------------------------------------------------------------------
 
-    template <std::ranges::forward_range sequence1_t, std::ranges::forward_range sequence2_t>
+    template <std::ranges::forward_range sequence1_t,
+              std::ranges::forward_range sequence2_t,
+              typename _derived_t = derived_t>
         requires (std::ranges::viewable_range<sequence1_t> &&
                   std::ranges::viewable_range<sequence2_t>)
     auto compute_simd(sequence1_t && sequence1, sequence2_t && sequence2)
-        -> simd_score_t
     {
         // have to be the same size.
         assert(std::ranges::size(sequence1) == std::ranges::size(sequence2));
 
         return compute_simd(std::forward<sequence1_t>(sequence1),
                             std::forward<sequence2_t>(sequence2),
-                            simd_intermediate_dp_vector<affine_dp_cell_t<simd_score_t>>{},
-                            simd_intermediate_dp_vector<affine_dp_cell_t<simd_score_t>>{});
+                            simd_dp_column_vector_t<_derived_t>{},
+                            simd_dp_row_vector_t<_derived_t>{});
     }
 
     template <std::ranges::forward_range sequence1_t,
@@ -198,7 +211,6 @@ public:
                       sequence2_t && sequence2,
                       dp_column_vector_t first_dp_column,
                       dp_row_vector_t first_dp_row)
-        -> simd_score_t
     {
         assert(std::ranges::size(sequence1) == std::ranges::size(sequence2));
 

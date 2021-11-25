@@ -10,10 +10,17 @@
 #include <string_view>
 
 #include <pairwise_aligner/affine/affine_dp_algorithm.hpp>
+#include <pairwise_aligner/affine/gap_model_affine.hpp>
+#include <pairwise_aligner/affine/initialisation_strategy_affine.hpp>
 
 TEST(affine_test, all_match)
 {
-    seqan::pairwise_aligner::pairwise_aligner_affine<> aligner{};
+    namespace pa = seqan::pairwise_aligner;
+    pa::gap_model_affine<int32_t> gap_model{-10, -1};
+    pa::initialisation_strategy_affine init{gap_model,
+                                            pa::dp_initialisation_rule::regular,
+                                            pa::dp_initialisation_rule::regular};
+    pa::pairwise_aligner_affine aligner{gap_model, init};
 
     std::string_view seq1{"ACGTGACTGACACTACGACT"};
     std::string_view seq2{"ACGTGACTGACACTACGACT"};
@@ -23,7 +30,13 @@ TEST(affine_test, all_match)
 
 TEST(affine_test, all_mismatch)
 {
-    seqan::pairwise_aligner::pairwise_aligner_affine<> aligner{};
+    namespace pa = seqan::pairwise_aligner;
+
+    pa::gap_model_affine<int32_t> gap_model{-10, -1};
+    pa::initialisation_strategy_affine init{gap_model,
+                                            pa::dp_initialisation_rule::regular,
+                                            pa::dp_initialisation_rule::regular};
+    pa::pairwise_aligner_affine aligner{gap_model, init};
 
     std::string_view seq1{"AAAAAAAAAA"};
     std::string_view seq2{"TTTTTTTTTT"};

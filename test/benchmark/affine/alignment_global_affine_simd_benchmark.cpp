@@ -19,6 +19,9 @@
 #include <seqan3/core/configuration/configuration.hpp>
 
 #include <pairwise_aligner/affine/affine_dp_algorithm.hpp>
+#include <pairwise_aligner/affine/gap_model_affine.hpp>
+#include <pairwise_aligner/affine/initialisation_strategy_affine.hpp>
+#include <pairwise_aligner/dp_initialisation_rule.hpp>
 
 void alignment_global_affine_bulk_scalar(benchmark::State & state)
 {
@@ -40,7 +43,13 @@ void alignment_global_affine_bulk_scalar(benchmark::State & state)
         seq2_collection.emplace_back(std::ranges::begin(char_seq), std::ranges::end(char_seq));
     }
 
-    seqan::pairwise_aligner::pairwise_aligner_affine<> aligner{};
+    namespace pa = seqan::pairwise_aligner;
+    pa::gap_model_affine<int32_t> gap_model{-10, -1};
+    pa::initialisation_strategy_affine init{gap_model,
+                                            pa::dp_initialisation_rule::regular,
+                                            pa::dp_initialisation_rule::regular};
+
+    pa::pairwise_aligner_affine aligner{gap_model, init};
     int32_t score{};
 
     for (auto _ : state)
@@ -74,7 +83,13 @@ void alignment_global_affine_bulk_simd(benchmark::State & state)
         seq2_collection.emplace_back(std::ranges::begin(char_seq), std::ranges::end(char_seq));
     }
 
-    seqan::pairwise_aligner::pairwise_aligner_affine<> aligner{};
+    namespace pa = seqan::pairwise_aligner;
+    pa::gap_model_affine<int32_t> gap_model{-10, -1};
+    pa::initialisation_strategy_affine init{gap_model,
+                                            pa::dp_initialisation_rule::regular,
+                                            pa::dp_initialisation_rule::regular};
+
+    pa::pairwise_aligner_affine aligner{gap_model, init};
     int32_t score{};
 
     for (auto _ : state)
