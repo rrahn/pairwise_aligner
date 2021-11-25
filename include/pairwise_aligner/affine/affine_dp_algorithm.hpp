@@ -17,40 +17,34 @@
 
 #include <pairwise_aligner/affine/affine_cell.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
-#include <pairwise_aligner/simd_score_type.hpp>
 
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
 
-template <template <typename> typename dp_template, typename gap_model_t, typename init_strategy_t>
-class affine_dp_algorithm : protected dp_template<affine_dp_algorithm<dp_template, gap_model_t, init_strategy_t>>
+template <template <typename> typename dp_template, typename score_model_t, typename gap_model_t, typename init_strategy_t>
+class affine_dp_algorithm : protected dp_template<affine_dp_algorithm<dp_template,
+                                                                      score_model_t,
+                                                                      gap_model_t,
+                                                                      init_strategy_t>>
 {
 private:
 
-    using base_t = dp_template<affine_dp_algorithm<dp_template, gap_model_t, init_strategy_t>>;
+    using base_t = dp_template<affine_dp_algorithm<dp_template, score_model_t, gap_model_t, init_strategy_t>>;
 
     friend base_t;
 
-    using score_t = int16_t;
-    using simd_score_t = simd_score<score_t>;
-
+    score_model_t _score_model{};
     gap_model_t _gap_model{};
     init_strategy_t _initialisaion_strategy{};
 
-    alignas(32) score_t match_score = 4;
-    alignas(32) score_t mismatch_score = -5;
-
-    simd_score_t gap_extension_score_simd{-1};
-    simd_score_t gap_open_score_simd{-10};
-
-    simd_score_t match_score_simd{match_score};
-    simd_score_t mismatch_score_simd{mismatch_score};
-
 public:
     affine_dp_algorithm() = default;
-    explicit affine_dp_algorithm(gap_model_t gap_model, init_strategy_t initialisaion_strategy) noexcept :
+    explicit affine_dp_algorithm(score_model_t score_model,
+                                 gap_model_t gap_model,
+                                 init_strategy_t initialisaion_strategy) noexcept :
+        _score_model{std::move(score_model)},
         _gap_model{std::move(gap_model)},
         _initialisaion_strategy{std::move(initialisaion_strategy)}
     {}
@@ -79,14 +73,9 @@ protected:
 
         std::pair cache{get<0>(first_column_cell), get<1>(current_row_cell)};
         get<0>(first_column_cell) = get<0>(current_row_cell);
-
-        if constexpr (!std::integral<score_t>) {
-            get<1>(first_column_cell) = max(static_cast<score_t>(cache.first + gap_open_score_simd),
-                                            static_cast<score_t>(get<1>(first_column_cell) + gap_extension_score_simd));
-        } else {
-            get<1>(first_column_cell) = max(static_cast<score_t>(cache.first + _gap_model.gap_open_score),
-                                            static_cast<score_t>(get<1>(first_column_cell) + _gap_model.gap_extension_score));
-        }
+        get<1>(first_column_cell) = max(static_cast<score_t>(cache.first + _gap_model.gap_open_score),
+                                        static_cast<score_t>(get<1>(first_column_cell) +
+                                                             _gap_model.gap_extension_score));
         return cache;
     }
 
@@ -109,12 +98,7 @@ protected:
         using score_t = typename dp_cell_t::score_type;
 
         auto [next_diagonal, horizontal_score] = column_cell;
-        // TODO: Should be a score model -> the code depends on the score model.
-        if constexpr (std::integral<score_t>) {
-            cache.first += (seq1_val == seq2_val) ? match_score : mismatch_score;
-        } else {
-            cache.first += compare_and_blend(seq1_val, seq2_val, match_score_simd, mismatch_score_simd);
-        }
+        cache.first += _score_model.score(seq1_val, seq2_val);
         cache.first = max(max(cache.first, cache.second), horizontal_score);
         get<0>(column_cell) = cache.first;
         cache.first += (_gap_model.gap_open_score + _gap_model.gap_extension_score);

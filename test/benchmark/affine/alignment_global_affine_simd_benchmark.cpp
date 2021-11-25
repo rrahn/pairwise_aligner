@@ -25,6 +25,7 @@
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
 #include <pairwise_aligner/pairwise_aligner.hpp>
+#include <pairwise_aligner/score_model/score_model_unitary.hpp>
 
 void alignment_global_affine_bulk_scalar(benchmark::State & state)
 {
@@ -48,6 +49,7 @@ void alignment_global_affine_bulk_scalar(benchmark::State & state)
 
     namespace pa = seqan::pairwise_aligner;
     using score_t = int32_t;
+    pa::score_model_unitary<score_t> score_model{score_t{4}, score_t{-5}};
     pa::gap_model_affine<score_t> gap_model{-10, -1};
     pa::initialisation_strategy_affine init{gap_model,
                                             pa::dp_initialisation_rule::regular,
@@ -55,9 +57,9 @@ void alignment_global_affine_bulk_scalar(benchmark::State & state)
 
     using dp_vector_column_t = pa::intermediate_dp_vector<pa::affine_cell<score_t, pa::dp_vector_order::column>>;
     using dp_vector_row_t = pa::intermediate_dp_vector<pa::affine_cell<score_t, pa::dp_vector_order::row>>;
-    using dp_algorithm_t = decltype(pa::pairwise_aligner_affine{gap_model, init});
+    using dp_algorithm_t = decltype(pa::pairwise_aligner_affine{score_model, gap_model, init});
     using aligner_t = pa::interface_one_to_one_single<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>;
-    aligner_t aligner{gap_model, init};
+    aligner_t aligner{score_model, gap_model, init};
     int32_t score{};
 
     for (auto _ : state)
@@ -93,6 +95,9 @@ void alignment_global_affine_bulk_simd(benchmark::State & state)
 
     namespace pa = seqan::pairwise_aligner;
     using score_t = int16_t;
+    using simd_score_t = pa::simd_score<score_t>;
+    pa::score_model_unitary<simd_score_t> score_model{simd_score_t{4}, simd_score_t{-5}};
+
     pa::gap_model_affine<int32_t> gap_model{-10, -1};
     pa::initialisation_strategy_affine init{gap_model,
                                             pa::dp_initialisation_rule::regular,
@@ -101,10 +106,10 @@ void alignment_global_affine_bulk_simd(benchmark::State & state)
     using simd_score_t = pa::simd_score<score_t>;
     using dp_vector_column_t = pa::simd_intermediate_dp_vector<pa::affine_cell<simd_score_t, pa::dp_vector_order::column>>;
     using dp_vector_row_t = pa::simd_intermediate_dp_vector<pa::affine_cell<simd_score_t, pa::dp_vector_order::row>>;
-    using dp_algorithm_t = decltype(pa::pairwise_aligner_affine{gap_model, init});
+    using dp_algorithm_t = decltype(pa::pairwise_aligner_affine{score_model, gap_model, init});
     using aligner_t = pa::interface_one_to_one_bulk<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>;
 
-    aligner_t aligner{gap_model, init};
+    aligner_t aligner{score_model, gap_model, init};
     int32_t score{};
 
     for (auto _ : state)
