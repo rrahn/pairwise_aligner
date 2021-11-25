@@ -17,20 +17,19 @@
 
 #include <pairwise_aligner/affine/affine_cell.hpp>
 #include <pairwise_aligner/pairwise_aligner.hpp>
+#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
 
-template <template <typename ...> typename pairwise_aligner_t, typename gap_model_t, typename init_strategy_t>
-class affine_dp_algorithm : public pairwise_aligner_t<affine_dp_algorithm<pairwise_aligner_t,
-                                                                          gap_model_t,
-                                                                          init_strategy_t>>
+template <template <typename> typename dp_template, typename gap_model_t, typename init_strategy_t>
+class affine_dp_algorithm : protected dp_template<affine_dp_algorithm<dp_template, gap_model_t, init_strategy_t>>
 {
 private:
 
-    using base_t = pairwise_aligner_t<affine_dp_algorithm<pairwise_aligner_t, gap_model_t, init_strategy_t>>;
+    using base_t = dp_template<affine_dp_algorithm<dp_template, gap_model_t, init_strategy_t>>;
 
     friend base_t;
 
@@ -136,10 +135,10 @@ protected:
 // ----------------------------------------------------------------------------
 
 template <typename ...policies_t>
-class pairwise_aligner_affine : public affine_dp_algorithm<pairwise_aligner, std::remove_reference_t<policies_t>...>
+class pairwise_aligner_affine : public affine_dp_algorithm<dp_algorithm_template_standard, std::remove_reference_t<policies_t>...>
 {
 private:
-    using base_t = affine_dp_algorithm<pairwise_aligner, std::remove_reference_t<policies_t>...>;
+    using base_t = affine_dp_algorithm<dp_algorithm_template_standard, std::remove_reference_t<policies_t>...>;
 public:
 
     explicit pairwise_aligner_affine(policies_t && ...policies) noexcept :

@@ -12,6 +12,7 @@
 #include <pairwise_aligner/affine/affine_dp_algorithm.hpp>
 #include <pairwise_aligner/affine/gap_model_affine.hpp>
 #include <pairwise_aligner/affine/initialisation_strategy_affine.hpp>
+#include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
 
 TEST(affine_test, all_match)
 {
@@ -20,7 +21,14 @@ TEST(affine_test, all_match)
     pa::initialisation_strategy_affine init{gap_model,
                                             pa::dp_initialisation_rule::regular,
                                             pa::dp_initialisation_rule::regular};
-    pa::pairwise_aligner_affine aligner{gap_model, init};
+
+    using score_t = int32_t;
+    using dp_vector_column_t = pa::intermediate_dp_vector<pa::affine_cell<score_t, pa::dp_vector_order::column>>;
+    using dp_vector_row_t = pa::intermediate_dp_vector<pa::affine_cell<score_t, pa::dp_vector_order::row>>;
+    using dp_algorithm_t = decltype(pa::pairwise_aligner_affine{gap_model, init});
+    using aligner_t = pa::interface_one_to_one_single<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>;
+
+    aligner_t aligner{gap_model, init};
 
     std::string_view seq1{"ACGTGACTGACACTACGACT"};
     std::string_view seq2{"ACGTGACTGACACTACGACT"};
@@ -36,7 +44,14 @@ TEST(affine_test, all_mismatch)
     pa::initialisation_strategy_affine init{gap_model,
                                             pa::dp_initialisation_rule::regular,
                                             pa::dp_initialisation_rule::regular};
-    pa::pairwise_aligner_affine aligner{gap_model, init};
+
+    using score_t = int32_t;
+    using dp_vector_column_t = pa::intermediate_dp_vector<pa::affine_cell<score_t, pa::dp_vector_order::column>>;
+    using dp_vector_row_t = pa::intermediate_dp_vector<pa::affine_cell<score_t, pa::dp_vector_order::row>>;
+    using dp_algorithm_t = decltype(pa::pairwise_aligner_affine{gap_model, init});
+    using aligner_t = pa::interface_one_to_one_single<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>;
+
+    aligner_t aligner{gap_model, init};
 
     std::string_view seq1{"AAAAAAAAAA"};
     std::string_view seq2{"TTTTTTTTTT"};
