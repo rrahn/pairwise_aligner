@@ -1,1 +1,1 @@
-pairwise_aligner_test (pairwise_aligner_affine_test)
+pairwise_aligner_test (alignment_global_affine_scalar_test)
