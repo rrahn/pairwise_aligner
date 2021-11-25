@@ -16,8 +16,8 @@
 #include <seqan3/std/type_traits>
 
 #include <pairwise_aligner/affine/affine_cell.hpp>
-#include <pairwise_aligner/pairwise_aligner.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
+#include <pairwise_aligner/simd_score_type.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -35,12 +35,6 @@ private:
 
     using score_t = int16_t;
     using simd_score_t = simd_score<score_t>;
-
-    template <dp_vector_order order>
-    using column_vector_type = intermediate_dp_vector<affine_cell<score_t, order>>;
-
-    template <dp_vector_order order>
-    using simd_column_vector_type = simd_intermediate_dp_vector<affine_cell<simd_score_t, order>>;
 
     gap_model_t _gap_model{};
     init_strategy_t _initialisaion_strategy{};

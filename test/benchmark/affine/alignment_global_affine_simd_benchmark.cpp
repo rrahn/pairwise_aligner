@@ -24,6 +24,7 @@
 #include <pairwise_aligner/dp_initialisation_rule.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
+#include <pairwise_aligner/pairwise_aligner.hpp>
 
 void alignment_global_affine_bulk_scalar(benchmark::State & state)
 {

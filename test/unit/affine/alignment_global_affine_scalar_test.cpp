@@ -13,6 +13,7 @@
 #include <pairwise_aligner/affine/gap_model_affine.hpp>
 #include <pairwise_aligner/affine/initialisation_strategy_affine.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
+#include <pairwise_aligner/pairwise_aligner.hpp>
 
 TEST(affine_test, all_match)
 {
