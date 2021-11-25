@@ -12,6 +12,9 @@
 
 #pragma once
 
+#include <functional>
+#include <seqan3/std/type_traits>
+
 #include <pairwise_aligner/pairwise_aligner.hpp>
 
 namespace seqan::pairwise_aligner
@@ -29,8 +32,17 @@ private:
 
     friend base_t;
 
-    int32_t gap_open_score = -10;
-    int32_t gap_extend_score = -1;
+    alignas(32) scalar_score_t gap_extend_score = -1;
+    alignas(32) scalar_score_t gap_open_score = -10;
+
+    alignas(32) scalar_score_t match_score = 4;
+    alignas(32) scalar_score_t mismatch_score = -5;
+
+    simd_score_t gap_extend_score_simd{gap_extend_score};
+    simd_score_t gap_open_score_simd{gap_open_score};
+
+    simd_score_t match_score_simd{match_score};
+    simd_score_t mismatch_score_simd{mismatch_score};
 
 public:
     affine_dp_algorithm() = default;
@@ -41,15 +53,18 @@ protected:
         requires std::ranges::forward_range<sequence_t>
     auto initialise_row_vector(sequence_t && sequence, dp_vector_t & dp_vector)
     {
-        int column_index = 0;
-        auto init_columns_strategy = [&] (affine_dp_cell_t & affine_cell)
+        using cell_t = typename std::remove_cvref_t<dp_vector_t>::value_type;
+        using score_t = std::tuple_element_t<0, cell_t>;
+
+        size_t column_index = 0;
+        auto init_columns_strategy = [&] (cell_t & affine_cell)
         {
             if (column_index == 0)
-                affine_cell = affine_dp_cell_t{0, 0, 0};
+                affine_cell = cell_t{score_t{0}, score_t{0}};
             else
-                affine_cell = affine_dp_cell_t{gap_open_score + column_index * gap_extend_score,
-                                               gap_open_score + column_index * gap_extend_score,
-                                               gap_open_score + column_index * gap_extend_score + gap_open_score + gap_extend_score};
+                affine_cell = cell_t{score_t{static_cast<scalar_score_t>(gap_open_score + column_index * gap_extend_score)},
+                                     score_t{static_cast<scalar_score_t>(gap_open_score + column_index * gap_extend_score +
+                                                                         gap_open_score+ gap_extend_score)}};
             ++column_index;
         };
 
@@ -60,27 +75,59 @@ protected:
         requires std::ranges::forward_range<sequence_t>
     auto initialise_column_vector(sequence_t && sequence, dp_vector_t & dp_vector) const
     {
-        int row_index = 0;
-        auto init_rows_strategy = [&] (affine_dp_cell_t & affine_cell)
+        using cell_t = typename std::remove_cvref_t<dp_vector_t>::value_type;
+        using score_t = std::tuple_element_t<0, cell_t>;
+
+        size_t row_index = 0;
+        auto init_rows_strategy = [&] (cell_t & affine_cell)
         {
             if (row_index == 0)
-                affine_cell = affine_dp_cell_t{0, 0, 0};
+                affine_cell = cell_t{score_t{0}, score_t{0}};
             else
-                affine_cell = affine_dp_cell_t{gap_open_score + row_index * gap_extend_score,
-                                               gap_open_score + row_index * gap_extend_score + gap_open_score + gap_extend_score,
-                                               gap_open_score + row_index * gap_extend_score};
+                affine_cell = cell_t{score_t{static_cast<scalar_score_t>(gap_open_score + row_index * gap_extend_score)},
+                                     score_t{static_cast<scalar_score_t>(gap_open_score + row_index * gap_extend_score +
+                                                                         gap_open_score + gap_extend_score)}};
             ++row_index;
         };
 
         return dp_vector.initialise(std::forward<sequence_t>(sequence), init_rows_strategy);
     }
 
-    template <typename dp_column_vector_t, typename dp_row_vector_t>
-    auto initialise_cache(dp_column_vector_t & first_row_cell, dp_row_vector_t & current_column_cell) const noexcept
+    template <typename row_cell_t, typename column_cell_t>
+    auto initialise_column(row_cell_t & current_row_cell, column_cell_t & first_column_cell) const noexcept
     {
-        // int32_t & vertical_score = get<2>(dp_row_vector[j+1]); // get value
-        // int32_t diagonal_score = get<0>(dp_column_vector[0]); // cache diagonal
-        return std::tuple<int32_t, int32_t &>{get<0>(first_row_cell), get<2>(current_column_cell)};
+        using std::max;
+        using score_t = std::tuple_element_t<0, row_cell_t>;
+
+        std::pair cache{get<0>(first_column_cell), get<1>(current_row_cell)};
+        get<0>(first_column_cell) = get<0>(current_row_cell);
+
+        // horizontal_cache = horizontal_cache + as_derived().gap_extend_score;
+        if constexpr (!std::integral<score_t>)
+        {
+            get<1>(first_column_cell) = max(static_cast<score_t>(cache.first + gap_open_score_simd),
+                                            static_cast<score_t>(get<1>(first_column_cell) + gap_extend_score_simd));
+        }
+        else
+        {
+            get<1>(first_column_cell) = max(static_cast<score_t>(cache.first + gap_open_score),
+                                            static_cast<score_t>(get<1>(first_column_cell) + gap_extend_score));
+        }
+        // // update the previous cache value.
+        // get<0>(first_column_cell) = get<1>(current_row_cell);
+        // // initialise the column value.
+        // get<1>(first_column_cell) = max(get<1>(first_column_cell) + gap_extend_score,
+        //                                 get<0>(first_column_cell) + gap_open_score);
+        return cache;
+    }
+
+    template <typename row_cell_t, typename column_cell_t, typename cache_t>
+    void finalise_column(row_cell_t & current_row_cell,
+                         column_cell_t const & last_column_cell,
+                         cache_t & cache) const noexcept
+    {
+        get<0>(current_row_cell) = get<0>(last_column_cell);
+        get<1>(current_row_cell) = std::move(cache.second);
     }
 
     template <typename cache_t, typename seq1_val_t, typename seq2_val_t, typename dp_cell_t>
@@ -89,31 +136,23 @@ protected:
                       seq1_val_t const & seq1_val,
                       seq2_val_t const & seq2_val) const noexcept
     {
-        auto score = [] (auto val1, auto val2)
-        {
-            return val1 == val2 ? 4 : -5;
-        };
+        using std::max;
+        using score_t = std::tuple_element_t<0, dp_cell_t>;
 
-        // std::cout << "[DEBUG] ";
-        auto && [diagonal_score, vertical_score] = cache;
-        // std::cout << "diagonal_score old = " << diagonal_score << " ";
-        // call inline derived type function here
-        int32_t & horizontal_score = get<1>(column_cell);
-        diagonal_score += score(seq1_val, seq2_val);
-        // std::cout << "diagonal_score new = " << diagonal_score << " ";
-        // std::cout << "horizontal_score = " << horizontal_score << " ";
-        // std::cout << "vertical_score = " << vertical_score << " ";
-        int32_t best = std::max(std::max(diagonal_score, vertical_score), horizontal_score);
-        diagonal_score = get<0>(column_cell); // cache score
-        get<0>(column_cell) = best;
-        // std::cout << "best = " << best << " ";
-
-        // set the horizontal and vertical score
-        best += gap_open_score;
-        horizontal_score = std::max(horizontal_score, best) + gap_extend_score;
-        vertical_score = std::max(vertical_score, best) + gap_extend_score;
-        // std::cout << "\n";
-        return cache;
+        auto [next_diagonal, horizontal_score] = column_cell;
+        // TODO: Should be a score model -> the code depends on the score model.
+        if constexpr (std::integral<score_t>) {
+            cache.first += (seq1_val == seq2_val) ? match_score : mismatch_score;
+        }
+        else {
+            cache.first += compare_and_blend(seq1_val, seq2_val, match_score_simd, mismatch_score_simd);
+        }
+        cache.first = max(max(cache.first, cache.second), horizontal_score);
+        get<0>(column_cell) = cache.first;
+        cache.first += (gap_open_score + gap_extend_score);
+        cache.second = max(static_cast<score_t>(cache.second + gap_extend_score), cache.first);
+        get<1>(column_cell) = max(static_cast<score_t>(horizontal_score + gap_extend_score), cache.first);
+        cache.first = next_diagonal; // cache score
     }
 };
 
