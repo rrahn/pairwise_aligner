@@ -1,0 +1,1 @@
+pairwise_aligner_test (configuration_test)
