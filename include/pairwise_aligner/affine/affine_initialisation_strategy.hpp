@@ -33,9 +33,10 @@ private:
 public:
 
     affine_initialisation_strategy() = default;
-    explicit affine_initialisation_strategy(affine_gap_model_t affine_gap_model,
-                                            dp_initialisation_rule const row_initialisation_rule,
-                                            dp_initialisation_rule const column_initialisation_rule) noexcept :
+    explicit affine_initialisation_strategy(
+        affine_gap_model_t affine_gap_model,
+        dp_initialisation_rule const row_initialisation_rule = dp_initialisation_rule::regular,
+        dp_initialisation_rule const column_initialisation_rule = dp_initialisation_rule::regular) noexcept :
 
         _gap_model{std::move(affine_gap_model)},
         _row_initialisation_rule{row_initialisation_rule},
