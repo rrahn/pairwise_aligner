@@ -49,5 +49,8 @@ inline constexpr bool is_column_cell_v = false;
 template <std::derived_from<dp_cell_base<dp_vector_order::column>> dp_cell_t>
 inline constexpr bool is_column_cell_v<dp_cell_t> = true;
 
+template <typename rule_t, template <typename...> typename tuple_t>
+using configurator_types_t = typename rule_t::template configurator_types<tuple_t>;
+
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner
