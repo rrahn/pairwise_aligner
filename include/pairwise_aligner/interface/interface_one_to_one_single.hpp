@@ -34,7 +34,9 @@ template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vect
 struct _interface_one_to_one_single<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>::type :
     protected dp_algorithm_t
 {
-    // inherit construction?
+    using dp_vector_column_type = dp_vector_column_t;
+    using dp_vector_row_type = dp_vector_row_t;
+
     using dp_algorithm_t::dp_algorithm_t;
 
     template <std::ranges::forward_range sequence1_t,
