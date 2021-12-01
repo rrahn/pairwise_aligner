@@ -18,6 +18,9 @@
 #include <seqan3/test/performance/units.hpp>
 #include <seqan3/core/configuration/configuration.hpp>
 
+#include <pairwise_aligner/configuration/configure_aligner.hpp>
+#include <pairwise_aligner/configuration/score_model_unitary.hpp>
+#include <pairwise_aligner/configuration/gap_model_affine.hpp>
 #include <pairwise_aligner/affine/affine_dp_algorithm.hpp>
 #include <pairwise_aligner/affine/affine_gap_model.hpp>
 #include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
@@ -48,18 +51,12 @@ void alignment_global_affine_bulk_scalar(benchmark::State & state)
     }
 
     namespace pa = seqan::pairwise_aligner;
-    using score_t = int32_t;
-    pa::score_model_unitary<score_t> score_model{score_t{4}, score_t{-5}};
-    pa::affine_gap_model<score_t> gap_model{-10, -1};
-    pa::affine_initialisation_strategy init{gap_model,
-                                            pa::dp_initialisation_rule::regular,
-                                            pa::dp_initialisation_rule::regular};
-
-    using dp_vector_column_t = pa::intermediate_dp_vector<pa::affine_cell<score_t, pa::dp_vector_order::column>>;
-    using dp_vector_row_t = pa::intermediate_dp_vector<pa::affine_cell<score_t, pa::dp_vector_order::row>>;
-    using dp_algorithm_t = decltype(pa::pairwise_aligner_affine{score_model, gap_model, init});
-    using aligner_t = pa::interface_one_to_one_single<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>;
-    aligner_t aligner{score_model, gap_model, init};
+    auto aligner = pa::cfg::configure_aligner(
+        pa::cfg::gap_model_affine(
+            pa::cfg::score_model_unitary(4, -5),
+            -10, -1
+        )
+    );
     int32_t score{};
 
     for (auto _ : state)
