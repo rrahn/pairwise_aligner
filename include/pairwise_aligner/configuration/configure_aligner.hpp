@@ -96,7 +96,8 @@ inline constexpr auto _impl(predecessor_t && predecessor)
                                                                                                 dp_vector_column_t,
                                                                                                 dp_vector_row_t>;
 
-    static_assert(std::same_as<score_t, int32_t>, "Not the right score type.");
+    static_assert(score_model_position != -1, "The score model category is required!");
+    static_assert(gap_model_position != -1, "The gap model category is required!");
 
     pairwise_aligner_t aligner{};
 
