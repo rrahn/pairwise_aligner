@@ -9,30 +9,20 @@
 
 #include <string_view>
 
-#include <pairwise_aligner/affine/affine_cell.hpp>
-#include <pairwise_aligner/affine/affine_dp_algorithm.hpp>
-#include <pairwise_aligner/affine/affine_gap_model.hpp>
-#include <pairwise_aligner/simd_score_type.hpp>
-#include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
-#include <pairwise_aligner/pairwise_aligner.hpp>
-#include <pairwise_aligner/score_model/score_model_unitary.hpp>
+#include <pairwise_aligner/configuration/configure_aligner.hpp>
+#include <pairwise_aligner/configuration/gap_model_affine.hpp>
+#include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
 
 TEST(affine_test, all_match)
 {
     namespace pa = seqan::pairwise_aligner;
 
-    using score_t = int16_t;
-    using simd_score_t = pa::simd_score<score_t>;
-    pa::score_model_unitary<simd_score_t> score_model{simd_score_t{4}, simd_score_t{-5}};
-
-    pa::affine_gap_model<score_t> gap_model{score_t{-10}, score_t{-1}};
-
-    using dp_vector_column_t = pa::simd_intermediate_dp_vector<pa::affine_cell<simd_score_t, pa::dp_vector_order::column>>;
-    using dp_vector_row_t = pa::simd_intermediate_dp_vector<pa::affine_cell<simd_score_t, pa::dp_vector_order::row>>;
-    using dp_algorithm_t = decltype(pa::pairwise_aligner_affine{score_model, gap_model});
-    using aligner_t = pa::interface_one_to_one_bulk<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>;
-
-    aligner_t aligner{score_model, gap_model};
+    auto aligner = pa::cfg::configure_aligner(
+        pa::cfg::gap_model_affine(
+            pa::cfg::score_model_unitary_simd(static_cast<int16_t>(4), static_cast<int16_t>(-5)),
+            -10, -1
+        )
+    );
 
     std::string_view seq1{"ACGTGACTGACACTACGACT"};
     std::string_view seq2{"ACGTGACTGACACTACGACT"};
@@ -52,18 +42,12 @@ TEST(affine_test, all_mismatch)
 {
     namespace pa = seqan::pairwise_aligner;
 
-    using score_t = int16_t;
-    using simd_score_t = pa::simd_score<score_t>;
-    pa::score_model_unitary<simd_score_t> score_model{simd_score_t{4}, simd_score_t{-5}};
-
-    pa::affine_gap_model<score_t> gap_model{score_t{-10}, score_t{-1}};
-
-    using dp_vector_column_t = pa::simd_intermediate_dp_vector<pa::affine_cell<simd_score_t, pa::dp_vector_order::column>>;
-    using dp_vector_row_t = pa::simd_intermediate_dp_vector<pa::affine_cell<simd_score_t, pa::dp_vector_order::row>>;
-    using dp_algorithm_t = decltype(pa::pairwise_aligner_affine{score_model, gap_model});
-    using aligner_t = pa::interface_one_to_one_bulk<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>;
-
-    aligner_t aligner{score_model, gap_model};
+    auto aligner = pa::cfg::configure_aligner(
+        pa::cfg::gap_model_affine(
+            pa::cfg::score_model_unitary_simd(static_cast<int16_t>(4), static_cast<int16_t>(-5)),
+            -10, -1
+        )
+    );
 
     std::string_view seq1{"AAAAAAAAAA"};
     std::string_view seq2{"TTTTTTTTTT"};

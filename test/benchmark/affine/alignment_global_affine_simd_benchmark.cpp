@@ -20,15 +20,8 @@
 
 #include <pairwise_aligner/configuration/configure_aligner.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary.hpp>
+#include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
-#include <pairwise_aligner/affine/affine_cell.hpp>
-#include <pairwise_aligner/affine/affine_dp_algorithm.hpp>
-#include <pairwise_aligner/affine/affine_gap_model.hpp>
-#include <pairwise_aligner/dp_initialisation_rule.hpp>
-#include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
-#include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
-#include <pairwise_aligner/pairwise_aligner.hpp>
-#include <pairwise_aligner/score_model/score_model_unitary.hpp>
 
 void alignment_global_affine_bulk_scalar(benchmark::State & state)
 {
@@ -91,19 +84,14 @@ void alignment_global_affine_bulk_simd(benchmark::State & state)
     }
 
     namespace pa = seqan::pairwise_aligner;
-    using score_t = int16_t;
-    using simd_score_t = pa::simd_score<score_t>;
-    pa::score_model_unitary<simd_score_t> score_model{simd_score_t{4}, simd_score_t{-5}};
 
-    pa::affine_gap_model<int32_t> gap_model{-10, -1};
+    auto aligner = pa::cfg::configure_aligner(
+        pa::cfg::gap_model_affine(
+            pa::cfg::score_model_unitary_simd(static_cast<int16_t>(4), static_cast<int16_t>(-5)),
+            -10, -1
+        )
+    );
 
-    using simd_score_t = pa::simd_score<score_t>;
-    using dp_vector_column_t = pa::simd_intermediate_dp_vector<pa::affine_cell<simd_score_t, pa::dp_vector_order::column>>;
-    using dp_vector_row_t = pa::simd_intermediate_dp_vector<pa::affine_cell<simd_score_t, pa::dp_vector_order::row>>;
-    using dp_algorithm_t = decltype(pa::pairwise_aligner_affine{score_model, gap_model});
-    using aligner_t = pa::interface_one_to_one_bulk<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>;
-
-    aligner_t aligner{score_model, gap_model};
     int32_t score{};
 
     for (auto _ : state)
