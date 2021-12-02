@@ -38,6 +38,9 @@ namespace _gap_model_affine
 template <typename gap_score_t>
 struct traits
 {
+    gap_score_t _gap_open_score;
+    gap_score_t _gap_extension_score;
+
     using gap_model_type = affine_gap_model<gap_score_t>;
 
     // Offer the score type here.
@@ -50,6 +53,11 @@ struct traits
     // Offer some overload for the column type.
     template <template <typename > typename dp_template_t, typename dp_score_model_t>
     using dp_kernel_type = affine_dp_algorithm<dp_template_t, dp_score_model_t, gap_model_type>;
+
+    constexpr gap_model_type create() const
+    {
+        return gap_model_type{_gap_open_score, _gap_extension_score};
+    }
 };
 
 // ----------------------------------------------------------------------------
