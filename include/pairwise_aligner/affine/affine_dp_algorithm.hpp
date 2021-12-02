@@ -16,7 +16,6 @@
 #include <seqan3/std/type_traits>
 
 #include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
-#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -100,25 +99,6 @@ protected:
         cache.first = next_diagonal; // cache score
     }
 };
-
-// ----------------------------------------------------------------------------
-// Define the concrete parwise aligner instances.
-// ----------------------------------------------------------------------------
-
-template <typename ...policies_t>
-class pairwise_aligner_affine : public affine_dp_algorithm<dp_algorithm_template_standard, std::remove_reference_t<policies_t>...>
-{
-private:
-    using base_t = affine_dp_algorithm<dp_algorithm_template_standard, std::remove_reference_t<policies_t>...>;
-public:
-
-    explicit pairwise_aligner_affine(policies_t && ...policies) noexcept :
-        base_t{std::forward<policies_t>(policies)...}
-    {}
-};
-
-template <typename ...policies_t>
-pairwise_aligner_affine(policies_t && ...) -> pairwise_aligner_affine<policies_t...>;
 
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner
