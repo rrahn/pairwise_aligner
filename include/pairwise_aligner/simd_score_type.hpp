@@ -70,7 +70,7 @@ public:
         return *this;
     }
 
-    simd_score & operator+=(score_t const & right_constant) noexcept
+    simd_score & operator+=(score_t const right_constant) noexcept
     {
         simd_score tmp = *this + right_constant;
         swap(tmp);
@@ -87,7 +87,7 @@ public:
         return tmp;
     }
 
-    simd_score operator+(score_t const & right_constant) const noexcept
+    simd_score operator+(score_t const right_constant) const noexcept
     {
         simd_score tmp{};
         for (size_t i = 0; i < simd_size; ++i)
