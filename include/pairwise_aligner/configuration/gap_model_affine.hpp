@@ -40,9 +40,6 @@ struct traits
     template <typename score_t>
     using gap_model_type = affine_gap_model<score_t>;
 
-    template <typename gap_model_t>
-    using dp_initialisation_type = affine_initialisation_strategy<gap_model_t>;
-
     // Offer the score type here.
     template <typename score_t>
     using dp_cell_column_type = affine_cell<score_t, dp_vector_order::column>;
@@ -51,14 +48,8 @@ struct traits
     using dp_cell_row_type = affine_cell<score_t, dp_vector_order::row>;
 
     // Offer some overload for the column type.
-    template <template <typename > typename dp_template_t,
-              typename dp_score_model_t,
-              typename dp_gap_model_t,
-              typename dp_initialisation_t>
-    using dp_kernel_type = affine_dp_algorithm<dp_template_t,
-                                               dp_score_model_t,
-                                               dp_gap_model_t,
-                                               dp_initialisation_t>;
+    template <template <typename > typename dp_template_t, typename dp_score_model_t, typename dp_gap_model_t>
+    using dp_kernel_type = affine_dp_algorithm<dp_template_t, dp_score_model_t, dp_gap_model_t>;
 };
 
 // ----------------------------------------------------------------------------

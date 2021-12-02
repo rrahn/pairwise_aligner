@@ -16,9 +16,7 @@
 #include <seqan3/std/concepts>
 #include <seqan3/std/type_traits>
 
-#include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
-
 
 namespace seqan::pairwise_aligner
 {
@@ -58,8 +56,7 @@ struct _configurator<pairwise_aligner_ref_t>::type
         std::tuple tpl_values{std::forward<values_t>(values)...};
 
         _aligner_ref.get() = pairwise_aligner_t{get<0>(tpl_values),
-                                                get<1>(tpl_values),
-                                                affine_initialisation_strategy{get<1>(tpl_values)}};
+                                                get<1>(tpl_values)};
     }
 };
 
@@ -91,13 +88,11 @@ inline constexpr auto _impl(predecessor_t && predecessor)
     // Get the instantiated model types.
     using score_model_t = typename score_model_config_traits_t::score_model_type;
     using gap_model_t = typename gap_model_config_traits_t::template gap_model_type<score_t>;
-    using initialisation_t = typename gap_model_config_traits_t::template dp_initialisation_type<gap_model_t>;
 
     // Define the kernel type.
     using dp_kernel_t = typename gap_model_config_traits_t:: template dp_kernel_type<dp_algorithm_template_standard,
                                                                                      score_model_t,
-                                                                                     gap_model_t,
-                                                                                     initialisation_t>;
+                                                                                     gap_model_t>;
     // define the pairwise aligner type.
     using pairwise_aligner_t = typename score_model_config_traits_t::template dp_interface_type<dp_kernel_t,
                                                                                                 dp_vector_column_t,
