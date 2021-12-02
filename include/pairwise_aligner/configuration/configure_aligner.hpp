@@ -61,17 +61,17 @@ struct traits
 // configurator
 // ----------------------------------------------------------------------------
 
-template <typename pairwise_aligner_ref_t>
+template <typename pairwise_aligner_ref_t, size_t score_model_index, size_t gap_model_index>
 struct _configurator
 {
     struct type;
 };
 
-template <typename pairwise_aligner_ref_t>
-using configurator_t = typename _configurator<pairwise_aligner_ref_t>::type;
+template <typename pairwise_aligner_ref_t, size_t score_model_index, size_t gap_model_index>
+using configurator_t = typename _configurator<pairwise_aligner_ref_t, score_model_index, gap_model_index>::type;
 
-template <typename pairwise_aligner_ref_t>
-struct _configurator<pairwise_aligner_ref_t>::type
+template <typename pairwise_aligner_ref_t, size_t score_model_index, size_t gap_model_index>
+struct _configurator<pairwise_aligner_ref_t, score_model_index, gap_model_index>::type
 {
     pairwise_aligner_ref_t _aligner_ref;
     using pairwise_aligner_t = typename pairwise_aligner_ref_t::type;
@@ -109,11 +109,12 @@ inline constexpr auto _impl(predecessor_t && predecessor)
     static_assert(gap_model_position != -1, "The gap model category is required!");
 
     using traits_t = traits<configurator_types, score_model_position, gap_model_position>;
-    using pairwise_aligner_t = typename traits_t::aligner_type;
+    using aligner_t = typename traits_t::aligner_type;
 
-    pairwise_aligner_t aligner{};
+    // TODO: convert positions to list of indices.
 
-    _configure_aligner::configurator_t<std::reference_wrapper<pairwise_aligner_t>> cfg{std::ref(aligner)};
+    aligner_t aligner{};
+    configurator_t<std::reference_wrapper<aligner_t>, score_model_position, gap_model_position> cfg{std::ref(aligner)};
 
     // Store state for the operation on the stack.
     auto operation = std::forward<predecessor_t>(predecessor).apply(std::move(cfg));
