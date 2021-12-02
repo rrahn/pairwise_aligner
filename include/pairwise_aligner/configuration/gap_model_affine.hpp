@@ -35,10 +35,10 @@ namespace _gap_model_affine
 // traits
 // ----------------------------------------------------------------------------
 
+template <typename gap_score_t>
 struct traits
 {
-    template <typename score_t>
-    using gap_model_type = affine_gap_model<score_t>;
+    using gap_model_type = affine_gap_model<gap_score_t>;
 
     // Offer the score type here.
     template <typename score_t>
@@ -48,8 +48,8 @@ struct traits
     using dp_cell_row_type = affine_cell<score_t, dp_vector_order::row>;
 
     // Offer some overload for the column type.
-    template <template <typename > typename dp_template_t, typename dp_score_model_t, typename dp_gap_model_t>
-    using dp_kernel_type = affine_dp_algorithm<dp_template_t, dp_score_model_t, dp_gap_model_t>;
+    template <template <typename > typename dp_template_t, typename dp_score_model_t>
+    using dp_kernel_type = affine_dp_algorithm<dp_template_t, dp_score_model_t, gap_model_type>;
 };
 
 // ----------------------------------------------------------------------------
@@ -98,7 +98,7 @@ struct _rule<predecessor_t, gap_model_t>::type : cfg::gap_model::rule<predecesso
     predecessor_t _predecessor;
     gap_model_t _gap_model;
 
-    using traits_type = type_list<traits>;
+    using traits_type = type_list<traits<decltype(std::declval<gap_model_t>().gap_open_score)>>;
 
     template <template <typename ...> typename type_list_t>
     using configurator_types = typename concat_type_lists_t<configurator_types_t<std::remove_cvref_t<predecessor_t>,

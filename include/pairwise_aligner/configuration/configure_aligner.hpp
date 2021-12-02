@@ -87,12 +87,10 @@ inline constexpr auto _impl(predecessor_t && predecessor)
 
     // Get the instantiated model types.
     using score_model_t = typename score_model_config_traits_t::score_model_type;
-    using gap_model_t = typename gap_model_config_traits_t::template gap_model_type<score_t>;
 
     // Define the kernel type.
     using dp_kernel_t = typename gap_model_config_traits_t:: template dp_kernel_type<dp_algorithm_template_standard,
-                                                                                     score_model_t,
-                                                                                     gap_model_t>;
+                                                                                     score_model_t>;
     // define the pairwise aligner type.
     using pairwise_aligner_t = typename score_model_config_traits_t::template dp_interface_type<dp_kernel_t,
                                                                                                 dp_vector_column_t,
