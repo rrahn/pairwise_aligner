@@ -28,6 +28,36 @@ namespace _configure_aligner
 {
 
 // ----------------------------------------------------------------------------
+// traits
+// ----------------------------------------------------------------------------
+
+template <typename configurator_types, size_t score_model_position, size_t gap_model_position>
+struct traits
+{
+    // Extract the respective configuration traits.
+    using score_model_config_traits_t = std::tuple_element_t<score_model_position, configurator_types>;
+    using gap_model_config_traits_t = std::tuple_element_t<gap_model_position, configurator_types>;
+
+    // Define all algorithm entities.
+    using score_t = typename score_model_config_traits_t::score_type;
+    using dp_cell_row_t = typename gap_model_config_traits_t::template dp_cell_row_type<score_t>;
+    using dp_cell_column_t = typename gap_model_config_traits_t::template dp_cell_column_type<score_t>;
+    using dp_vector_row_t = typename score_model_config_traits_t::template dp_vector_row_type<dp_cell_row_t>;
+    using dp_vector_column_t = typename score_model_config_traits_t::template dp_vector_column_type<dp_cell_column_t>;
+
+    // Get the instantiated model types.
+    using score_model_t = typename score_model_config_traits_t::score_model_type;
+
+    // Define the kernel type.
+    using dp_kernel_t = typename gap_model_config_traits_t:: template dp_kernel_type<dp_algorithm_template_standard,
+                                                                                     score_model_t>;
+    // define the pairwise aligner type.
+    using aligner_type = typename score_model_config_traits_t::template dp_interface_type<dp_kernel_t,
+                                                                                          dp_vector_column_t,
+                                                                                          dp_vector_row_t>;
+};
+
+// ----------------------------------------------------------------------------
 // configurator
 // ----------------------------------------------------------------------------
 
@@ -68,36 +98,18 @@ template <typename predecessor_t>
 inline constexpr auto _impl(predecessor_t && predecessor)
 {
     // Define the value types.
-    using configurator_types = typename predecessor_t::template configurator_types<std::tuple>;
+    using pure_predecessor_t = std::remove_cvref_t<predecessor_t>;
+    using configurator_types = typename pure_predecessor_t::template configurator_types<std::tuple>;
 
     // Get configuration traits positions.
-    constexpr size_t score_model_position = std::remove_cvref_t<predecessor_t>::configurator_index_of[0];
-    constexpr size_t gap_model_position = std::remove_cvref_t<predecessor_t>::configurator_index_of[1];
-
-    // Extract the respective configuration traits.
-    using score_model_config_traits_t = std::tuple_element_t<score_model_position, configurator_types>;
-    using gap_model_config_traits_t = std::tuple_element_t<gap_model_position, configurator_types>;
-
-    // Define all algorithm entities.
-    using score_t = typename score_model_config_traits_t::score_type;
-    using dp_cell_row_t = typename gap_model_config_traits_t::template dp_cell_row_type<score_t>;
-    using dp_cell_column_t = typename gap_model_config_traits_t::template dp_cell_column_type<score_t>;
-    using dp_vector_row_t = typename score_model_config_traits_t::template dp_vector_row_type<dp_cell_row_t>;
-    using dp_vector_column_t = typename score_model_config_traits_t::template dp_vector_column_type<dp_cell_column_t>;
-
-    // Get the instantiated model types.
-    using score_model_t = typename score_model_config_traits_t::score_model_type;
-
-    // Define the kernel type.
-    using dp_kernel_t = typename gap_model_config_traits_t:: template dp_kernel_type<dp_algorithm_template_standard,
-                                                                                     score_model_t>;
-    // define the pairwise aligner type.
-    using pairwise_aligner_t = typename score_model_config_traits_t::template dp_interface_type<dp_kernel_t,
-                                                                                                dp_vector_column_t,
-                                                                                                dp_vector_row_t>;
+    constexpr size_t score_model_position = pure_predecessor_t::configurator_index_of[0];
+    constexpr size_t gap_model_position = pure_predecessor_t::configurator_index_of[1];
 
     static_assert(score_model_position != -1, "The score model category is required!");
     static_assert(gap_model_position != -1, "The gap model category is required!");
+
+    using traits_t = traits<configurator_types, score_model_position, gap_model_position>;
+    using pairwise_aligner_t = typename traits_t::aligner_type;
 
     pairwise_aligner_t aligner{};
 
