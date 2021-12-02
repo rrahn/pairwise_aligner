@@ -37,6 +37,9 @@ namespace _score_model_unitary
 template <typename score_t>
 struct traits
 {
+    score_t _match_score;
+    score_t _mismatch_score;
+
     using score_model_type = score_model_unitary<score_t>;
 
     // Offer the score type here.
@@ -52,6 +55,11 @@ struct traits
 
     template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vector_row_t>
     using dp_interface_type = interface_one_to_one_single<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>;
+
+    constexpr score_model_type create() const
+    {
+        return score_model_type{_match_score, _mismatch_score};
+    }
 };
 
 // ----------------------------------------------------------------------------
