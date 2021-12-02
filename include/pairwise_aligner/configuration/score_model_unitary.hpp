@@ -147,7 +147,6 @@ struct _fn
     auto operator()(score_t const match_score, score_t const mismatch_score) const
     {
         return this->operator()(cfg::initial, match_score, mismatch_score);
-        return this->operator()(cfg::initial, match_score, mismatch_score);
     }
 };
 } // namespace _cpo
