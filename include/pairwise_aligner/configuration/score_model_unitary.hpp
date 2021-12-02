@@ -66,26 +66,26 @@ struct traits
 // configurator
 // ----------------------------------------------------------------------------
 
-template <typename next_configurator_t, typename score_model_t>
+template <typename next_configurator_t, typename traits_t>
 struct _configurator
 {
     struct type;
 };
 
-template <typename next_configurator_t, typename score_model_t>
-using configurator_t = typename _configurator<next_configurator_t, score_model_t>::type;
+template <typename next_configurator_t, typename traits_t>
+using configurator_t = typename _configurator<next_configurator_t, traits_t>::type;
 
-template <typename next_configurator_t, typename score_model_t>
-struct _configurator<next_configurator_t, score_model_t>::type
+template <typename next_configurator_t, typename traits_t>
+struct _configurator<next_configurator_t, traits_t>::type
 {
     next_configurator_t _next_configurator;
-    score_model_t _score_model;
+    traits_t _traits;
 
     template <typename ...values_t>
     void set_config(values_t && ... values) && noexcept
     {
         std::forward<next_configurator_t>(_next_configurator).set_config(std::forward<values_t>(values)...,
-                                                                         std::forward<score_model_t>(_score_model));
+                                                                         std::forward<traits_t>(_traits));
     }
 };
 
@@ -93,23 +93,22 @@ struct _configurator<next_configurator_t, score_model_t>::type
 // rule
 // ----------------------------------------------------------------------------
 
-template <typename predecessor_t, typename score_model_t>
+template <typename predecessor_t, typename traits_t>
 struct _rule
 {
     struct type;
 };
 
-template <typename predecessor_t, typename score_model_t>
-using rule = typename _rule<predecessor_t, score_model_t>::type;
+template <typename predecessor_t, typename traits_t>
+using rule = typename _rule<predecessor_t, traits_t>::type;
 
-template <typename predecessor_t, typename score_model_t>
-struct _rule<predecessor_t, score_model_t>::type : cfg::score_model::rule<predecessor_t>
+template <typename predecessor_t, typename traits_t>
+struct _rule<predecessor_t, traits_t>::type : cfg::score_model::rule<predecessor_t>
 {
     predecessor_t _predecessor;
-    score_model_t _score_model;
+    traits_t _traits;
 
-    using score_t = typename score_model_t::score_type;
-    using traits_type = type_list<traits<score_t>>;
+    using traits_type = type_list<traits_t>;
 
     template <template <typename ...> typename type_list_t>
     using configurator_types = typename concat_type_lists_t<configurator_types_t<std::remove_cvref_t<predecessor_t>,
@@ -120,9 +119,9 @@ struct _rule<predecessor_t, score_model_t>::type : cfg::score_model::rule<predec
     auto apply(next_configurator_t && next_configurator)
     {
         return std::forward<predecessor_t>(_predecessor).apply(
-                configurator_t<std::remove_cvref_t<next_configurator_t>, score_model_t>{
+                configurator_t<std::remove_cvref_t<next_configurator_t>, traits_t>{
                                 std::forward<next_configurator_t>(next_configurator),
-                                std::forward<score_model_t>(_score_model)});
+                                std::forward<traits_t>(_traits)});
     }
 };
 
@@ -137,10 +136,10 @@ struct _fn
     template <typename predecessor_t, typename score_t>
     auto operator()(predecessor_t && predecessor, score_t const match_score, score_t const mismatch_score) const
     {
-        using score_model_t = pairwise_aligner::score_model_unitary<score_t>;
-        return _score_model_unitary::rule<predecessor_t, score_model_t>{{},
-                                                                        std::forward<predecessor_t>(predecessor),
-                                                                        score_model_t{match_score, mismatch_score}};
+        using traits_t = traits<score_t>;
+        return _score_model_unitary::rule<predecessor_t, traits_t>{{},
+                                                                   std::forward<predecessor_t>(predecessor),
+                                                                   traits_t{match_score, mismatch_score}};
     }
 
     template <typename score_t>

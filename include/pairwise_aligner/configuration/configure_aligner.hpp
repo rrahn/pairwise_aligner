@@ -80,13 +80,16 @@ struct _configurator<pairwise_aligner_ref_t, score_model_index, gap_model_index>
     explicit type(pairwise_aligner_ref_t aligner_ref) : _aligner_ref{aligner_ref}
     {}
 
-    template <typename ...values_t>
-    void set_config(values_t && ...values) && noexcept
+    template <typename ...actions_t>
+    void set_config(actions_t && ...actions) && noexcept
     {
-        std::tuple tpl_values{std::forward<values_t>(values)...};
+        std::tuple tpl_values{std::forward<actions_t>(actions)...};
 
-        _aligner_ref.get() = pairwise_aligner_t{get<0>(tpl_values),
-                                                get<1>(tpl_values)};
+        auto score_model = get<score_model_index>(tpl_values).create();
+
+        auto gap_params = get<gap_model_index>(tpl_values).create();
+
+        _aligner_ref.get() = pairwise_aligner_t{std::move(score_model), std::move(gap_params)};
     }
 };
 

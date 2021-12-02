@@ -64,26 +64,26 @@ struct traits
 // configurator
 // ----------------------------------------------------------------------------
 
-template <typename next_configurator_t, typename gap_model_t>
+template <typename next_configurator_t, typename traits_t>
 struct _configurator
 {
     struct type;
 };
 
-template <typename next_configurator_t, typename gap_model_t>
-using configurator_t = typename _configurator<next_configurator_t, gap_model_t>::type;
+template <typename next_configurator_t, typename traits_t>
+using configurator_t = typename _configurator<next_configurator_t, traits_t>::type;
 
-template <typename next_configurator_t, typename gap_model_t>
-struct _configurator<next_configurator_t, gap_model_t>::type
+template <typename next_configurator_t, typename traits_t>
+struct _configurator<next_configurator_t, traits_t>::type
 {
     next_configurator_t _next_configurator;
-    gap_model_t _gap_model;
+    traits_t _traits;
 
     template <typename ...values_t>
     void set_config(values_t && ... values) && noexcept
     {
         std::forward<next_configurator_t>(_next_configurator).set_config(std::forward<values_t>(values)...,
-                                                                         std::forward<gap_model_t>(_gap_model));
+                                                                         std::forward<traits_t>(_traits));
     }
 };
 
@@ -91,22 +91,22 @@ struct _configurator<next_configurator_t, gap_model_t>::type
 // rule
 // ----------------------------------------------------------------------------
 
-template <typename predecessor_t, typename gap_model_t>
+template <typename predecessor_t, typename traits_t>
 struct _rule
 {
     struct type;
 };
 
-template <typename predecessor_t, typename gap_model_t>
-using rule = typename _rule<predecessor_t, gap_model_t>::type;
+template <typename predecessor_t, typename traits_t>
+using rule = typename _rule<predecessor_t, traits_t>::type;
 
-template <typename predecessor_t, typename gap_model_t>
-struct _rule<predecessor_t, gap_model_t>::type : cfg::gap_model::rule<predecessor_t>
+template <typename predecessor_t, typename traits_t>
+struct _rule<predecessor_t, traits_t>::type : cfg::gap_model::rule<predecessor_t>
 {
     predecessor_t _predecessor;
-    gap_model_t _gap_model;
+    traits_t _traits;
 
-    using traits_type = type_list<traits<decltype(std::declval<gap_model_t>().gap_open_score)>>;
+    using traits_type = type_list<traits_t>;
 
     template <template <typename ...> typename type_list_t>
     using configurator_types = typename concat_type_lists_t<configurator_types_t<std::remove_cvref_t<predecessor_t>,
@@ -117,9 +117,9 @@ struct _rule<predecessor_t, gap_model_t>::type : cfg::gap_model::rule<predecesso
     auto apply(next_configurator_t && next_configurator)
     {
         return std::forward<predecessor_t>(_predecessor).apply(
-                configurator_t<std::remove_cvref_t<next_configurator_t>, gap_model_t>{
+                configurator_t<std::remove_cvref_t<next_configurator_t>, traits_t>{
                                 std::forward<next_configurator_t>(next_configurator),
-                                std::forward<gap_model_t>(_gap_model)});
+                                std::forward<traits_t>(_traits)});
     }
 };
 
@@ -133,14 +133,12 @@ struct _fn
 {
     // implementation of function style connection
     template <typename predecessor_t, typename score_t>
-    auto operator()(predecessor_t && predecessor,
-                    score_t const gap_open_score,
-                    score_t const gap_extension_score) const
+    auto operator()(predecessor_t && predecessor, score_t const gap_open_score, score_t const gap_extension_score) const
     {
-        using gap_model_t = pairwise_aligner::affine_gap_model<score_t>;
-        return _gap_model_affine::rule<predecessor_t, gap_model_t>{{},
-                                                                   std::forward<predecessor_t>(predecessor),
-                                                                   gap_model_t{gap_open_score, gap_extension_score}};
+        using traits_t = traits<score_t>;
+        return _gap_model_affine::rule<predecessor_t, traits_t>{{},
+                                                                std::forward<predecessor_t>(predecessor),
+                                                                traits_t{gap_open_score, gap_extension_score}};
     }
 
     template <typename score_t>
