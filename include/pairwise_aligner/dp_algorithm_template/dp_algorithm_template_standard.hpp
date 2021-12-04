@@ -37,8 +37,8 @@ protected:
 
     friend derived_t;
 
-    template <std::ranges::forward_range sequence1_t,
-              std::ranges::forward_range sequence2_t,
+    template <typename sequence1_t,
+              typename sequence2_t,
               typename dp_column_vector_t,
               typename dp_row_vector_t>
     auto run(sequence1_t && sequence1,
