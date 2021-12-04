@@ -111,11 +111,7 @@ struct _interface_one_to_one_bulk<dp_algorithm_t, dp_vector_column_t, dp_vector_
         for (size_t result_idx = 0; result_idx < sequence_idx; ++result_idx)
             results.emplace_back(shared_result, result_idx);
 
-        std::vector<int32_t> tmp{};
-        for (int32_t score : results | std::views::transform([](auto r){ return r.score(); }))
-            tmp.push_back(score);
-
-        return tmp;
+        return results;
     }
 };
 

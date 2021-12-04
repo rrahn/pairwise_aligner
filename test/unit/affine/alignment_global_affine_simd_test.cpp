@@ -35,7 +35,7 @@ TEST(affine_test, all_match)
 
     auto res = aligner.compute(seq1_collection, seq2_collection);
     for (auto i = 0; i < 16; ++i)
-        EXPECT_EQ(res[i], 80);
+        EXPECT_EQ(res[i].score(), 80);
 }
 
 TEST(affine_test, all_mismatch)
@@ -60,5 +60,5 @@ TEST(affine_test, all_mismatch)
 
     auto res = aligner.compute(seq1_collection, seq2_collection);
     for (auto i = 0; i < 16; ++i)
-        EXPECT_EQ(res[i], -40);
+        EXPECT_EQ(res[i].score(), -40);
 }

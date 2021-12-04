@@ -27,7 +27,7 @@ TEST(affine_test, all_match)
     std::string_view seq1{"ACGTGACTGACACTACGACT"};
     std::string_view seq2{"ACGTGACTGACACTACGACT"};
 
-    EXPECT_EQ((aligner.compute(seq1, seq2)), 80);
+    EXPECT_EQ((aligner.compute(seq1, seq2)).score(), 80);
 }
 
 TEST(affine_test, all_mismatch)
@@ -44,5 +44,5 @@ TEST(affine_test, all_mismatch)
     std::string_view seq1{"AAAAAAAAAA"};
     std::string_view seq2{"TTTTTTTTTT"};
 
-    EXPECT_EQ((aligner.compute(seq1, seq2)), -40);
+    EXPECT_EQ((aligner.compute(seq1, seq2)).score(), -40);
 }

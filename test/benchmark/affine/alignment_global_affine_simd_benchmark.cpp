@@ -54,7 +54,7 @@ void alignment_global_affine_bulk_scalar(benchmark::State & state)
 
     for (auto _ : state)
         for (size_t i = 0; i < seq_collection_tmp.size(); ++i)
-            score += aligner.compute(seq1_collection[i], seq2_collection[i]);
+            score += aligner.compute(seq1_collection[i], seq2_collection[i]).score();
 
     state.counters["score"] = score;
     state.counters["cells"] = seqan3::test::pairwise_cell_updates(seq_collection_tmp,
@@ -95,7 +95,7 @@ void alignment_global_affine_bulk_simd(benchmark::State & state)
     int32_t score{};
 
     for (auto _ : state)
-        score += aligner.compute(seq1_collection, seq2_collection)[0];
+        score += aligner.compute(seq1_collection, seq2_collection)[0].score();
 
     state.counters["score"] = score;
     state.counters["cells"] = seqan3::test::pairwise_cell_updates(seq_collection_tmp,

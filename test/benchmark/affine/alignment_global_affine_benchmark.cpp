@@ -42,7 +42,7 @@ void alignment_global_affine(benchmark::State & state)
     int32_t score{};
 
     for (auto _ : state)
-        score += aligner.compute(seq1, seq2);
+        score += aligner.compute(seq1, seq2).score();
 
     state.counters["score"] = score;
     state.counters["cells"] = seqan3::test::pairwise_cell_updates(std::views::single(std::tie(seq1, seq2)),

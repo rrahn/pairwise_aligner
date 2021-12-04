@@ -28,5 +28,5 @@ TEST(configuration_test, prototype)
     std::string_view seq1{"ACGTGACTGACACTACGACT"};
     std::string_view seq2{"ACGTGACTGACACTACGACT"};
 
-    EXPECT_EQ((aligner.compute(seq1, seq2)), 80);
+    EXPECT_EQ((aligner.compute(seq1, seq2)).score(), 80);
 }
