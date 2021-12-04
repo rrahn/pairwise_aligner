@@ -14,6 +14,8 @@
 
 #include <seqan3/std/ranges>
 
+#include <pairwise_aligner/result/aligner_result.hpp>
+
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
@@ -39,7 +41,6 @@ protected:
               std::ranges::forward_range sequence2_t,
               typename dp_column_vector_t,
               typename dp_row_vector_t>
-        requires (std::ranges::viewable_range<sequence1_t> && std::ranges::viewable_range<sequence2_t>)
     auto run(sequence1_t && sequence1,
              sequence2_t && sequence2,
              dp_column_vector_t dp_column_vector,
@@ -49,10 +50,8 @@ protected:
         // Initialisation
         // ----------------------------------------------------------------------------
 
-        auto transformed_seq1 = as_derived().initialise_column_vector(std::forward<sequence1_t>(sequence1),
-                                                                      dp_column_vector);
-        auto transformed_seq2 = as_derived().initialise_row_vector(std::forward<sequence2_t>(sequence2),
-                                                                   dp_row_vector);
+        auto transformed_seq1 = as_derived().initialise_column_vector(sequence1, dp_column_vector);
+        auto transformed_seq2 = as_derived().initialise_row_vector(sequence2, dp_row_vector);
 
         // ----------------------------------------------------------------------------
         // Recursion
@@ -69,7 +68,16 @@ protected:
             as_derived().finalise_column(dp_row_vector[j+1], dp_column_vector[i], cache);
         }
 
-        return std::pair{std::move(dp_column_vector), std::move(dp_row_vector)};
+        // ----------------------------------------------------------------------------
+        // Create result
+        // ----------------------------------------------------------------------------
+
+        auto best_score = get<0>(dp_column_vector[std::ranges::size(transformed_seq1)]);
+        return make_result(std::forward<sequence1_t>(sequence1),
+                           std::forward<sequence2_t>(sequence2),
+                           std::move(dp_column_vector),
+                           std::move(dp_row_vector),
+                           std::move(best_score));
     }
 
     derived_t const & as_derived() const noexcept

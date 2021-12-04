@@ -55,7 +55,10 @@ struct traits
     using dp_vector_row_type = simd_intermediate_dp_vector<dp_cell_t>;
 
     template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vector_row_t>
-    using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>;
+    using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t,
+                                                        dp_vector_column_t,
+                                                        dp_vector_row_t,
+                                                        score_type::size>;
 
     constexpr score_model_type create() const
     {

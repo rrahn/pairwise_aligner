@@ -60,11 +60,11 @@ struct _interface_one_to_one_single<dp_algorithm_t, dp_vector_column_t, dp_vecto
                  dp_vector_column_t first_dp_column,
                  dp_vector_row_t first_dp_row)
     {
-        auto && [last_dp_column, last_dp_row] = dp_algorithm_t::run(std::forward<sequence1_t>(sequence1),
-                                                                    std::forward<sequence2_t>(sequence2),
-                                                                    std::move(first_dp_column),
-                                                                    std::move(first_dp_row));
-        return get<0>(last_dp_column[std::ranges::size(sequence1)]);
+        auto result = dp_algorithm_t::run(std::forward<sequence1_t>(sequence1),
+                                          std::forward<sequence2_t>(sequence2),
+                                          std::move(first_dp_column),
+                                          std::move(first_dp_row));
+        return result.score();
     }
 };
 
