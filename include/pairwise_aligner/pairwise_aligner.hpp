@@ -108,9 +108,14 @@ public:
 
         _underlying_dp_vector.initialise(simd_sequence, init_strategy);
 
-        for (size_t j = 0; j < max_sequence_size; ++j)
-            for (size_t i = 0; i < sequence_count; ++i)
-                simd_sequence[j][i] = sequence[i][j];
+        for (size_t i = 0; i < sequence_count; ++i)
+        {
+            for (size_t j = 0; j < max_sequence_size; ++j)
+            {
+                auto it = std::ranges::begin(sequence[i]);
+                simd_sequence[j][i] = it[j];
+            }
+        }
 
         return simd_sequence;
     }
