@@ -105,6 +105,25 @@ public:
         return tmp;
     }
 
+    template <typename fn_t>
+    friend simd_score compare(simd_score const left, simd_score const right, fn_t && fn) noexcept
+    {
+        simd_score tmp{};
+        for (size_t i = 0; i < simd_size; ++i)
+            tmp[i] = fn(left[i], right[i]);
+
+        return tmp;
+    }
+
+    friend simd_score blend(simd_score const mask, simd_score const left, simd_score const right) noexcept
+    {
+        simd_score tmp{};
+        for (size_t i = 0; i < simd_size; ++i)
+            tmp[i] = mask[i] ? left[i] : right[i];
+
+        return tmp;
+    }
+
     friend simd_score compare_and_blend(simd_score const & left,
                                         simd_score const & right,
                                         score_t const true_value,
