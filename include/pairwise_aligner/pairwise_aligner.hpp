@@ -111,19 +111,25 @@ public:
                 max_sequence_size = std::max<size_t>(max_sequence_size, std::ranges::distance(*optional_sequence));
         });
 
-        using simd_score_type = typename value_type::score_type;
-        std::vector<simd_score_type> simd_sequence{};
-        simd_sequence.resize(max_sequence_size);
+        using simd_score_t = typename value_type::score_type;
+        using score_t = typename simd_score_t::value_type;
+
+        constexpr size_t bit_count = sizeof(score_t) * 8;
+        constexpr score_t padding_mask = static_cast<score_t>(1 << (bit_count - 1));
+
+        std::vector<simd_score_t> simd_sequence{};
+        simd_sequence.resize(max_sequence_size, simd_score_t{padding_mask});
 
         _underlying_dp_vector.initialise(simd_sequence, init_strategy);
 
         for (size_t i = 0; i < sequence_count; ++i)
         {
-            for (size_t j = 0; j < max_sequence_size; ++j)
-            {
-                auto it = std::ranges::begin(*(sequence[i]));
-                simd_sequence[j][i] = it[j];
-            }
+            if (!sequence[i].has_value())
+                continue;
+
+            size_t j = 0;
+            for (auto it = std::ranges::begin(*sequence[i]); it != std::ranges::end(*sequence[i]); ++it, ++j)
+                simd_sequence[j][i] = static_cast<score_t>(*it);
         }
 
         return simd_sequence;

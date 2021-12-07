@@ -54,11 +54,14 @@ TEST(affine_test, all_mismatch)
 
     std::vector<std::string_view> seq1_collection{};
     seq1_collection.resize(16, seq1);
+    seq1_collection[0] = std::string_view{"AAAAA"};
 
     std::vector<std::string_view> seq2_collection{};
     seq2_collection.resize(16, seq2);
 
     auto res = aligner.compute(seq1_collection, seq2_collection);
-    for (auto i = 0; i < 16; ++i)
+
+    EXPECT_EQ(res[0].score(), -35);
+    for (auto i = 1; i < 16; ++i)
         EXPECT_EQ(res[i].score(), -40);
 }

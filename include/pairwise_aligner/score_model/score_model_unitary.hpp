@@ -60,7 +60,16 @@ public:
     {
         static_assert(std::same_as<score_t, simd_score<scalar_score_t>>,
                       "The simd score type does not match the score type of this score class.");
-        return compare_and_blend(value1, value2, _match_score, _mismatch_score);
+
+        return blend(compare(value1, value2, [](scalar_score_t const left, scalar_score_t const right) -> scalar_score_t
+        {
+            return (left ^ right) <= 0;
+        }), _match_score, _mismatch_score);
+    }
+
+    constexpr score_t padding_score() const noexcept
+    {
+        return _match_score;
     }
 };
 
