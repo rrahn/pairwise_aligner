@@ -100,16 +100,15 @@ public:
 
     template <std::ranges::forward_range sequence_t,
               typename initialisation_strategy_t>
-        requires (std::ranges::forward_range<std::ranges::range_reference_t<sequence_t>> &&
-                  std::ranges::viewable_range<std::ranges::range_reference_t<sequence_t>>)
     auto initialise(sequence_t && sequence, initialisation_strategy_t && init_strategy)
     {
         size_t const sequence_count = std::ranges::distance(sequence);
         size_t max_sequence_size = 0;
 
-        std::ranges::for_each(sequence, [&] (auto && inner_sequence)
+        std::ranges::for_each(sequence, [&] (auto && optional_sequence)
         {
-            max_sequence_size = std::max<size_t>(max_sequence_size, std::ranges::distance(inner_sequence));
+            if (optional_sequence.has_value())
+                max_sequence_size = std::max<size_t>(max_sequence_size, std::ranges::distance(*optional_sequence));
         });
 
         using simd_score_type = typename value_type::score_type;
@@ -122,7 +121,7 @@ public:
         {
             for (size_t j = 0; j < max_sequence_size; ++j)
             {
-                auto it = std::ranges::begin(sequence[i]);
+                auto it = std::ranges::begin(*(sequence[i]));
                 simd_sequence[j][i] = it[j];
             }
         }

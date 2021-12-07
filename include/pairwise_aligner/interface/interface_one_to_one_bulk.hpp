@@ -15,10 +15,10 @@
 #include <seqan3/std/algorithm>
 #include <array>
 #include <memory>
+#include <optional>
 #include <seqan3/std/ranges>
 
 #include <pairwise_aligner/result/aligner_result_bulk.hpp>
-#include <pairwise_aligner/utility/optional_range.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -82,8 +82,8 @@ struct _interface_one_to_one_bulk<dp_algorithm_t, dp_vector_column_t, dp_vector_
         // how can we handle wrong types?
         using sequence1_ref_t = std::ranges::range_reference_t<sequence_bulk1_t>;
         using sequence2_ref_t = std::ranges::range_reference_t<sequence_bulk2_t>;
-        using bulk1_t = std::array<optional_range<std::views::all_t<sequence1_ref_t>>, max_bulk_size>;
-        using bulk2_t = std::array<optional_range<std::views::all_t<sequence2_ref_t>>, max_bulk_size>;
+        using bulk1_t = std::array<std::optional<std::views::all_t<sequence1_ref_t>>, max_bulk_size>;
+        using bulk2_t = std::array<std::optional<std::views::all_t<sequence2_ref_t>>, max_bulk_size>;
 
         bulk1_t bulk1{};
         bulk2_t bulk2{};
@@ -93,8 +93,8 @@ struct _interface_one_to_one_bulk<dp_algorithm_t, dp_vector_column_t, dp_vector_
         size_t sequence_idx{};
         for (; sequence1_it != std::ranges::end(sequence_bulk1); ++sequence_idx, ++sequence1_it, ++sequence2_it)
         {
-            bulk1[sequence_idx] = optional_range{*sequence1_it | std::views::all};
-            bulk2[sequence_idx] = optional_range{*sequence2_it | std::views::all};
+            bulk1[sequence_idx] = *sequence1_it | std::views::all;
+            bulk2[sequence_idx] = *sequence2_it | std::views::all;
         }
 
         auto result = dp_algorithm_t::run(std::move(bulk1),

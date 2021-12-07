@@ -35,22 +35,22 @@ public:
 
     auto const & dp_column() const & noexcept
     {
-        return _result->_dp_column;
+        return _result->dp_column();
     }
 
     auto const & dp_row() const & noexcept
     {
-        return _result->_dp_row;
+        return _result->dp_row();
     }
 
     auto const & sequence1() const noexcept
     {
-        return _result->_sequence1[_index];
+        return *(_result->sequence1()[_index]);
     }
 
     auto const & sequence2() const noexcept
     {
-        return _result->_sequence2[_index];
+        return *(_result->sequence2()[_index]);
     }
 
     auto const & score() const noexcept

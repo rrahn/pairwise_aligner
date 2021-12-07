@@ -58,12 +58,12 @@ struct _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t, score_t>::type
         return std::move(_dp_row);
     }
 
-    sequence1_t sequence1() const noexcept
+    sequence1_t const & sequence1() const noexcept
     {
         return _sequence1;
     }
 
-    sequence2_t sequence2() const noexcept
+    sequence2_t const & sequence2() const noexcept
     {
         return _sequence2;
     }
@@ -97,8 +97,8 @@ struct fn
                                 std::move(score)};
     }
 
-    template <std::ranges::viewable_range sequence1_t, size_t bulk1_size,
-              std::ranges::viewable_range sequence2_t, size_t bulk2_size,
+    template <typename sequence1_t, size_t bulk1_size,
+              typename sequence2_t, size_t bulk2_size,
               typename dp_column_t,
               typename dp_row_t,
               typename score_t>
