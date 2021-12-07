@@ -126,6 +126,6 @@ struct fn
 } // namespace cpo
 } // namespace _aligner_result
 
-inline constexpr _aligner_result::cpo::fn make_result{};
+inline constexpr _aligner_result::cpo::fn result_factory{};
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner

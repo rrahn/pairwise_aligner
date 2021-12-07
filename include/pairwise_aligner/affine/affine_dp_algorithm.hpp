@@ -80,6 +80,12 @@ protected:
         get<1>(current_row_cell) = std::move(cache.second);
     }
 
+    template <typename ...args_t>
+    constexpr auto make_result(args_t && ...args) const noexcept
+    {
+        return result_factory(std::forward<args_t>(args)...);
+    }
+
     template <typename cache_t, typename seq1_val_t, typename seq2_val_t, typename dp_cell_t>
     auto compute_cell(cache_t & cache,
                       dp_cell_t & column_cell,
