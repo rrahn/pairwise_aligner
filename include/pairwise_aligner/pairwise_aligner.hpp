@@ -48,6 +48,11 @@ public:
         return _dp_vector[pos];
     }
 
+    constexpr size_t size() const noexcept
+    {
+        return _dp_vector.size();
+    }
+
     template <std::ranges::viewable_range sequence_t,
               typename initialisation_strategy_t>
         requires std::ranges::forward_range<sequence_t>
@@ -86,6 +91,11 @@ public:
     const_reference operator[](size_t const pos) const noexcept(noexcept(_underlying_dp_vector[pos]))
     {
         return _underlying_dp_vector[pos];
+    }
+
+    constexpr size_t size() const noexcept
+    {
+        return _underlying_dp_vector.size();
     }
 
     template <std::ranges::forward_range sequence_t,
