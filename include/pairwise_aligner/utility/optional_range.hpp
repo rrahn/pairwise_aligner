@@ -39,49 +39,53 @@ private:
 
 public:
 
+    template <bool is_const>
     struct iterator;
 
     optional_range() = default;
     optional_range(underlying_range_t underlying_range) noexcept : _underlying_range{std::move(underlying_range)}
     {}
 
-    std::iter_reference_t<iterator> operator[](size_t const idx) noexcept
+    std::iter_reference_t<iterator<false>> operator[](size_t const idx) noexcept
         requires std::ranges::random_access_range<underlying_range_t>
     {
         return *std::ranges::next(begin(), idx);
     }
 
-    std::iter_reference_t<iterator> operator[](size_t const idx) const noexcept
+    std::iter_reference_t<iterator<true>> operator[](size_t const idx) const noexcept
         requires std::ranges::random_access_range<underlying_range_t>
     {
         return *std::ranges::next(begin(), idx);
     }
 
-    constexpr iterator begin() noexcept
+    constexpr iterator<false> begin() noexcept
     {
-        return iterator{_underlying_range, false};
+        return iterator<false>{_underlying_range, false};
     }
 
-    constexpr iterator begin() const noexcept
+    constexpr iterator<true> begin() const noexcept
     {
-        return iterator{_underlying_range, false};
+        return iterator<true>{_underlying_range, false};
     }
 
-    constexpr iterator end() noexcept
+    constexpr iterator<false> end() noexcept
     {
-        return iterator{_underlying_range, true};
+        return iterator<false>{_underlying_range, true};
     }
 
-    constexpr iterator end() const noexcept
+    constexpr iterator<true> end() const noexcept
     {
-        return iterator{_underlying_range, true};
+        return iterator<true>{_underlying_range, true};
     }
 };
 
 template <std::ranges::view underlying_range_t>
+template <bool is_const>
 class optional_range<underlying_range_t>::iterator
 {
-    using underlying_iter_t = std::ranges::iterator_t<underlying_range_t>;
+    using maybe_const_optional_t = std::conditional_t<is_const, optional_range_t const, optional_range_t>;
+    using maybe_const_range_t = std::conditional_t<is_const, underlying_range_t const, underlying_range_t>;
+    using underlying_iter_t = std::ranges::iterator_t<maybe_const_range_t>;
 
     underlying_iter_t _iter{};
     bool _is_empty{false};
@@ -95,7 +99,7 @@ public:
     using iterator_category = typename std::iterator_traits<underlying_iter_t>::iterator_category;
 
     iterator() = default;
-    explicit iterator(optional_range_t & optional_range, bool at_end)
+    explicit iterator(maybe_const_optional_t & optional_range, bool at_end)
     {
         _is_empty = !optional_range.has_value();
         if (!_is_empty)
