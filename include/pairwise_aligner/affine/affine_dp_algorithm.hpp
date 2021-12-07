@@ -22,22 +22,32 @@ namespace seqan::pairwise_aligner
 inline namespace v1
 {
 
-template <template <typename> typename dp_template, typename score_model_t, typename gap_model_t>
-class affine_dp_algorithm : protected dp_template<affine_dp_algorithm<dp_template, score_model_t, gap_model_t>>
+template <template <typename> typename dp_template,
+          typename score_model_t,
+          typename result_factory_t,
+          typename gap_model_t>
+class affine_dp_algorithm : protected dp_template<affine_dp_algorithm<dp_template,
+                                                                      score_model_t,
+                                                                      result_factory_t,
+                                                                      gap_model_t>>
 {
 private:
 
-    using base_t = dp_template<affine_dp_algorithm<dp_template, score_model_t, gap_model_t>>;
+    using base_t = dp_template<affine_dp_algorithm<dp_template, score_model_t, result_factory_t, gap_model_t>>;
 
     friend base_t;
 
     score_model_t _score_model{};
+    result_factory_t _result_factory{};
     gap_model_t _gap_model{};
 
 public:
     affine_dp_algorithm() = default;
-    explicit affine_dp_algorithm(score_model_t score_model, gap_model_t gap_model) noexcept :
+    explicit affine_dp_algorithm(score_model_t score_model,
+                                 result_factory_t result_factory,
+                                 gap_model_t gap_model) noexcept :
         _score_model{std::move(score_model)},
+        _result_factory{std::move(result_factory)},
         _gap_model{std::move(gap_model)}
     {}
 
@@ -83,7 +93,7 @@ protected:
     template <typename ...args_t>
     constexpr auto make_result(args_t && ...args) const noexcept
     {
-        return result_factory(std::forward<args_t>(args)...);
+        return _result_factory(std::forward<args_t>(args)...);
     }
 
     template <typename cache_t, typename seq1_val_t, typename seq2_val_t, typename dp_cell_t>

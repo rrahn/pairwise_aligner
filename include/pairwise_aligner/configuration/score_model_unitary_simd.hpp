@@ -13,11 +13,13 @@
 #pragma once
 
 #include <seqan3/std/type_traits>
+#include <utility>
 
 #include <pairwise_aligner/configuration/initial.hpp>
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
 #include <pairwise_aligner/pairwise_aligner.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
+#include <pairwise_aligner/result/result_factory_bulk.hpp>
 #include <pairwise_aligner/score_model/score_model_unitary.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 #include <pairwise_aligner/utility/type_list.hpp>
@@ -60,9 +62,13 @@ struct traits
                                                         dp_vector_row_t,
                                                         score_type::size>;
 
-    constexpr score_model_type create() const
+    using result_factory_type = result_factory_bulk<score_type>;
+
+    constexpr std::pair<score_model_type, result_factory_type> create() const
     {
-        return score_model_type{static_cast<score_type>(_match_score), static_cast<score_type>(_mismatch_score)};
+        return std::pair{score_model_type{static_cast<score_type>(_match_score),
+                                          static_cast<score_type>(_mismatch_score)},
+                         result_factory_type{{}, static_cast<score_type>(_match_score)}};
     }
 };
 

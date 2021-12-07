@@ -74,9 +74,9 @@ struct _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t, score_t>::type
     }
 };
 
-namespace cpo
-{
-struct fn
+} // namespace _aligner_result
+
+struct result_factory_single
 {
     template <std::ranges::viewable_range sequence1_t,
               std::ranges::viewable_range sequence2_t,
@@ -89,7 +89,7 @@ struct fn
                     dp_row_t dp_row,
                     score_t score) const noexcept
     {
-        using aligner_result_t = value<sequence1_t, sequence2_t, dp_column_t, dp_row_t, score_t>;
+        using aligner_result_t = _aligner_result::value<sequence1_t, sequence2_t, dp_column_t, dp_row_t, score_t>;
         return aligner_result_t{std::forward<sequence1_t>(sequence1),
                                 std::forward<sequence2_t>(sequence2),
                                 std::move(dp_column),
@@ -110,11 +110,11 @@ struct fn
     {
         static_assert(bulk1_size == bulk2_size, "The sequence bulks must have the same length.");
 
-        using aligner_result_t = value<std::array<sequence1_t, bulk1_size>,
-                                       std::array<sequence2_t, bulk2_size>,
-                                       dp_column_t,
-                                       dp_row_t,
-                                       score_t>;
+        using aligner_result_t = _aligner_result::value<std::array<sequence1_t, bulk1_size>,
+                                                        std::array<sequence2_t, bulk2_size>,
+                                                        dp_column_t,
+                                                        dp_row_t,
+                                                        score_t>;
         return aligner_result_t{std::move(sequence_bulk1),
                                 std::move(sequence_bulk2),
                                 std::move(dp_column),
@@ -123,9 +123,5 @@ struct fn
     }
 };
 
-} // namespace cpo
-} // namespace _aligner_result
-
-inline constexpr _aligner_result::cpo::fn result_factory{};
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner

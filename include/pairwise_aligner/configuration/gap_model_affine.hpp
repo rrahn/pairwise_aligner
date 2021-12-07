@@ -51,8 +51,8 @@ struct traits
     using dp_cell_row_type = affine_cell<score_t, dp_vector_order::row>;
 
     // Offer some overload for the column type.
-    template <template <typename > typename dp_template_t, typename dp_score_model_t>
-    using dp_kernel_type = affine_dp_algorithm<dp_template_t, dp_score_model_t, gap_model_type>;
+    template <template <typename > typename dp_template_t, typename dp_score_model_t, typename result_factory_t>
+    using dp_kernel_type = affine_dp_algorithm<dp_template_t, dp_score_model_t, result_factory_t, gap_model_type>;
 
     constexpr gap_model_type create() const
     {

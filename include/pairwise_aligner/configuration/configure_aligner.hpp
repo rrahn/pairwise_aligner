@@ -47,10 +47,12 @@ struct traits
 
     // Get the instantiated model types.
     using score_model_t = typename score_model_config_traits_t::score_model_type;
+    using result_factory_t = typename score_model_config_traits_t::result_factory_type;
 
     // Define the kernel type.
     using dp_kernel_t = typename gap_model_config_traits_t:: template dp_kernel_type<dp_algorithm_template_standard,
-                                                                                     score_model_t>;
+                                                                                     score_model_t,
+                                                                                     result_factory_t>;
     // define the pairwise aligner type.
     using aligner_type = typename score_model_config_traits_t::template dp_interface_type<dp_kernel_t,
                                                                                           dp_vector_column_t,
@@ -85,11 +87,13 @@ struct _configurator<pairwise_aligner_ref_t, score_model_index, gap_model_index>
     {
         std::tuple tpl_values{std::forward<actions_t>(actions)...};
 
-        auto score_model = get<score_model_index>(tpl_values).create();
+        auto [score_model, result_factory] = get<score_model_index>(tpl_values).create();
 
         auto gap_params = get<gap_model_index>(tpl_values).create();
 
-        _aligner_ref.get() = pairwise_aligner_t{std::move(score_model), std::move(gap_params)};
+        _aligner_ref.get() = pairwise_aligner_t{std::move(score_model),
+                                                std::move(result_factory),
+                                                std::move(gap_params)};
     }
 };
 
