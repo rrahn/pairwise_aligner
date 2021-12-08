@@ -29,6 +29,11 @@ struct affine_cell : public dp_cell_base<order>,
     using score_type = score_t;
 
     using base_t::base_t;
+
+    constexpr score_t const & score() const noexcept
+    {
+        return this->first;
+    }
 };
 
 // template <typename score_t = int32_t>
