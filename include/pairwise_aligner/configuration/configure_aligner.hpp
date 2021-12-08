@@ -89,11 +89,12 @@ struct _configurator<pairwise_aligner_ref_t, score_model_index, gap_model_index>
 
         auto [score_model, result_factory] = get<score_model_index>(tpl_values).create();
 
-        auto gap_params = get<gap_model_index>(tpl_values).create();
+        auto [gap_params, initialisation_rule] = get<gap_model_index>(tpl_values).create();
 
         _aligner_ref.get() = pairwise_aligner_t{std::move(score_model),
                                                 std::move(result_factory),
-                                                std::move(gap_params)};
+                                                std::move(gap_params),
+                                                std::move(initialisation_rule)};
     }
 };
 

@@ -40,15 +40,19 @@ private:
     score_model_t _score_model{};
     result_factory_t _result_factory{};
     gap_model_t _gap_model{};
+    affine_initialisation_strategy<gap_model_t> _init{};
 
 public:
     affine_dp_algorithm() = default;
+
     explicit affine_dp_algorithm(score_model_t score_model,
                                  result_factory_t result_factory,
-                                 gap_model_t gap_model) noexcept :
+                                 gap_model_t gap_model,
+                                 initialisation_rule init_param) noexcept :
         _score_model{std::move(score_model)},
         _result_factory{std::move(result_factory)},
-        _gap_model{std::move(gap_model)}
+        _gap_model{std::move(gap_model)},
+        _init{_gap_model, init_param}
     {}
 
 protected:
@@ -57,14 +61,14 @@ protected:
         requires std::ranges::forward_range<sequence_t>
     auto initialise_row_vector(sequence_t && sequence, dp_vector_t & dp_vector) const
     {
-        return dp_vector.initialise(std::forward<sequence_t>(sequence), affine_initialisation_strategy{_gap_model});
+        return dp_vector.initialise(std::forward<sequence_t>(sequence), _init);
     }
 
     template <std::ranges::viewable_range sequence_t, typename dp_vector_t>
         requires std::ranges::forward_range<sequence_t>
     auto initialise_column_vector(sequence_t && sequence, dp_vector_t & dp_vector) const
     {
-        return dp_vector.initialise(std::forward<sequence_t>(sequence), affine_initialisation_strategy{_gap_model});
+        return dp_vector.initialise(std::forward<sequence_t>(sequence), _init);
     }
 
     template <typename row_cell_t, typename column_cell_t>

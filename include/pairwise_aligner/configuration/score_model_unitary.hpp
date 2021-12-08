@@ -17,6 +17,7 @@
 
 #include <pairwise_aligner/configuration/initial.hpp>
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
+#include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/pairwise_aligner.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
 #include <pairwise_aligner/result/aligner_result.hpp>
@@ -62,7 +63,8 @@ struct traits
 
     constexpr std::pair<score_model_type, result_factory_type> create() const
     {
-        return std::pair{score_model_type{_match_score, _mismatch_score}, result_factory_type{}};
+        return std::pair{score_model_type{_match_score, _mismatch_score},
+                         result_factory_type{dp_trailing_gaps::regular, dp_trailing_gaps::regular}};
     }
 };
 

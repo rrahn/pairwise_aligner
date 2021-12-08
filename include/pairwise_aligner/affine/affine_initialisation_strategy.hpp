@@ -20,36 +20,36 @@ namespace seqan::pairwise_aligner
 inline namespace v1
 {
 
+struct initialisation_rule
+{
+    dp_initialisation_rule column{dp_initialisation_rule::regular};
+    dp_initialisation_rule row{dp_initialisation_rule::regular};
+};
+
 template <typename affine_gap_model_t>
 class affine_initialisation_strategy
 {
 private:
     affine_gap_model_t _gap_model{};
-    dp_initialisation_rule _row_initialisation_rule{};
-    dp_initialisation_rule _column_initialisation_rule{};
+    initialisation_rule _rule{};
     size_t _row_index{};
     size_t _column_index{};
 
 public:
 
     affine_initialisation_strategy() = default;
-    explicit affine_initialisation_strategy(
-        affine_gap_model_t affine_gap_model,
-        dp_initialisation_rule const row_initialisation_rule = dp_initialisation_rule::regular,
-        dp_initialisation_rule const column_initialisation_rule = dp_initialisation_rule::regular) noexcept :
-
+    explicit affine_initialisation_strategy(affine_gap_model_t affine_gap_model, initialisation_rule rule) noexcept :
         _gap_model{std::move(affine_gap_model)},
-        _row_initialisation_rule{row_initialisation_rule},
-        _column_initialisation_rule{column_initialisation_rule}
+        _rule{rule}
     {}
 
     template <typename affine_cell_t>
     void operator()(affine_cell_t & affine_cell)
     {
         if constexpr (is_row_cell_v<affine_cell_t>) {
-            initialise_cell(affine_cell, _row_index, _row_initialisation_rule);
+            initialise_cell(affine_cell, _row_index, _rule.row);
         } else {
-            initialise_cell(affine_cell, _column_index, _column_initialisation_rule);
+            initialise_cell(affine_cell, _column_index, _rule.column);
         }
     }
 

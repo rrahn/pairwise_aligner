@@ -14,6 +14,8 @@
 
 #include <seqan3/std/ranges>
 
+#include <pairwise_aligner/dp_trailing_gaps.hpp>
+
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
@@ -78,6 +80,9 @@ struct _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t, score_t>::type
 
 struct result_factory_single
 {
+    dp_trailing_gaps _column_trailing_gaps{};
+    dp_trailing_gaps _row_trailing_gaps{};
+
     template <std::ranges::viewable_range sequence1_t,
               std::ranges::viewable_range sequence2_t,
               typename dp_column_t,
@@ -90,6 +95,7 @@ struct result_factory_single
                     score_t score) const noexcept
     {
         using aligner_result_t = _aligner_result::value<sequence1_t, sequence2_t, dp_column_t, dp_row_t, score_t>;
+        score = update_score<score_t>(dp_column, dp_row);
         return aligner_result_t{std::forward<sequence1_t>(sequence1),
                                 std::forward<sequence2_t>(sequence2),
                                 std::move(dp_column),
@@ -97,29 +103,26 @@ struct result_factory_single
                                 std::move(score)};
     }
 
-    template <typename sequence1_t, size_t bulk1_size,
-              typename sequence2_t, size_t bulk2_size,
-              typename dp_column_t,
-              typename dp_row_t,
-              typename score_t>
-    auto operator()(std::array<sequence1_t, bulk1_size> sequence_bulk1,
-                    std::array<sequence2_t, bulk2_size> sequence_bulk2,
-                    dp_column_t dp_column,
-                    dp_row_t dp_row,
-                    score_t score) const noexcept
-    {
-        static_assert(bulk1_size == bulk2_size, "The sequence bulks must have the same length.");
+private:
 
-        using aligner_result_t = _aligner_result::value<std::array<sequence1_t, bulk1_size>,
-                                                        std::array<sequence2_t, bulk2_size>,
-                                                        dp_column_t,
-                                                        dp_row_t,
-                                                        score_t>;
-        return aligner_result_t{std::move(sequence_bulk1),
-                                std::move(sequence_bulk2),
-                                std::move(dp_column),
-                                std::move(dp_row),
-                                std::move(score)};
+    template <typename score_t, typename dp_column_t, typename dp_row_t>
+    constexpr score_t update_score(dp_column_t const & dp_column, dp_row_t const & dp_row) const noexcept
+    {
+        score_t best_score = dp_column[dp_column.size() - 1].score();
+
+        if (_row_trailing_gaps == dp_trailing_gaps::free)
+        {
+            for (size_t cell_idx = 0; cell_idx < dp_row.size(); ++cell_idx)
+                best_score = std::max<score_t>(dp_row[cell_idx].score(), best_score);
+        }
+
+        if (_column_trailing_gaps == dp_trailing_gaps::free)
+        {
+            for (size_t cell_idx = 0; cell_idx < dp_column.size(); ++cell_idx)
+                best_score = std::max<score_t>(dp_column[cell_idx].score(), best_score);
+        }
+
+        return best_score;
     }
 };
 

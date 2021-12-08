@@ -17,6 +17,7 @@
 
 #include <pairwise_aligner/configuration/initial.hpp>
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
+#include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/pairwise_aligner.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
 #include <pairwise_aligner/result/result_factory_bulk.hpp>
@@ -68,7 +69,9 @@ struct traits
     {
         return std::pair{score_model_type{static_cast<score_type>(_match_score),
                                           static_cast<score_type>(_mismatch_score)},
-                         result_factory_type{static_cast<score_type>(_match_score)}};
+                         result_factory_type{static_cast<score_type>(_match_score),
+                                             dp_trailing_gaps::regular,
+                                             dp_trailing_gaps::regular}};
     }
 };
 
