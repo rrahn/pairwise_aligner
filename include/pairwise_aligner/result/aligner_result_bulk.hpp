@@ -24,8 +24,6 @@ inline namespace v1
 template <typename aligner_result_t>
 class aligner_result_bulk
 {
-    using score_type = typename aligner_result_t::score_type;
-
     std::shared_ptr<aligner_result_t> _result{};
     size_t _index{};
 
@@ -59,38 +57,7 @@ public:
 
     auto score() const noexcept
     {
-        return original_score();
-    }
-
-private:
-
-    constexpr std::tuple<size_t, size_t, size_t> projected_coordinate() const noexcept
-    {
-        size_t const original_row_dim = std::ranges::distance(sequence1());
-        size_t const original_column_dim = std::ranges::distance(sequence2());
-
-        size_t offset = std::min<size_t>(dp_column().size() - 1 - original_row_dim,
-                                         dp_row().size() -1 - original_column_dim);
-        return std::tuple{original_row_dim + offset, original_column_dim + offset, offset};
-    }
-
-    constexpr auto original_score() const noexcept
-    {
-        using scalar_t = typename score_type::value_type;
-
-        auto && [row_idx, col_idx, offset] = projected_coordinate();
-
-        scalar_t best_score = 0;
-        if (row_idx == dp_column().size() - 1)
-        { // only the gap model knows how to access the correct value
-            best_score = get<0>(dp_row()[col_idx])[_index];
-        }
-        else
-        {
-            assert(col_idx == dp_row().size() - 1);
-            best_score = get<0>(dp_column()[row_idx])[_index];
-        }
-        return  best_score - static_cast<scalar_t>(_result->_padding_score[_index] * offset);
+        return _result->score_at(_index);
     }
 };
 

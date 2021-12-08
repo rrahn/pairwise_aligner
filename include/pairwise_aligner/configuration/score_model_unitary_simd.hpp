@@ -68,7 +68,7 @@ struct traits
     {
         return std::pair{score_model_type{static_cast<score_type>(_match_score),
                                           static_cast<score_type>(_mismatch_score)},
-                         result_factory_type{{}, static_cast<score_type>(_match_score)}};
+                         result_factory_type{static_cast<score_type>(_match_score)}};
     }
 };
 
