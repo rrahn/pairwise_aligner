@@ -55,7 +55,7 @@ protected:
 
     template <std::ranges::viewable_range sequence_t, typename dp_vector_t>
         requires std::ranges::forward_range<sequence_t>
-    auto initialise_row_vector(sequence_t && sequence, dp_vector_t & dp_vector)
+    auto initialise_row_vector(sequence_t && sequence, dp_vector_t & dp_vector) const
     {
         return dp_vector.initialise(std::forward<sequence_t>(sequence), affine_initialisation_strategy{_gap_model});
     }

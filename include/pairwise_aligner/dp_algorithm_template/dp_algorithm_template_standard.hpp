@@ -44,7 +44,7 @@ protected:
     auto run(sequence1_t && sequence1,
              sequence2_t && sequence2,
              dp_column_vector_t dp_column_vector,
-             dp_row_vector_t dp_row_vector)
+             dp_row_vector_t dp_row_vector) const
     {
         // ----------------------------------------------------------------------------
         // Initialisation
