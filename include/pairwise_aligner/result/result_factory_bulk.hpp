@@ -47,9 +47,9 @@ struct _value<base_value_t, score_t>::type : public base_value_t
 
         scalar_t best_score = 0;
         if (row_idx == this->dp_column().size() - 1)
-            best_score = get<0>(this->dp_row()[col_idx])[idx];
+            best_score = this->dp_row()[col_idx].score()[idx];
         else
-            best_score = get<0>(this->dp_column()[row_idx])[idx];
+            best_score = this->dp_column()[row_idx].score()[idx];
 
         return best_score - static_cast<scalar_t>(_padding_score[idx] * offset);
     }
