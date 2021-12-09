@@ -6,76 +6,26 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides the public pairwise aligner interface.
+ * \brief Provides seqan::pairwise_aligner::dp_vector_bulk.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
 #pragma once
 
-#include <iostream>
-
 #include <seqan3/std/algorithm>
 #include <seqan3/std/ranges>
-#include <tuple>
-#include <vector>
 
-#include <pairwise_aligner/simd_score_type.hpp>
+#include <pairwise_aligner/matrix/dp_vector_single.hpp>
 
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
-
 template <typename dp_cell_t, typename dp_vector_t = std::vector<dp_cell_t>>
-class intermediate_dp_vector
+class dp_vector_bulk
 {
 private:
-    dp_vector_t _dp_vector;
-
-public:
-
-    using value_type = std::ranges::range_value_t<dp_vector_t>;
-    using reference = std::ranges::range_reference_t<dp_vector_t>;
-    using const_reference = std::ranges::range_reference_t<dp_vector_t const>;
-
-    reference operator[](size_t const pos) noexcept(noexcept(_dp_vector[pos]))
-    {
-        return _dp_vector[pos];
-    }
-
-    const_reference operator[](size_t const pos) const noexcept(noexcept(_dp_vector[pos]))
-    {
-        return _dp_vector[pos];
-    }
-
-    constexpr size_t size() const noexcept
-    {
-        return _dp_vector.size();
-    }
-
-    template <std::ranges::viewable_range sequence_t,
-              typename initialisation_strategy_t>
-        requires std::ranges::forward_range<sequence_t>
-    sequence_t initialise(sequence_t && sequence, initialisation_strategy_t && init_strategy)
-    {
-        size_t const sequence_size = std::ranges::distance(sequence);
-        _dp_vector.resize(sequence_size + 1);
-
-        std::ranges::for_each(_dp_vector, init_strategy);
-
-        return sequence;
-    }
-};
-
-// ----------------------------------------------------------------------------
-// simd_intermediate_dp_vector
-// ----------------------------------------------------------------------------
-
-template <typename dp_cell_t, typename dp_vector_t = std::vector<dp_cell_t>>
-class simd_intermediate_dp_vector
-{
-private:
-    intermediate_dp_vector<dp_cell_t, dp_vector_t> _underlying_dp_vector;
+    dp_vector_single<dp_cell_t, dp_vector_t> _underlying_dp_vector;
 
 public:
 

@@ -18,8 +18,8 @@
 #include <pairwise_aligner/configuration/initial.hpp>
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
-#include <pairwise_aligner/pairwise_aligner.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
+#include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/result/result_factory_bulk.hpp>
 #include <pairwise_aligner/score_model/score_model_unitary.hpp>
 #include <pairwise_aligner/type_traits.hpp>
@@ -51,11 +51,11 @@ struct traits
 
     // Offer some overload for the column type.
     template <typename dp_cell_t>
-    using dp_vector_column_type = simd_intermediate_dp_vector<dp_cell_t>;
+    using dp_vector_column_type = dp_vector_bulk<dp_cell_t>;
 
     // Offer some overload for the column type.
     template <typename dp_cell_t>
-    using dp_vector_row_type = simd_intermediate_dp_vector<dp_cell_t>;
+    using dp_vector_row_type = dp_vector_bulk<dp_cell_t>;
 
     template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vector_row_t>
     using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t,
