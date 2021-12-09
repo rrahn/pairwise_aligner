@@ -6,29 +6,38 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides seqan::pairwise_aligner::cfg::detail::rule_category.
+ * \brief Provides seqan::pairwise_aligner::cfg::gap_model::rule.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
 #pragma once
 
-#include <cstdint>
+#include <seqan3/std/type_traits>
+
+#include <pairwise_aligner/configuration/rule_base.hpp>
 
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
-namespace cfg::detail
+namespace cfg::method
 {
 
-enum struct rule_category : uint8_t
+template <typename rule_t>
+struct _rule
 {
-    score_model = 0,
-    gap_model = 1,
-    method = 2,
-    size = 3
+    struct type;
 };
 
-} // namespace cfg::detail
+template <typename rule_t>
+using rule = typename _rule<rule_t>::type;
+
+template <typename rule_t>
+struct _rule<rule_t>::type : _base::rule<rule_t, cfg::detail::rule_category::method>
+{
+    using rule_base_t = _base::rule<rule_t, cfg::detail::rule_category::method>;
+    static_assert(!rule_base_t::already_applied, "The method category was already configured by another rule!");
+};
+} // namespace cfg::method
 } // inline namespace v1
 } // namespace seqan::pairwise_aligner
