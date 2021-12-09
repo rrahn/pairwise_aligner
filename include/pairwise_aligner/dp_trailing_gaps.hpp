@@ -21,5 +21,12 @@ enum struct dp_trailing_gaps
     regular,
     free
 };
+
+struct trailing_gap_setting
+{
+    dp_trailing_gaps column{dp_trailing_gaps::regular};
+    dp_trailing_gaps row{dp_trailing_gaps::regular};
+};
+
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner
