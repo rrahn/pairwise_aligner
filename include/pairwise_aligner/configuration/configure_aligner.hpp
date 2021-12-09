@@ -16,7 +16,9 @@
 #include <seqan3/std/concepts>
 #include <seqan3/std/type_traits>
 
+#include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
+#include <pairwise_aligner/dp_trailing_gaps.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -63,17 +65,17 @@ struct traits
 // configurator
 // ----------------------------------------------------------------------------
 
-template <typename pairwise_aligner_ref_t, size_t score_model_index, size_t gap_model_index>
+template <typename pairwise_aligner_ref_t, int32_t score_model_index, int32_t gap_model_index, int32_t method_index>
 struct _configurator
 {
     struct type;
 };
 
-template <typename pairwise_aligner_ref_t, size_t score_model_index, size_t gap_model_index>
-using configurator_t = typename _configurator<pairwise_aligner_ref_t, score_model_index, gap_model_index>::type;
+template <typename pairwise_aligner_ref_t, int32_t score_model_index, int32_t gap_model_index, int32_t method_index>
+using configurator_t = typename _configurator<pairwise_aligner_ref_t, score_model_index, gap_model_index, method_index>::type;
 
-template <typename pairwise_aligner_ref_t, size_t score_model_index, size_t gap_model_index>
-struct _configurator<pairwise_aligner_ref_t, score_model_index, gap_model_index>::type
+template <typename pairwise_aligner_ref_t, int32_t score_model_index, int32_t gap_model_index, int32_t method_index>
+struct _configurator<pairwise_aligner_ref_t, score_model_index, gap_model_index, method_index>::type
 {
     pairwise_aligner_ref_t _aligner_ref;
     using pairwise_aligner_t = typename pairwise_aligner_ref_t::type;
@@ -87,9 +89,16 @@ struct _configurator<pairwise_aligner_ref_t, score_model_index, gap_model_index>
     {
         std::tuple tpl_values{std::forward<actions_t>(actions)...};
 
-        auto [score_model, result_factory] = get<score_model_index>(tpl_values).create();
+        initialisation_rule init_rule{};
+        trailing_gap_setting trailing_rule{};
 
-        auto [gap_params, initialisation_rule] = get<gap_model_index>(tpl_values).create();
+        if constexpr (method_index != -1)
+        {
+            std::tie(init_rule, trailing_rule) = get<method_index>(tpl_values).create();
+        }
+
+        auto [score_model, result_factory] = get<score_model_index>(tpl_values).create(trailing_rule);
+        auto [gap_params, initialisation_rule] = get<gap_model_index>(tpl_values).create(init_rule);
 
         _aligner_ref.get() = pairwise_aligner_t{std::move(score_model),
                                                 std::move(result_factory),
@@ -112,6 +121,7 @@ inline constexpr auto _impl(predecessor_t && predecessor)
     // Get configuration traits positions.
     constexpr size_t score_model_position = pure_predecessor_t::configurator_index_of[0];
     constexpr size_t gap_model_position = pure_predecessor_t::configurator_index_of[1];
+    constexpr size_t method_position = pure_predecessor_t::configurator_index_of[2];
 
     static_assert(score_model_position != -1, "The score model category is required!");
     static_assert(gap_model_position != -1, "The gap model category is required!");
@@ -122,7 +132,10 @@ inline constexpr auto _impl(predecessor_t && predecessor)
     // TODO: convert positions to list of indices.
 
     aligner_t aligner{};
-    configurator_t<std::reference_wrapper<aligner_t>, score_model_position, gap_model_position> cfg{std::ref(aligner)};
+    configurator_t<std::reference_wrapper<aligner_t>,
+                   score_model_position,
+                   gap_model_position,
+                   method_position> cfg{std::ref(aligner)};
 
     // Store state for the operation on the stack.
     auto operation = std::forward<predecessor_t>(predecessor).apply(std::move(cfg));

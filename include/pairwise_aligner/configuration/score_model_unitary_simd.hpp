@@ -65,13 +65,13 @@ struct traits
 
     using result_factory_type = result_factory_bulk<score_type>;
 
-    constexpr std::pair<score_model_type, result_factory_type> create() const
+    constexpr std::pair<score_model_type, result_factory_type> create(trailing_gap_setting rule) const
     {
         return std::pair{score_model_type{static_cast<score_type>(_match_score),
                                           static_cast<score_type>(_mismatch_score)},
                          result_factory_type{static_cast<score_type>(_match_score),
-                                             dp_trailing_gaps::regular,
-                                             dp_trailing_gaps::regular}};
+                                             rule.column,
+                                             rule.row}};
     }
 };
 

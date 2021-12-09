@@ -12,6 +12,7 @@
 #include <pairwise_aligner/score_model/score_model_unitary.hpp>
 #include <pairwise_aligner/configuration/configure_aligner.hpp>
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
+#include <pairwise_aligner/configuration/method_global.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary.hpp>
 
 TEST(configuration_test, prototype)
@@ -19,9 +20,15 @@ TEST(configuration_test, prototype)
     namespace pa = seqan::pairwise_aligner;
 
     auto aligner = pa::cfg::configure_aligner(
-        pa::cfg::gap_model_affine(
-            pa::cfg::score_model_unitary(4, -5),
-            -10, -1
+        pa::cfg::method_global(
+            pa::cfg::gap_model_affine(
+                pa::cfg::score_model_unitary(4, -5),
+                -10, -1
+            ),
+            pa::initialisation_rule{.column = pa::dp_initialisation_rule::regular,
+                                    .row = pa::dp_initialisation_rule::zero},
+            pa::trailing_gap_setting{.column = pa::dp_trailing_gaps::regular,
+                                     .row = pa::dp_trailing_gaps::free}
         )
     );
 
