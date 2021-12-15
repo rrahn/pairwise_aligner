@@ -1,0 +1,3 @@
+pairwise_aligner_benchmark (simd_add_benchmark.cpp)
+pairwise_aligner_benchmark (simd_upcast_benchmark.cpp)
+pairwise_aligner_benchmark (simd_downcast_benchmark.cpp)

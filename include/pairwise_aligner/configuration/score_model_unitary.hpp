@@ -19,7 +19,6 @@
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
-#include <pairwise_aligner/matrix/dp_vector_single.hpp>
 #include <pairwise_aligner/result/aligner_result.hpp>
 #include <pairwise_aligner/score_model/score_model_unitary.hpp>
 #include <pairwise_aligner/type_traits.hpp>
@@ -43,28 +42,32 @@ struct traits
     score_t _match_score;
     score_t _mismatch_score;
 
-    using score_model_type = score_model_unitary<score_t>;
-
     // Offer the score type here.
+    template <size_t max_size = 1>
     using score_type = score_t;
 
-    // Offer some overload for the column type.
-    template <typename dp_cell_t>
-    using dp_vector_column_type = dp_vector_single<dp_cell_t>;
+    template <typename scalar_score_t = score_t>
+    using score_model_type = score_model_unitary<scalar_score_t>;
 
     // Offer some overload for the column type.
-    template <typename dp_cell_t>
-    using dp_vector_row_type = dp_vector_single<dp_cell_t>;
+    template <typename dp_vector_t>
+    using dp_vector_column_type = dp_vector_t;
 
+    // Offer some overload for the column type.
+    template <typename dp_vector_t>
+    using dp_vector_row_type = dp_vector_t;
     template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vector_row_t>
     using dp_interface_type = interface_one_to_one_single<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>;
 
+    template <typename _score_t = score_t>
     using result_factory_type = result_factory_single;
 
-    constexpr std::pair<score_model_type, result_factory_type> create(trailing_gap_setting rule) const
+    template <typename _score_t = score_t, typename _score2_t = score_t>
+    constexpr std::pair<score_model_type<_score_t>, result_factory_type<_score2_t>>
+    create(trailing_gap_setting rule) const
     {
-        return std::pair{score_model_type{_match_score, _mismatch_score},
-                         result_factory_type{rule.column, rule.row}};
+        return std::pair{score_model_type<_score_t>{_match_score, _mismatch_score},
+                         result_factory_type<_score2_t>{rule.column, rule.row}};
     }
 };
 

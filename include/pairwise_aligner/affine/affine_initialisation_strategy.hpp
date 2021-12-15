@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <pairwise_aligner/affine/affine_cell.hpp>
 #include <pairwise_aligner/dp_initialisation_rule.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 
@@ -26,60 +27,40 @@ struct initialisation_rule
     dp_initialisation_rule row{dp_initialisation_rule::regular};
 };
 
-template <typename affine_gap_model_t>
-class affine_initialisation_strategy
+template <dp_vector_order order, typename affine_gap_model_t>
+struct affine_initialisation_strategy
 {
-private:
-    affine_gap_model_t _gap_model{};
-    initialisation_rule _rule{};
-    size_t _row_index{};
-    size_t _column_index{};
+    affine_gap_model_t _gap_model;
+    dp_initialisation_rule _rule;
 
-public:
-
-    affine_initialisation_strategy() = default;
-    explicit affine_initialisation_strategy(affine_gap_model_t affine_gap_model, initialisation_rule rule) noexcept :
-        _gap_model{std::move(affine_gap_model)},
-        _rule{rule}
-    {}
-
-    template <typename affine_cell_t>
-    void operator()(affine_cell_t & affine_cell)
+    template <typename score_t>
+    struct _op
     {
-        if constexpr (is_row_cell_v<affine_cell_t>) {
-            initialise_cell(affine_cell, _row_index, _rule.row);
-        } else {
-            initialise_cell(affine_cell, _column_index, _rule.column);
-        }
-    }
+        using cell_t = affine_cell<score_t, order>;
 
-private:
+        affine_gap_model_t _gap_model;
+        dp_initialisation_rule _rule;
 
-    template <typename affine_cell_t>
-    constexpr void initialise_cell(affine_cell_t & affine_cell,
-                                   size_t & index,
-                                   dp_initialisation_rule const initialisation_rule) const
-    {
-        using score_t = affine_cell_t::score_type;
-
-        switch (initialisation_rule) {
-            case dp_initialisation_rule::regular: {
-                if (index == 0) {
-                    affine_cell = affine_cell_t{score_t{0}, score_t{0}};
-                } else {
-                    auto [gap_open, gap_extension] = _gap_model;
-                    auto first = gap_open + index * gap_extension;
-                    auto second = gap_open + index * gap_extension + gap_open + gap_extension;
-                    affine_cell = affine_cell_t{static_cast<score_t>(first), static_cast<score_t>(second)};
-                }
-                break;
-            } case dp_initialisation_rule::zero: {
-                affine_cell = affine_cell_t{score_t{0}, score_t{0}};
-                break;
+        constexpr cell_t operator()(size_t const index) const noexcept
+        {
+            // initialise the vertical at index 0:
+            // causes the vertical value to have gap_open + gap_extension in first cell
+            auto [gap_open, gap_extension] = _gap_model;
+            score_t first{0};
+            score_t second{static_cast<score_t>(gap_open + gap_extension)};
+            if (_rule == dp_initialisation_rule::regular && index > 0) {
+                first = static_cast<score_t>(gap_open + gap_extension * index);
+                second += first;
             }
-            default: throw std::invalid_argument{"Unknown rule to initialise affine cell."};
+
+            return cell_t{first, second};
         }
-        ++index;
+    };
+
+    template <typename score_t>
+    constexpr _op<score_t> create() const noexcept
+    {
+        return _op<score_t>{std::forward<affine_gap_model_t>(_gap_model), _rule};
     }
 };
 } // inline namespace v1

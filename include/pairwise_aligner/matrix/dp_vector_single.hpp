@@ -30,6 +30,7 @@ private:
 
 public:
 
+    using range_type = dp_vector_t;
     using value_type = std::ranges::range_value_t<dp_vector_t>;
     using reference = std::ranges::range_reference_t<dp_vector_t>;
     using const_reference = std::ranges::range_reference_t<dp_vector_t const>;
@@ -49,15 +50,29 @@ public:
         return _dp_vector.size();
     }
 
-    template <std::ranges::viewable_range sequence_t,
-              typename initialisation_strategy_t>
-        requires std::ranges::forward_range<sequence_t>
-    sequence_t initialise(sequence_t && sequence, initialisation_strategy_t && init_strategy)
+    dp_vector_t & range() noexcept
+    {
+        return _dp_vector;
+    }
+
+    dp_vector_t const & range() const noexcept
+    {
+        return _dp_vector;
+    }
+
+    // range interface
+
+    // initialisation interface
+
+    template <std::ranges::forward_range sequence_t, typename initialisation_strategy_t>
+    sequence_t initialise(sequence_t && sequence, initialisation_strategy_t && init_factory)
     {
         size_t const sequence_size = std::ranges::distance(sequence);
         _dp_vector.resize(sequence_size + 1);
 
-        std::ranges::for_each(_dp_vector, init_strategy);
+        using score_t = typename dp_cell_t::score_type;
+
+        std::ranges::generate(_dp_vector, init_factory.template create<score_t>());
 
         return sequence;
     }

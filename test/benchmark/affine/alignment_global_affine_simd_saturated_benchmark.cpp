@@ -18,52 +18,11 @@
 #include <seqan3/test/performance/units.hpp>
 #include <seqan3/core/configuration/configuration.hpp>
 
-#include <pairwise_aligner/configuration/configure_aligner.hpp>
-#include <pairwise_aligner/configuration/score_model_unitary.hpp>
+#include <pairwise_aligner/configuration/configure_aligner_saturated.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
 
-void alignment_global_affine_bulk_scalar(benchmark::State & state)
-{
-    size_t sequence_length = 150;
-    auto seq_collection_tmp = seqan3::test::generate_sequence_pairs<seqan3::dna4>(sequence_length, 16, 0);
-
-    std::vector<std::string> seq1_collection{};
-
-    for (auto const & seq_tmp : seq_collection_tmp)
-    {
-        auto char_seq = seq_tmp.first | seqan3::views::to_char;
-        seq1_collection.emplace_back(std::ranges::begin(char_seq), std::ranges::end(char_seq));
-    }
-
-    std::vector<std::string> seq2_collection{};
-    for (auto const &  seq_tmp : seq_collection_tmp)
-    {
-        auto char_seq = seq_tmp.second | seqan3::views::to_char;
-        seq2_collection.emplace_back(std::ranges::begin(char_seq), std::ranges::end(char_seq));
-    }
-
-    namespace pa = seqan::pairwise_aligner;
-    auto aligner = pa::cfg::configure_aligner(
-        pa::cfg::gap_model_affine(
-            pa::cfg::score_model_unitary(4, -5),
-            -10, -1
-        )
-    );
-    int32_t score{};
-
-    for (auto _ : state)
-        for (size_t i = 0; i < seq_collection_tmp.size(); ++i)
-            score += aligner.compute(seq1_collection[i], seq2_collection[i]).score();
-
-    state.counters["score"] = score;
-    state.counters["cells"] = seqan3::test::pairwise_cell_updates(seq_collection_tmp,
-                                                                  seqan3::configuration{} |
-                                                                  seqan3::align_cfg::method_global{});
-    state.counters["CUPS"] = seqan3::test::cell_updates_per_second(state.counters["cells"]);
-}
-
-void alignment_global_affine_bulk_simd(benchmark::State & state)
+void alignment_global_affine_bulk_simd_saturated(benchmark::State & state)
 {
     size_t sequence_length = 150;
     auto seq_collection_tmp = seqan3::test::generate_sequence_pairs<seqan3::dna4>(sequence_length, 32, 0);
@@ -85,11 +44,10 @@ void alignment_global_affine_bulk_simd(benchmark::State & state)
 
     namespace pa = seqan::pairwise_aligner;
 
-    auto aligner = pa::cfg::configure_aligner(
+    auto aligner = pa::cfg::configure_aligner_saturated(
         pa::cfg::gap_model_affine(
-            pa::cfg::score_model_unitary_simd(static_cast<int8_t>(4), static_cast<int8_t>(-5)),
+            pa::cfg::score_model_unitary_simd(static_cast<int16_t>(4), static_cast<int16_t>(-5)),
             -10, -1
-            // pa::simd_score<int8_t>(-10), pa::simd_score<int8_t>(-1)
         )
     );
 
@@ -106,5 +64,4 @@ void alignment_global_affine_bulk_simd(benchmark::State & state)
     state.counters["CUPS"] = seqan3::test::cell_updates_per_second(state.counters["cells"]);
 }
 
-// BENCHMARK(alignment_global_affine_bulk_scalar);
-BENCHMARK(alignment_global_affine_bulk_simd);
+BENCHMARK(alignment_global_affine_bulk_simd_saturated);

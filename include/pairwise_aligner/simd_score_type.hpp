@@ -15,6 +15,8 @@
 #include <array>
 #include <seqan3/std/concepts>
 
+#include <seqan3/utility/simd/all.hpp>
+
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
@@ -24,8 +26,11 @@ template <std::integral score_t, size_t simd_size = 32/sizeof(score_t)>
 class simd_score
 {
 private:
-    using simd_type = std::array<score_t, simd_size>;
 
+    static constexpr bool use_intrinsics = sizeof(score_t) <= 1;
+    using simd_type = std::conditional_t<use_intrinsics,
+                                        seqan3::simd_type_t<score_t, simd_size>,
+                                        std::array<score_t, simd_size>>;
 
 public:
 
@@ -37,12 +42,19 @@ public:
     using reference = score_t &;
     using const_reference = score_t const &;
 
-
     simd_score() = default;
+    simd_score(simd_score const &) = default;
+    simd_score(simd_score &&) = default;
+    simd_score & operator=(simd_score const &) = default;
+    simd_score & operator=(simd_score &&) = default;
 
     explicit simd_score(score_t const initial_score) noexcept : values{}
     {
-        values.fill(initial_score);
+        if constexpr (use_intrinsics) {
+            values = seqan3::simd::fill<simd_type>(initial_score);
+        } else {
+            values.fill(initial_score);
+        }
     }
 
     template <typename ..._score_t>
@@ -51,6 +63,18 @@ public:
         noexcept :
         values{{first_score, second_score, remaining_scores...}}
     {}
+
+    template <typename other_score_t>
+        requires std::assignable_from<score_t &, other_score_t>
+    explicit simd_score(simd_score<other_score_t, simd_size> const & other) noexcept
+    {
+        // if constexpr (use_intrinsics) {
+        //     values = seqan3::simd::upcast<simd_type>(other.values);
+        // } else {
+        for (size_t i = 0; i < size; ++i)
+            values[i] = static_cast<score_t>(other.values[i]);
+        // }
+    }
 
     reference operator[](size_t const pos) noexcept
     {
@@ -64,16 +88,24 @@ public:
 
     simd_score & operator+=(simd_score const & right) noexcept
     {
-        simd_score tmp = *this + right;
-        swap(tmp);
+        if constexpr (use_intrinsics) {
+            values += right.values;
+        } else {
+            simd_score tmp = *this + right;
+            swap(tmp);
+        }
 
         return *this;
     }
 
     simd_score & operator+=(score_t const right_constant) noexcept
     {
-        simd_score tmp = *this + right_constant;
-        swap(tmp);
+        if constexpr (use_intrinsics) {
+            values += simd_type{right_constant};
+        } else {
+            simd_score tmp = *this + right_constant;
+            swap(tmp);
+        }
 
         return *this;
     }
@@ -81,8 +113,12 @@ public:
     simd_score operator+(simd_score const & right) const noexcept
     {
         simd_score tmp{};
-        for (size_t i = 0; i < simd_size; ++i)
-            tmp[i] = values[i] + right[i];
+        if constexpr (use_intrinsics) {
+            tmp.values = values + right.values;
+        } else {
+            for (size_t i = 0; i < simd_size; ++i)
+                tmp[i] = values[i] + right[i];
+        }
 
         return tmp;
     }
@@ -90,8 +126,112 @@ public:
     simd_score operator+(score_t const right_constant) const noexcept
     {
         simd_score tmp{};
-        for (size_t i = 0; i < simd_size; ++i)
-            tmp[i] = values[i] + right_constant;
+        if constexpr (use_intrinsics) {
+            tmp.values = values + simd_type{right_constant};
+        } else {
+            for (size_t i = 0; i < simd_size; ++i)
+                tmp[i] = values[i] + right_constant;
+        }
+
+        return tmp;
+    }
+
+    simd_score & operator-=(simd_score const & right) noexcept
+    {
+        if constexpr (use_intrinsics) {
+            values -= right.values;
+        } else {
+            simd_score tmp = *this - right;
+            swap(tmp);
+        }
+
+        return *this;
+    }
+
+    simd_score & operator-=(score_t const right_constant) noexcept
+    {
+        if constexpr (use_intrinsics) {
+            values -= simd_type{right_constant};
+        } else {
+            simd_score tmp = *this - right_constant;
+            swap(tmp);
+        }
+
+        return *this;
+    }
+
+    simd_score operator-(simd_score const & right) const noexcept
+    {
+        simd_score tmp{};
+        if constexpr (use_intrinsics) {
+            tmp.values = values - right.values;
+        } else {
+            for (size_t i = 0; i < simd_size; ++i)
+                tmp[i] = values[i] - right[i];
+        }
+
+        return tmp;
+    }
+
+    simd_score operator-(score_t const right_constant) const noexcept
+    {
+        simd_score tmp{};
+        if constexpr (use_intrinsics) {
+            tmp.values = values - simd_type{right_constant};
+        } else {
+            for (size_t i = 0; i < simd_size; ++i)
+                tmp[i] = values[i] - right_constant;
+        }
+
+        return tmp;
+    }
+
+    simd_score & operator*=(simd_score const & right) noexcept
+    {
+        if constexpr (use_intrinsics) {
+            values *= right.values;
+        } else {
+            simd_score tmp = *this * right;
+            swap(tmp);
+        }
+
+        return *this;
+    }
+
+    simd_score & operator*=(score_t const right_constant) noexcept
+    {
+        if constexpr (use_intrinsics) {
+            values *= simd_type{right_constant};
+        } else {
+            simd_score tmp = *this * right_constant;
+            swap(tmp);
+        }
+
+        return *this;
+    }
+
+    simd_score operator*(simd_score const & right) const noexcept
+    {
+        simd_score tmp{};
+        if constexpr (use_intrinsics) {
+            tmp.values = values * right.values;
+        } else {
+            for (size_t i = 0; i < simd_size; ++i)
+                tmp[i] = values[i] * right[i];
+        }
+
+        return tmp;
+    }
+
+    simd_score operator*(score_t const right_constant) const noexcept
+    {
+        simd_score tmp{};
+        if constexpr (use_intrinsics) {
+            tmp.values = values * simd_type{right_constant};
+        } else {
+            for (size_t i = 0; i < simd_size; ++i)
+                tmp[i] = values[i] * right_constant;
+        }
 
         return tmp;
     }
@@ -99,8 +239,12 @@ public:
     friend simd_score max(simd_score const & left, simd_score const & right) noexcept
     {
         simd_score tmp{};
-        for (size_t i = 0; i < simd_size; ++i)
-            tmp[i] = std::max(left[i], right[i]);
+        if constexpr (use_intrinsics) {
+            tmp.values = left.values < right.values ? right.values : left.values;
+        } else {
+            for (size_t i = 0; i < simd_size; ++i)
+                tmp[i] = std::max(left[i], right[i]);
+        }
 
         return tmp;
     }
@@ -109,8 +253,12 @@ public:
     friend simd_score compare(simd_score const left, simd_score const right, fn_t && fn) noexcept
     {
         simd_score tmp{};
-        for (size_t i = 0; i < simd_size; ++i)
-            tmp[i] = fn(left[i], right[i]);
+        if constexpr (use_intrinsics) {
+            tmp.values = fn(left.values, right.values);
+        } else {
+            for (size_t i = 0; i < simd_size; ++i)
+                tmp[i] = fn(left[i], right[i]);
+        }
 
         return tmp;
     }
@@ -118,8 +266,12 @@ public:
     friend simd_score blend(simd_score const mask, simd_score const left, simd_score const right) noexcept
     {
         simd_score tmp{};
-        for (size_t i = 0; i < simd_size; ++i)
-            tmp[i] = mask[i] ? left[i] : right[i];
+        if constexpr (use_intrinsics) {
+            tmp.values = mask.values ? left.values : right.values;
+        } else {
+            for (size_t i = 0; i < simd_size; ++i)
+                tmp[i] = mask[i] ? left[i] : right[i];
+        }
 
         return tmp;
     }

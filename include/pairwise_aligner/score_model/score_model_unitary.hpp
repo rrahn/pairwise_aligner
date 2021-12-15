@@ -54,14 +54,14 @@ public:
         return (value1 == value2) ? _match_score : _mismatch_score;
     }
 
-    template <std::integral scalar_score_t>
-    simd_score<scalar_score_t> score(simd_score<scalar_score_t> const & value1,
-                                     simd_score<scalar_score_t> const & value2) const noexcept
+    template <std::integral scalar_score_t, size_t bulk_size>
+    simd_score<scalar_score_t, bulk_size> score(simd_score<scalar_score_t, bulk_size> const & value1,
+                                                simd_score<scalar_score_t, bulk_size> const & value2) const noexcept
     {
-        static_assert(std::same_as<score_t, simd_score<scalar_score_t>>,
+        static_assert(std::same_as<score_t, simd_score<scalar_score_t, bulk_size>>,
                       "The simd score type does not match the score type of this score class.");
 
-        return blend(compare(value1, value2, [](scalar_score_t const left, scalar_score_t const right) -> scalar_score_t
+        return blend(compare(value1, value2, [](auto const left, auto const right)
         {
             return (left ^ right) <= 0;
         }), _match_score, _mismatch_score);

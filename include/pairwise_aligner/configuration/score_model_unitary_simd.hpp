@@ -45,33 +45,41 @@ struct traits
     score_t _mismatch_score;
 
     // Offer the score type here.
-    using score_type = simd_score<score_t>;
+    template <size_t bulk_size = simd_score<score_t>::size>
+    using score_type = simd_score<score_t, bulk_size>;
 
-    using score_model_type = seqan::pairwise_aligner::score_model_unitary<score_type>;
-
-    // Offer some overload for the column type.
-    template <typename dp_cell_t>
-    using dp_vector_column_type = dp_vector_bulk<dp_cell_t>;
+    template <typename bulk_score_t = score_type<>>
+    using score_model_type = seqan::pairwise_aligner::score_model_unitary<bulk_score_t>;
 
     // Offer some overload for the column type.
-    template <typename dp_cell_t>
-    using dp_vector_row_type = dp_vector_bulk<dp_cell_t>;
+    template <typename dp_vector_t, typename simd_t = score_type<>>
+    using dp_vector_column_type = dp_vector_bulk<dp_vector_t, simd_t>;
 
-    template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vector_row_t>
+    // Offer some overload for the column type.
+    template <typename dp_vector_t, typename simd_t = score_type<>>
+    using dp_vector_row_type = dp_vector_bulk<dp_vector_t, simd_t>;
+
+    template <typename dp_algorithm_t,
+              typename dp_vector_column_t,
+              typename dp_vector_row_t,
+              size_t bulk_size = score_type<>::size>
     using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t,
                                                         dp_vector_column_t,
                                                         dp_vector_row_t,
-                                                        score_type::size>;
+                                                        bulk_size>;
 
-    using result_factory_type = result_factory_bulk<score_type>;
+    template <typename bulk_score_t = score_type<>>
+    using result_factory_type = result_factory_bulk<bulk_score_t>;
 
-    constexpr std::pair<score_model_type, result_factory_type> create(trailing_gap_setting rule) const
+    template <typename bulk_score_t = score_type<>, typename _score_t = score_type<>>
+    constexpr std::pair<score_model_type<bulk_score_t>, result_factory_type<_score_t>>
+    create(trailing_gap_setting rule) const
     {
-        return std::pair{score_model_type{static_cast<score_type>(_match_score),
-                                          static_cast<score_type>(_mismatch_score)},
-                         result_factory_type{static_cast<score_type>(_match_score),
-                                             rule.column,
-                                             rule.row}};
+        return std::pair{score_model_type<bulk_score_t>{static_cast<bulk_score_t>(_match_score),
+                                                        static_cast<bulk_score_t>(_mismatch_score)},
+                         result_factory_type<_score_t>{static_cast<_score_t>(_match_score),
+                                                       rule.column,
+                                                       rule.row}};
     }
 };
 

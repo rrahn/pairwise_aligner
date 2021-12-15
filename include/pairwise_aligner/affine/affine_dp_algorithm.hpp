@@ -40,7 +40,7 @@ private:
     score_model_t _score_model{};
     result_factory_t _result_factory{};
     gap_model_t _gap_model{};
-    affine_initialisation_strategy<gap_model_t> _init{};
+    initialisation_rule _init_rule{};
 
 public:
     affine_dp_algorithm() = default;
@@ -52,7 +52,9 @@ public:
         _score_model{std::move(score_model)},
         _result_factory{std::move(result_factory)},
         _gap_model{std::move(gap_model)},
-        _init{_gap_model, init_param}
+        _init_rule{std::move(init_param)}
+        // _init_row{_gap_model, init_param.row},
+        // _init_col{_gap_model, init_param.column}
     {}
 
 protected:
@@ -61,14 +63,31 @@ protected:
         requires std::ranges::forward_range<sequence_t>
     auto initialise_row_vector(sequence_t && sequence, dp_vector_t & dp_vector) const
     {
-        return dp_vector.initialise(std::forward<sequence_t>(sequence), _init);
+        using init_t = affine_initialisation_strategy<dp_vector_order::row, gap_model_t const &>;
+
+        return dp_vector.initialise(std::forward<sequence_t>(sequence), init_t{_gap_model, _init_rule.row});
     }
 
     template <std::ranges::viewable_range sequence_t, typename dp_vector_t>
         requires std::ranges::forward_range<sequence_t>
     auto initialise_column_vector(sequence_t && sequence, dp_vector_t & dp_vector) const
     {
-        return dp_vector.initialise(std::forward<sequence_t>(sequence), _init);
+        using init_t = affine_initialisation_strategy<dp_vector_order::column, gap_model_t const &>;
+
+        return dp_vector.initialise(std::forward<sequence_t>(sequence), init_t{_gap_model, _init_rule.column});
+    }
+
+    template <typename row_cell_t, typename column_cell_t>
+    void compute_first_column(row_cell_t & first_row_cell, column_cell_t & current_column_cell) const noexcept
+    {
+        using score_t = typename row_cell_t::score_type;
+        using std::max;
+
+        score_t best_score = get<0>(current_column_cell);
+        get<0>(first_row_cell) = best_score;
+        best_score += (_gap_model.gap_open_score + _gap_model.gap_extension_score);
+        get<1>(first_row_cell) = max(best_score,
+                                     static_cast<score_t>(get<1>(first_row_cell) + _gap_model.gap_extension_score));
     }
 
     template <typename row_cell_t, typename column_cell_t>
@@ -79,7 +98,8 @@ protected:
 
         std::pair cache{get<0>(first_column_cell), get<1>(current_row_cell)};
         get<0>(first_column_cell) = get<0>(current_row_cell);
-        get<1>(first_column_cell) = max(static_cast<score_t>(cache.first + _gap_model.gap_open_score),
+        get<1>(first_column_cell) = max(static_cast<score_t>(cache.first + (_gap_model.gap_open_score +
+                                                                            _gap_model.gap_extension_score)),
                                         static_cast<score_t>(get<1>(first_column_cell) +
                                                              _gap_model.gap_extension_score));
         return cache;
@@ -103,20 +123,20 @@ protected:
     template <typename cache_t, typename seq1_val_t, typename seq2_val_t, typename dp_cell_t>
     auto compute_cell(cache_t & cache,
                       dp_cell_t & column_cell,
-                      seq1_val_t const & seq1_val,
-                      seq2_val_t const & seq2_val) const noexcept
+                      [[maybe_unused]] seq1_val_t const & seq1_val,
+                      [[maybe_unused]] seq2_val_t const & seq2_val) const noexcept
     {
         using std::max;
         using score_t = typename dp_cell_t::score_type;
 
-        auto [next_diagonal, horizontal_score] = column_cell;
-        cache.first += _score_model.score(seq1_val, seq2_val);
-        cache.first = max(max(cache.first, cache.second), horizontal_score);
-        get<0>(column_cell) = cache.first;
-        cache.first += (_gap_model.gap_open_score + _gap_model.gap_extension_score);
-        cache.second = max(static_cast<score_t>(cache.second + _gap_model.gap_extension_score), cache.first);
-        get<1>(column_cell) = max(static_cast<score_t>(horizontal_score + _gap_model.gap_extension_score), cache.first);
-        cache.first = next_diagonal; // cache score
+        // auto & [next_diagonal, horizontal_score] = column_cell;
+        score_t best = cache.first + _score_model.score(seq1_val, seq2_val);
+        best = max(max(best, cache.second), get<1>(column_cell));
+        cache.first = get<0>(column_cell); // cache next diagonal score!
+        get<0>(column_cell) = best;
+        best += (_gap_model.gap_open_score + _gap_model.gap_extension_score);
+        cache.second = max(cache.second + _gap_model.gap_extension_score, best);
+        get<1>(column_cell) = max(get<1>(column_cell) + _gap_model.gap_extension_score, best);
     }
 };
 

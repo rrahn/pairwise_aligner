@@ -43,6 +43,8 @@ struct _value<base_value_t, score_t>::type : public base_value_t
     {
         using scalar_t = typename score_t::value_type;
 
+        // std::cout << "index = " << idx << "\n";
+
         assert(this->sequence1()[idx].has_value());
         assert(this->sequence2()[idx].has_value());
 
@@ -50,12 +52,22 @@ struct _value<base_value_t, score_t>::type : public base_value_t
         if (_row_trailing_gaps == dp_trailing_gaps::regular && _column_trailing_gaps == dp_trailing_gaps::regular)
         {
             auto && [row_idx, col_idx, offset] = projected_coordinate(idx);
+
+            // std::cout << "row_idx = " << row_idx << "\n";
+            // std::cout << "col_idx = " << col_idx << "\n";
+            // std::cout << "offset = " << offset << "\n";
+
             assert(row_idx == this->dp_column().size() - 1 || col_idx == this->dp_row().size() - 1);
 
-            if (row_idx == this->dp_column().size() - 1)
+            if (row_idx == this->dp_column().size() - 1) {
                 best_score = this->dp_row()[col_idx].score()[idx];
-            else
+                // std::cout << "this->dp_row()[col_idx].score()[idx] = " << this->dp_row()[col_idx].score()[idx] << "\n";
+            } else {
                 best_score = this->dp_column()[row_idx].score()[idx];
+                // std::cout << "this->dp_column()[row_idx].score()[idx] = " << this->dp_column()[row_idx].score()[idx] << "\n";
+            }
+
+            // std::cout << "best_score = " << best_score << "\n";
             return static_cast<scalar_t>(best_score - static_cast<scalar_t>(_padding_score[idx] * offset));
         }
 
@@ -79,8 +91,14 @@ struct _value<base_value_t, score_t>::type : public base_value_t
         size_t const original_row_dim = std::ranges::distance(*(this->sequence1()[idx]));
         size_t const original_column_dim = std::ranges::distance(*(this->sequence2()[idx]));
 
+        // std::cout << "original_row_dim = " << original_row_dim << "\n";
+        // std::cout << "original_column_dim = " << original_column_dim << "\n";
+
         size_t offset = std::min<size_t>(this->dp_column().size() - 1 - original_row_dim,
                                          this->dp_row().size() -1 - original_column_dim);
+
+        // std::cout << "this->dp_column().size() = " << this->dp_column().size() << "\n";
+        // std::cout << "this->dp_row().size() = " << this->dp_row().size() << "\n";
         return std::tuple{original_row_dim + offset, original_column_dim + offset, offset};
     }
 };

@@ -19,6 +19,8 @@
 #include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
+#include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
+#include <pairwise_aligner/matrix/dp_vector_single.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -41,24 +43,23 @@ struct traits
     using gap_model_config_traits_t = std::tuple_element_t<gap_model_position, configurator_types>;
 
     // Define all algorithm entities.
-    using score_t = typename score_model_config_traits_t::score_type;
+    using score_t = typename score_model_config_traits_t::template score_type<>;
     using dp_cell_row_t = typename gap_model_config_traits_t::template dp_cell_row_type<score_t>;
     using dp_cell_column_t = typename gap_model_config_traits_t::template dp_cell_column_type<score_t>;
-    using dp_vector_row_t = typename score_model_config_traits_t::template dp_vector_row_type<dp_cell_row_t>;
-    using dp_vector_column_t = typename score_model_config_traits_t::template dp_vector_column_type<dp_cell_column_t>;
+    using dp_vector_row_t = dp_vector_chunk<typename score_model_config_traits_t::template dp_vector_row_type<dp_vector_single<dp_cell_row_t>>>;
+    using dp_vector_column_t = dp_vector_chunk<typename score_model_config_traits_t::template dp_vector_column_type<dp_vector_single<dp_cell_column_t>>>;
 
     // Get the instantiated model types.
-    using score_model_t = typename score_model_config_traits_t::score_model_type;
-    using result_factory_t = typename score_model_config_traits_t::result_factory_type;
+    using score_model_t = typename score_model_config_traits_t::template score_model_type<>;
+    using result_factory_t = typename score_model_config_traits_t::template result_factory_type<>;
 
     // Define the kernel type.
     using dp_kernel_t = typename gap_model_config_traits_t:: template dp_kernel_type<dp_algorithm_template_standard,
                                                                                      score_model_t,
                                                                                      result_factory_t>;
     // define the pairwise aligner type.
-    using aligner_type = typename score_model_config_traits_t::template dp_interface_type<dp_kernel_t,
-                                                                                          dp_vector_column_t,
-                                                                                          dp_vector_row_t>;
+    using aligner_type = typename score_model_config_traits_t::template
+        dp_interface_type<dp_kernel_t, dp_vector_column_t, dp_vector_row_t>;
 };
 
 // ----------------------------------------------------------------------------

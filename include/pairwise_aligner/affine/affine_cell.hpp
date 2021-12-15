@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <seqan3/std/concepts>
 #include <utility>
 
 #include <pairwise_aligner/type_traits.hpp>
@@ -30,6 +31,36 @@ struct affine_cell : public dp_cell_base<order>,
 
     using base_t::base_t;
 
+    affine_cell() = default;
+
+    template <typename other_score_t>
+        requires std::constructible_from<score_t, other_score_t const &>
+    explicit affine_cell(affine_cell<other_score_t, order> const & other_cell) :
+        base_t{other_cell.first, other_cell.second}
+    {}
+
+    template <typename other_score_t>
+        requires std::constructible_from<score_t, other_score_t>
+    explicit affine_cell(affine_cell<other_score_t, order> && other_cell) :
+        base_t{std::move(other_cell.first), std::move(other_cell.second)}
+    {}
+
+    template <typename other_score_t>
+        requires std::assignable_from<score_t &, other_score_t const &>
+    affine_cell & operator=(affine_cell<other_score_t, order> const & other_cell)
+    {
+        static_cast<base_t &>(*this) = base_t{other_cell.first, other_cell.second};
+        return *this;
+    }
+
+    template <typename other_score_t>
+        requires std::assignable_from<score_t &, other_score_t>
+    affine_cell & operator=(affine_cell<other_score_t, order> && other_cell)
+    {
+        static_cast<base_t &>(*this) = base_t{std::move(other_cell.first), std::move(other_cell.second)};
+        return *this;
+    }
+
     constexpr score_t const & score() const noexcept
     {
         return this->first;
@@ -46,3 +77,18 @@ struct affine_cell : public dp_cell_base<order>,
 
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner
+
+namespace std
+{
+
+template <typename score_t, seqan::pairwise_aligner::dp_vector_order order>
+struct tuple_size<seqan::pairwise_aligner::affine_cell<score_t, order>> :
+    tuple_size<typename seqan::pairwise_aligner::affine_cell<score_t, order>::base_t>
+{};
+
+template <size_t idx, typename score_t, seqan::pairwise_aligner::dp_vector_order order>
+struct tuple_element<idx, seqan::pairwise_aligner::affine_cell<score_t, order>> :
+    tuple_element<idx, typename seqan::pairwise_aligner::affine_cell<score_t, order>::base_t>
+{};
+
+} // namespace std
