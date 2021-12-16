@@ -60,10 +60,10 @@ public:
     {
         static_assert(std::same_as<score_t, simd_score<scalar_score_t, bulk_size>>,
                       "The simd score type does not match the score type of this score class.");
-
-        return blend(compare(value1, value2, [](auto const left, auto const right)
+        using simd_t = simd_score<scalar_score_t, bulk_size>;
+        return blend(compare(value1, value2, [](simd_t const & left, simd_t const & right)
         {
-            return (left ^ right) <= 0;
+            return (left ^ right).le(simd_t{0});
         }), _match_score, _mismatch_score);
     }
 
