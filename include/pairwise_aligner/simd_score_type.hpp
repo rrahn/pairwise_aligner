@@ -69,6 +69,9 @@ public:
         }
     }
 
+    explicit simd_score(simd_type simd_score) noexcept : values{std::move(simd_score)}
+    {}
+
     template <typename ..._score_t>
         requires ((sizeof...(_score_t) == simd_size - 2) && (std::same_as<_score_t, score_t> && ...))
     explicit simd_score(score_t const first_score, score_t const second_score, _score_t const ...remaining_scores)
