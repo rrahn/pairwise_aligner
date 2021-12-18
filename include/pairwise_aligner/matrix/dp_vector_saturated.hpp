@@ -161,23 +161,25 @@ public:
             template <typename ...args_t>
             constexpr small_cell_t operator()(args_t && ...args) noexcept
             {
-                original_cell_t cell = _op(std::forward<args_t>(args)...);
+                auto scalar_cell = _op(std::forward<args_t>(args)...);
                 if (_first_call)
                 {
-                    _offset = cell.score();
+                    _offset = offset_score_t{scalar_cell.score()};
                     _first_call = false;
                 }
 
-                std::apply([this] (auto & ...values) { ((values -= _offset), ...); }, cell);
-                return small_cell_t{cell}; // cast back to saturated cell type.
+                std::apply([this] (auto & ...values) { ((values -= _offset[0]), ...); }, scalar_cell);
+                return small_cell_t{scalar_cell}; // construct simd type with relative scores.
             }
         };
 
         template <typename score_t>
         constexpr auto create() const noexcept
         {
-            using op_t = std::remove_reference_t<decltype(std::declval<predecessor_t>().template create<offset_score_t>())>;
-            return _op<op_t>{_predecessor.template create<offset_score_t>(), _offset};
+            using score_value_t = typename offset_score_t::value_type;
+            using op_t = std::remove_reference_t<decltype(std::declval<predecessor_t>().template
+                create<score_value_t>())>;
+            return _op<op_t>{_predecessor.template create<score_value_t>(), _offset};
         }
     };
 
