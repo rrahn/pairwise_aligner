@@ -15,7 +15,8 @@
 #include <array>
 #include <seqan3/std/concepts>
 
-#include <seqan3/utility/simd/all.hpp>
+#include <seqan3/utility/simd/algorithm.hpp>
+#include <seqan3/utility/simd/simd.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -35,23 +36,24 @@ inline constexpr size_t max_simd_size = 16;
 } // namespace detail
 
 template <std::integral score_t, size_t simd_size = detail::max_simd_size/sizeof(score_t)>
-class simd_score
+class alignas(detail::max_simd_size) simd_score
 {
-private:
-
-    using simd_type = seqan3::simd::simd_type_t<score_t, simd_size>;
-
-    static constexpr bool is_native = simd_size == detail::max_simd_size/sizeof(score_t);
-
 public:
-
-    simd_type values{};
 
     inline static constexpr size_t size = simd_size;
 
+    using simd_type = seqan3::simd::simd_type_t<score_t, simd_size>;
     using value_type = score_t;
     using reference = score_t &;
     using const_reference = score_t const &;
+
+private:
+
+    static constexpr bool is_native = simd_size == detail::max_simd_size/sizeof(score_t);
+
+    simd_type values{};
+
+public:
 
     simd_score() = default;
     simd_score(simd_score const &) = default;
@@ -84,7 +86,7 @@ public:
     explicit simd_score(simd_score<other_score_t, simd_size> const & other) noexcept
     {
         for (size_t i = 0; i < size; ++i)
-            values[i] = static_cast<score_t>(other.values[i]);
+            values[i] = static_cast<score_t>(other[i]);
     }
 
     constexpr reference operator[](size_t const pos) noexcept
