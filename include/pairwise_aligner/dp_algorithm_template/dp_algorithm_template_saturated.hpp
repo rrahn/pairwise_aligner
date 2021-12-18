@@ -176,7 +176,7 @@ protected:
         {
             seq1_chunked.emplace_back(std::ranges::next(std::ranges::begin(simd_seq1), (i * col_chunk_size)),
                                       std::ranges::next(std::ranges::begin(simd_seq1), ((i + 1) * col_chunk_size), std::ranges::end(simd_seq1)));
-            dp_column_chunks.emplace_back(saturated_col_t{dp_column.range()[i]});
+            dp_column_chunks.emplace_back(dp_column.range()[i]);
         }
 
         // double compute{};
@@ -236,8 +236,8 @@ protected:
               typename sequence2_t,
               typename dp_column_vector_t,
               typename dp_row_vector_t>
-    void _run(sequence1_t && sequence1,
-             sequence2_t && sequence2,
+    void _run(sequence1_t sequence1,
+             sequence2_t sequence2,
              dp_column_vector_t && dp_column_vector,
              dp_row_vector_t && dp_row_vector) const
     {
@@ -246,14 +246,16 @@ protected:
             as_derived().compute_first_column(dp_row_vector[0], dp_column_vector[i]);
         }
 
-        for (size_t j = 0; j < std::ranges::size(sequence2); ++j)
+        size_t const seq1_size = std::ranges::size(sequence1);
+        size_t const seq2_size = std::ranges::size(sequence2);
+        for (size_t j = 0; j < seq2_size; ++j)
         {
             auto cache = as_derived().initialise_column(dp_row_vector[j+1], dp_column_vector[0]);
-            size_t i = 0;
-            for (; i < std::ranges::size(sequence1); ++i) {
+
+            for (size_t i = 0; i < seq1_size; ++i) {
                 as_derived().compute_cell(cache, dp_column_vector[i+1], sequence1[i], sequence2[j]);
             }
-            as_derived().finalise_column(dp_row_vector[j+1], dp_column_vector[i], cache);
+            as_derived().finalise_column(dp_row_vector[j+1], dp_column_vector[seq1_size], cache);
         }
     }
 
