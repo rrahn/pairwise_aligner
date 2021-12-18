@@ -85,7 +85,7 @@ protected:
 
         score_t best_score = get<0>(current_column_cell);
         get<0>(first_row_cell) = best_score;
-        best_score += (_gap_model.gap_open_score + _gap_model.gap_extension_score);
+        best_score = best_score + (_gap_model.gap_open_score + _gap_model.gap_extension_score);
         get<1>(first_row_cell) = max(best_score,
                                      static_cast<score_t>(get<1>(first_row_cell) + _gap_model.gap_extension_score));
     }
@@ -98,8 +98,8 @@ protected:
 
         std::pair cache{get<0>(first_column_cell), get<1>(current_row_cell)};
         get<0>(first_column_cell) = get<0>(current_row_cell);
-        get<1>(first_column_cell) = max(static_cast<score_t>(cache.first + (_gap_model.gap_open_score +
-                                                                            _gap_model.gap_extension_score)),
+        get<1>(first_column_cell) = max(static_cast<score_t>(get<0>(current_row_cell) + (_gap_model.gap_open_score +
+                                                                                         _gap_model.gap_extension_score)),
                                         static_cast<score_t>(get<1>(first_column_cell) +
                                                              _gap_model.gap_extension_score));
         return cache;
