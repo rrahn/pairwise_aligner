@@ -204,7 +204,7 @@ public:
         return values <= rhs.values;
     }
 
-    constexpr friend simd_score blend(auto const mask, simd_score const & left, simd_score const & right) noexcept
+    constexpr friend simd_score blend(auto const & mask, simd_score const & left, simd_score const & right) noexcept
     {
         simd_score tmp{};
         tmp.values = mask ? left.values : right.values;
