@@ -11,7 +11,7 @@
 #include <string_view>
 #include <seqan3/utility/simd/all.hpp>
 
-#include <pairwise_aligner/simd_score_type.hpp>
+#include <pairwise_aligner/simd/simd_score_type.hpp>
 
 inline constexpr size_t size = seqan::pairwise_aligner::detail::max_simd_size;
 

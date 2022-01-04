@@ -23,7 +23,7 @@
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
 #include <pairwise_aligner/result/result_factory_chunk.hpp>
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
-#include <pairwise_aligner/simd_score_type.hpp>
+#include <pairwise_aligner/simd/simd_score_type.hpp>
 
 namespace seqan::pairwise_aligner
 {

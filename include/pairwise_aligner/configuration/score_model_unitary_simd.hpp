@@ -24,7 +24,7 @@
 #include <pairwise_aligner/score_model/score_model_unitary.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 #include <pairwise_aligner/utility/type_list.hpp>
-#include <pairwise_aligner/simd_score_type.hpp>
+#include <pairwise_aligner/simd/simd_score_type.hpp>
 
 namespace seqan::pairwise_aligner {
 inline namespace v1

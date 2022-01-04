@@ -11,7 +11,7 @@
 #include <string_view>
 #include <seqan3/utility/simd/all.hpp>
 
-#include <pairwise_aligner/simd_score_type.hpp>
+#include <pairwise_aligner/simd/simd_score_type.hpp>
 
 template <typename score_t>
 void simd_compare_and_blend(benchmark::State& state) {

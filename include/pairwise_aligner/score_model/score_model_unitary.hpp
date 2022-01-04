@@ -14,7 +14,7 @@
 
 #include <seqan3/std/concepts>
 
-#include <pairwise_aligner/simd_score_type.hpp>
+#include <pairwise_aligner/simd/simd_score_type.hpp>
 
 namespace seqan::pairwise_aligner
 {
