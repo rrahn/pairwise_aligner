@@ -242,9 +242,8 @@ protected:
              dp_row_vector_t && dp_row_vector) const
     {
 
-        for (size_t i = 1; i < dp_column_vector.size(); ++i) {
-            as_derived().compute_first_column(dp_row_vector[0], dp_column_vector[i]);
-        }
+        // Store the best score of the last cell of the column vector in the first cell of the row vector.
+        as_derived().compute_first_column(dp_row_vector[0], dp_column_vector[dp_column_vector.size() - 1]);
 
         size_t const seq1_size = std::ranges::size(sequence1);
         size_t const seq2_size = std::ranges::size(sequence2);

@@ -112,9 +112,8 @@ protected:
         // can we compute it?
         // using time_t = std::remove_reference_t<decltype(std::chrono::high_resolution_clock::now())>;
         // start = std::chrono::high_resolution_clock::now();
-        for (size_t i = 1; i < dp_column_vector.size(); ++i) {
-            as_derived().compute_first_column(dp_row_vector[0], dp_column_vector[i]);
-        }
+        // Store the best score of the last cell of the column vector in the first cell of the row vector.
+        as_derived().compute_first_column(dp_row_vector[0], dp_column_vector[dp_column_vector.size() - 1]);
 
         for (size_t j = 0; j < std::ranges::size(transformed_seq2); ++j)
         {

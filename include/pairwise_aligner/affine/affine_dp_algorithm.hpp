@@ -78,16 +78,9 @@ protected:
     }
 
     template <typename row_cell_t, typename column_cell_t>
-    void compute_first_column(row_cell_t & first_row_cell, column_cell_t & current_column_cell) const noexcept
+    void compute_first_column(row_cell_t & first_row_cell, column_cell_t const & current_column_cell) const noexcept
     {
-        using score_t = typename row_cell_t::score_type;
-        using std::max;
-
-        score_t best_score = get<0>(current_column_cell);
-        get<0>(first_row_cell) = best_score;
-        best_score = best_score + (_gap_model.gap_open_score + _gap_model.gap_extension_score);
-        get<1>(first_row_cell) = max(best_score,
-                                     static_cast<score_t>(get<1>(first_row_cell) + _gap_model.gap_extension_score));
+        get<0>(first_row_cell) = get<0>(current_column_cell);
     }
 
     template <typename row_cell_t, typename column_cell_t>
