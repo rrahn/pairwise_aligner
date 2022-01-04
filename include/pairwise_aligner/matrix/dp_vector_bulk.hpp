@@ -81,7 +81,7 @@ public:
         });
 
         using score_t = typename simd_t::value_type;
-        using simd_score_t = typename simd_t::simd_type;
+        using simd_score_t = typename simd_t::simd_type::value_type;
 
         constexpr size_t bit_count = sizeof(score_t) * 8;
         constexpr score_t padding_mask = static_cast<score_t>(1 << (bit_count - 1));
