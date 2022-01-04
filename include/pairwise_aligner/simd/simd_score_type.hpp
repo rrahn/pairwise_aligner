@@ -44,6 +44,9 @@ private:
     static constexpr bool is_native = native_simd_count == 1;
     using native_simd_t = seqan3::simd::simd_type_t<score_t, native_simd_size>;
 
+    template <std::integral, size_t>
+    friend class simd_score;
+
 public:
 
     inline static constexpr size_t size = simd_size;
@@ -89,9 +92,19 @@ public:
         requires std::assignable_from<score_t &, other_score_t>
     explicit simd_score(simd_score<other_score_t, simd_size> const & other) noexcept
     {
-        for (size_t j = 0; j < native_simd_count; ++j)
-            for (size_t i = 0; i < native_simd_size; ++i)
-                values[j][i] = static_cast<score_t>(other[i + (j * native_simd_size)]);
+        if constexpr (sizeof(score_t) / sizeof(other_score_t) == 2) { // upcast to next larger integral type
+            values[0] = seqan3::simd::upcast<native_simd_t>(seqan3::detail::extract_half<0>(*other.values.data()));
+            values[1] = seqan3::simd::upcast<native_simd_t>(seqan3::detail::extract_half<1>(*other.values.data()));
+        } else if constexpr (sizeof(score_t) / sizeof(other_score_t) == 4) { // upcast to twice as large integral type
+            values[0] = seqan3::simd::upcast<native_simd_t>(seqan3::detail::extract_quarter<0>(*other.values.data()));
+            values[1] = seqan3::simd::upcast<native_simd_t>(seqan3::detail::extract_quarter<1>(*other.values.data()));
+            values[2] = seqan3::simd::upcast<native_simd_t>(seqan3::detail::extract_quarter<2>(*other.values.data()));
+            values[3] = seqan3::simd::upcast<native_simd_t>(seqan3::detail::extract_quarter<3>(*other.values.data()));
+        } else { // use auto vectorisation for larger differences and downcasts.
+            for (size_t j = 0; j < native_simd_count; ++j)
+                for (size_t i = 0; i < native_simd_size; ++i)
+                    values[j][i] = static_cast<score_t>(other[i + (j * native_simd_size)]);
+        }
     }
 
     constexpr reference operator[](size_t const pos) noexcept
