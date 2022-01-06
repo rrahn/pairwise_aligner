@@ -82,6 +82,11 @@ private:
             // std::cout << "original_cell_t{*this}.score()[0] = " << original_cell_t{*this}.score()[0] << "\n";
             return original_cell_t{*this}.score();
         }
+
+        constexpr typename score_type::value_type score_at(size_t const position) const noexcept
+        {
+            return _saturated_value.score()[position] + _offset[position];
+        }
     };
 
 public:

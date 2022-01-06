@@ -60,10 +60,10 @@ struct _value<base_value_t, score_t>::type : public base_value_t
             assert(row_idx == this->dp_column().size() - 1 || col_idx == this->dp_row().size() - 1);
 
             if (row_idx == this->dp_column().size() - 1) {
-                best_score = this->dp_row()[col_idx].score()[idx];
+                best_score = score_at(this->dp_row()[col_idx], idx);
                 // std::cout << "this->dp_row()[col_idx].score()[idx] = " << this->dp_row()[col_idx].score()[idx] << "\n";
             } else {
-                best_score = this->dp_column()[row_idx].score()[idx];
+                best_score = score_at(this->dp_column()[row_idx], idx);
                 // std::cout << "this->dp_column()[row_idx].score()[idx] = " << this->dp_column()[row_idx].score()[idx] << "\n";
             }
 
@@ -74,13 +74,13 @@ struct _value<base_value_t, score_t>::type : public base_value_t
         if (_row_trailing_gaps == dp_trailing_gaps::free)
         {
             for (size_t cell_idx = 0; cell_idx < this->dp_row().size(); ++cell_idx)
-                best_score = std::max<scalar_t>(this->dp_row()[cell_idx].score()[idx], best_score);
+                best_score = std::max<scalar_t>(score_at(this->dp_row()[cell_idx], idx), best_score);
         }
 
         if (_column_trailing_gaps == dp_trailing_gaps::free)
         {
             for (size_t cell_idx = 0; cell_idx < this->dp_column().size(); ++cell_idx)
-                best_score = std::max<scalar_t>(this->dp_column()[cell_idx].score()[idx], best_score);
+                best_score = std::max<scalar_t>(score_at(this->dp_column()[cell_idx], idx), best_score);
         }
 
         return best_score;
@@ -101,6 +101,22 @@ struct _value<base_value_t, score_t>::type : public base_value_t
         // std::cout << "this->dp_row().size() = " << this->dp_row().size() << "\n";
         return std::tuple{original_row_dim + offset, original_column_dim + offset, offset};
     }
+
+private:
+
+    template <typename cell_t>
+        requires requires (cell_t const & cell, size_t const idx){ { cell.score_at(idx) } -> std::integral; }
+    constexpr auto score_at(cell_t const & cell, size_t const idx) const noexcept
+    {
+        return cell.score_at(idx);
+    }
+
+    template <typename cell_t>
+    constexpr auto score_at(cell_t const & cell, size_t const idx) const noexcept
+    {
+        return cell.score()[idx];
+    }
+
 };
 
 } // namespace _bulk_factory
