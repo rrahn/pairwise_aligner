@@ -61,6 +61,11 @@ struct affine_cell : public dp_cell_base<order>,
         return *this;
     }
 
+    constexpr score_t & score() noexcept
+    {
+        return this->first;
+    }
+
     constexpr score_t const & score() const noexcept
     {
         return this->first;
