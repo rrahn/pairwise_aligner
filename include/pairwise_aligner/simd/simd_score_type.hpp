@@ -135,19 +135,18 @@ public:
         return *this;
     }
 
-    constexpr simd_score operator+(simd_score const & right) const noexcept
+    constexpr simd_score operator+(simd_score tmp) const noexcept
     {
-        simd_score tmp{};
-        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left + right; },
-              tmp.values, values, right.values);
+        apply([] (native_simd_t & left, native_simd_t const & right) { left += right; },
+              tmp.values, values);
         return tmp;
     }
 
     constexpr simd_score operator+(score_t const right_constant) const noexcept
     {
-        simd_score tmp{};
-        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left + right; },
-              tmp.values, values, simd_score{right_constant}.values);
+        simd_score tmp{right_constant};
+        apply([] (native_simd_t & left, native_simd_t const & right) { left += right; },
+              tmp.values, values);
         return tmp;
     }
 
@@ -165,19 +164,18 @@ public:
         return *this;
     }
 
-    constexpr simd_score operator-(simd_score const & right) const noexcept
+    constexpr simd_score operator-(simd_score tmp) const noexcept
     {
-        simd_score tmp{};
-        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left - right; },
-             tmp.values, values, right.values);
+        apply([] (native_simd_t & left, native_simd_t const & right) { left = right - left; },
+             tmp.values, values);
         return tmp;
     }
 
     constexpr simd_score operator-(score_t const right_constant) const noexcept
     {
-        simd_score tmp{};
-        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left - right; },
-              tmp.values, values, simd_score{right_constant}.values);
+        simd_score tmp{right_constant};
+        apply([] (native_simd_t & left, native_simd_t const & right) { left = right - left; },
+              tmp.values, values);
         return tmp;
     }
 
@@ -195,27 +193,25 @@ public:
         return *this;
     }
 
-    constexpr simd_score operator*(simd_score const & right) const noexcept
+    constexpr simd_score operator*(simd_score tmp) const noexcept
     {
-        simd_score tmp{};
-        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left * right; },
-              tmp.values, values, right.values);
+        apply([] (native_simd_t & left, native_simd_t const & right) { left *= right; },
+              tmp.values, values);
         return tmp;
     }
 
     constexpr simd_score operator*(score_t const right_constant) const noexcept
     {
-        simd_score tmp{};
-        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left * right; },
-              tmp.values, values, simd_score{right_constant}.values);
+        simd_score tmp{right_constant};
+        apply([] (native_simd_t & left, native_simd_t const & right) { left *= right; },
+              tmp.values, values);
         return tmp;
     }
 
-    constexpr simd_score operator^(simd_score const & right) const noexcept
+    constexpr simd_score operator^(simd_score tmp) const noexcept
     {
-        simd_score tmp{};
-        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left ^ right; },
-              tmp.values, values, right.values);
+        apply([] (native_simd_t & left, native_simd_t const & right) { left ^= right; },
+              tmp.values, values);
         return tmp;
     }
 
