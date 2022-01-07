@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <array>
 #include <iostream>
 #include <seqan3/std/span>
 
@@ -244,21 +245,77 @@ protected:
               dp_column_vector_t && dp_column_vector,
               dp_row_vector_t && dp_row_vector) const
     {
-
-        // Store the best score of the last cell of the column vector in the first cell of the row vector.
-        as_derived().compute_first_column(dp_row_vector[0], dp_column_vector[dp_column_vector.size() - 1]);
-
         size_t const seq1_size = std::ranges::size(sequence1);
         size_t const seq2_size = std::ranges::size(sequence2);
-        for (size_t j = 0; j < seq2_size; ++j)
+
+        using value_t = typename std::remove_cvref_t<dp_row_vector_t>::value_type;
+
+        // Initialise bulk_cache array.
+        constexpr size_t cache_size = 8;
+        std::array<value_t, cache_size> bulk_cache{};
+
+        size_t j = 0;
+        for (; j < seq2_size - (cache_size - 1); j += cache_size)
         {
-            auto cache = as_derived().initialise_column(dp_row_vector[j+1], dp_column_vector[0]);
+            // copy values into cache.
+            std::span seq2_slice{sequence2.begin() + j, sequence2.begin() + j + cache_size};
+            unroll_load(bulk_cache, dp_row_vector, j + 1, std::make_index_sequence<cache_size>());
+
+            // compute cache many cells in one row for one horziontal value.
+            for (size_t i = 0; i < seq1_size; ++i) {
+                auto cacheH = dp_column_vector[i+1];
+
+                unroll_loop(bulk_cache, cacheH, sequence1[i], seq2_slice, std::make_index_sequence<cache_size>());
+
+                dp_column_vector[i+1] = cacheH;
+            }
+
+            // store results of cache back in vector.
+            unroll_store(dp_row_vector, bulk_cache, j + 1, std::make_index_sequence<cache_size>());
+        }
+
+        // Compute remaining cells.
+        for (; j < seq2_size; ++j) {
+            auto cache = dp_row_vector[j + 1];
 
             for (size_t i = 0; i < seq1_size; ++i) {
                 as_derived().compute_cell(cache, dp_column_vector[i+1], sequence1[i], sequence2[j]);
             }
-            as_derived().finalise_column(dp_row_vector[j+1], dp_column_vector[seq1_size], cache);
+
+            dp_row_vector[j + 1] = cache;
         }
+    }
+
+    template <typename row_cells_t,
+              typename col_cell_t,
+              typename seq1_value_t,
+              typename seq2_values_t,
+              size_t ...idx>
+    constexpr void unroll_loop(row_cells_t & row_cells,
+                               col_cell_t & col_cell,
+                               seq1_value_t const & seq1_value,
+                               seq2_values_t const & seq2_values,
+                               [[maybe_unused]] std::index_sequence<idx...> const & indices) const noexcept
+    {
+        (as_derived().compute_cell(row_cells[idx], col_cell, seq1_value, seq2_values[idx]), ...);
+    }
+
+    template <typename cache_t, typename row_vector_t, size_t ...idx>
+    constexpr void unroll_load(cache_t & bulk_cache,
+                               row_vector_t const & row_vector,
+                               size_t const offset,
+                               [[maybe_unused]] std::index_sequence<idx...> const & indices) const noexcept
+    {
+        ((bulk_cache[idx] = row_vector[offset + idx]), ...);
+    }
+
+    template <typename row_vector_t, typename cache_t, size_t ...idx>
+    constexpr void unroll_store(row_vector_t & row_vector,
+                                cache_t const & bulk_cache,
+                                size_t const offset,
+                                [[maybe_unused]] std::index_sequence<idx...> const & indices) const noexcept
+    {
+        ((row_vector[offset + idx] = bulk_cache[idx]), ...);
     }
 
     // template <typename sequence_t, typename dp_vector_t>
