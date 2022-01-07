@@ -149,12 +149,17 @@ protected:
         // 3) we don't want to work with proxy but only with the pure types.
         // 4) we want to modify the offset again.
 
+        // first dp row is initialised correctly
+        // first dp col is initialised correctly
+
+    /*
+        TODO: make_result without score!
+        return make_result(...);
+    */
+
         // ----------------------------------------------------------------------------
         // Recursion
         // ----------------------------------------------------------------------------
-
-        // auto & dp_column_group = dp_column.range();
-        // auto & dp_row_group = dp_row.range();
 
         size_t const col_count = dp_column.size();
         size_t const row_count = dp_row.size();
@@ -179,28 +184,27 @@ protected:
             dp_column_chunks.emplace_back(dp_column.range()[i]);
         }
 
-        // double compute{};
-        // double offset{};
-        // start = std::chrono::high_resolution_clock::now();
         for (size_t j = 0; j < col_count; ++j) {
             detail::saturated_wrapper<dp_row_chunk_t> current_row_vector{dp_row.range()[j]};
             std::span transformed_seq2{std::ranges::next(std::ranges::begin(simd_seq2), (j * row_chunk_size)),
                                        std::ranges::next(std::ranges::begin(simd_seq2), ((j + 1) * row_chunk_size), std::ranges::end(simd_seq2))};
+
+            // Initialise first block of current column.
+            current_row_vector.offset(current_row_vector[0].score());
+            dp_column_chunks[0].offset(dp_column_chunks[0][0].score());
+
+            initialise_block(dp_column_chunks[0], current_row_vector);
+
+            // Iterate over blocks in current column.
             for (size_t i = 0; i < row_count; ++i) {
-                // start = std::chrono::high_resolution_clock::now();
-                // std::span transformed_seq1{std::ranges::next(std::ranges::begin(simd_seq1), (i * col_chunk_size)),
-                //                            std::ranges::next(std::ranges::begin(simd_seq1), ((i + 1) * col_chunk_size), std::ranges::end(simd_seq1))};
-                detail::saturated_wrapper<dp_column_chunk_t> current_column_vector{dp_column.range()[i]};
-                current_row_vector.offset(current_row_vector[0].score());
-                dp_column_chunks[i].offset(dp_column_chunks[i][0].score());
-                // auto & col = dp_column_group[i].base();
-                // auto & row = dp_row_group[j].base();
-                // end = std::chrono::high_resolution_clock::now();
-                // offset += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-                // start = std::chrono::high_resolution_clock::now();
+
+                if (i > 0) {
+                    current_row_vector.offset(current_row_vector[1].score());
+                    dp_column_chunks[i].offset(dp_column_chunks[i][0].score());
+                    dp_column_chunks[i][0].score() = current_row_vector[current_row_vector.size() - 1].score();
+                }
+
                 _run(seq1_chunked[i], transformed_seq2, dp_column_chunks[i], current_row_vector);
-                // end = std::chrono::high_resolution_clock::now();
-                // compute += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 
                 // std::cout << "col:";
                 // for (size_t k = 0; k < current_column_vector.size(); ++k)
@@ -213,11 +217,10 @@ protected:
                 // std::cout << "\n";
 
             }
+
+            // Write back optimal score to row vector.
+            postprocess_block(dp_column_chunks.back(), current_row_vector);
         }
-        // end = std::chrono::high_resolution_clock::now();
-        // std::cout << "Compute: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " [ns]" << std::endl;
-        // std::cout << "Offset: " << offset << " [ns]" << std::endl;
-        // std::cout << "Compute: " << compute << " [ns]" << std::endl;
 
         // ----------------------------------------------------------------------------
         // Create result
@@ -302,6 +305,31 @@ protected:
     // {
     //     as_derived().compute_cell(std::forward<args_t>(args)...);
     // }
+
+    template <typename column_vector_t, typename row_vector_t>
+    constexpr void initialise_block(column_vector_t && column_vector, row_vector_t && row_vector) const noexcept
+    {
+        // H'[0].score() = V'[m].score();
+        // V'[0].score() = H'[n].score();
+        size_t const row_vector_size = row_vector.size() - 1;
+        column_vector[0].score() = row_vector[row_vector_size].score();
+
+        for (size_t j = row_vector_size; j > 0; --j)
+            row_vector[j].score() = row_vector[j - 1].score();
+
+        row_vector[0].score() = column_vector[column_vector.size() - 1].score();
+    }
+
+    template <typename column_vector_t, typename row_vector_t>
+    constexpr void postprocess_block(column_vector_t const & column_vector, row_vector_t && row_vector) const noexcept
+    {
+
+        size_t const row_vector_size = row_vector.size() - 1;
+        for (size_t j = 0; j < row_vector_size; ++j)
+            row_vector[j].score() = row_vector[j + 1].score();
+
+        row_vector[row_vector_size].score() = column_vector[column_vector.size() - 1].score();
+    }
 
     constexpr derived_t const & as_derived() const noexcept
     {
