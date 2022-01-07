@@ -114,10 +114,10 @@ protected:
     }
 
     template <typename cache_t, typename seq1_val_t, typename seq2_val_t, typename dp_cell_t>
-    auto compute_cell(cache_t & cache,
-                      dp_cell_t & column_cell,
-                      [[maybe_unused]] seq1_val_t const & seq1_val,
-                      [[maybe_unused]] seq2_val_t const & seq2_val) const noexcept
+    constexpr auto compute_cell(cache_t & cache,
+                                dp_cell_t & column_cell,
+                                [[maybe_unused]] seq1_val_t const & seq1_val,
+                                [[maybe_unused]] seq2_val_t const & seq2_val) const noexcept
     {
         using std::max;
         using score_t = typename dp_cell_t::score_type;
