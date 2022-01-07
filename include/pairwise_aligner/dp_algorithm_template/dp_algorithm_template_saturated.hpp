@@ -96,7 +96,7 @@ public:
         // upcast the local offset to the large offset value
         // add the converted offset to the global offset of the current vector type.
         using large_offset_t = std::remove_cvref_t<decltype(_dp_vector.offset())>;
-        _dp_vector.offset(_dp_vector.offset() + large_offset_t{new_offset}); // int32_t
+        _dp_vector.offset() += large_offset_t{new_offset}; // int32_t
     }
 
     // template <typename offset_score_t>
