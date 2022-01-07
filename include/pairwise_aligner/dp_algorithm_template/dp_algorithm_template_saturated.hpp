@@ -237,9 +237,9 @@ protected:
               typename dp_column_vector_t,
               typename dp_row_vector_t>
     void _run(sequence1_t sequence1,
-             sequence2_t sequence2,
-             dp_column_vector_t && dp_column_vector,
-             dp_row_vector_t && dp_row_vector) const
+              sequence2_t sequence2,
+              dp_column_vector_t && dp_column_vector,
+              dp_row_vector_t && dp_row_vector) const
     {
 
         // Store the best score of the last cell of the column vector in the first cell of the row vector.
