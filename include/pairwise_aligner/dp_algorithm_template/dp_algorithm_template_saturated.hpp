@@ -303,12 +303,12 @@ protected:
     //     as_derived().compute_cell(std::forward<args_t>(args)...);
     // }
 
-    derived_t const & as_derived() const noexcept
+    constexpr derived_t const & as_derived() const noexcept
     {
         return static_cast<derived_t const &>(*this);
     }
 
-    derived_t & as_derived() noexcept
+    constexpr derived_t & as_derived() noexcept
     {
         return static_cast<derived_t &>(*this);
     }
