@@ -16,6 +16,7 @@
 #include <seqan3/std/concepts>
 
 #include <seqan3/utility/simd/algorithm.hpp>
+#include <seqan3/utility/simd/simd_traits.hpp>
 #include <seqan3/utility/simd/simd.hpp>
 
 namespace seqan::pairwise_aligner
@@ -39,10 +40,11 @@ template <std::integral score_t, size_t simd_size = detail::max_simd_size / size
 class alignas(detail::max_simd_size) simd_score
 {
 private:
-    static constexpr size_t native_simd_size = detail::max_simd_size / sizeof(score_t);
+    using native_simd_t = seqan3::simd::simd_type_t<score_t>;
+
+    static constexpr size_t native_simd_size = seqan3::simd_traits<native_simd_t>::length;
     static constexpr size_t native_simd_count = simd_size / native_simd_size;
     static constexpr bool is_native = native_simd_count == 1;
-    using native_simd_t = seqan3::simd::simd_type_t<score_t, native_simd_size>;
 
     template <std::integral, size_t>
     friend class simd_score;
