@@ -138,7 +138,12 @@ public:
         });
     }
 
-    constexpr offset_score_t offset() const noexcept
+    constexpr offset_score_t & offset() noexcept
+    {
+        return _offset;
+    }
+
+    constexpr offset_score_t const & offset() const noexcept
     {
         return _offset;
     }
