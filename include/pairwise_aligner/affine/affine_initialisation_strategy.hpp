@@ -60,7 +60,7 @@ struct affine_initialisation_strategy
     template <typename score_t>
     constexpr _op<score_t> create() const noexcept
     {
-        return _op<score_t>{std::forward<affine_gap_model_t>(_gap_model), _rule};
+        return _op<score_t>{_gap_model, _rule};
     }
 };
 } // inline namespace v1

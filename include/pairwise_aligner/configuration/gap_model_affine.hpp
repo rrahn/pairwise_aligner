@@ -52,7 +52,11 @@ struct traits
 
     // Offer some overload for the column type.
     template <template <typename ...> typename dp_template_t, typename dp_score_model_t, typename result_factory_t>
-    using dp_kernel_type = affine_dp_algorithm<dp_template_t, dp_score_model_t, result_factory_t, gap_model_type>;
+    using dp_kernel_type = affine_dp_algorithm<dp_template_t,
+                                               dp_score_model_t,
+                                               result_factory_t,
+                                               gap_model_type,
+                                               initialisation_rule>;
 
     constexpr std::pair<gap_model_type, initialisation_rule> create(initialisation_rule rule) const
     {
