@@ -98,7 +98,7 @@ struct _configurator<pairwise_aligner_ref_t, score_model_index, gap_model_index,
             std::tie(init_rule, trailing_rule) = get<method_index>(tpl_values).create();
         }
 
-        auto [score_model, result_factory] = get<score_model_index>(tpl_values).create(trailing_rule);
+        auto [score_model, result_factory] = get<score_model_index>(tpl_values).create();
         auto [gap_params, initialisation_rule] = get<gap_model_index>(tpl_values).create(init_rule);
 
         _aligner_ref.get() = pairwise_aligner_t{std::move(score_model),

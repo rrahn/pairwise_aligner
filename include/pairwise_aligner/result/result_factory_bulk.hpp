@@ -133,8 +133,6 @@ template <typename score_t>
 struct _result_factory_bulk<score_t>::type
 {
     score_t _padding_score;
-    dp_trailing_gaps _column_trailing_gaps;
-    dp_trailing_gaps _row_trailing_gaps;
 
     template <typename sequence1_t, size_t bulk1_size,
               typename sequence2_t, size_t bulk2_size,

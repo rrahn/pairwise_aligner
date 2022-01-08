@@ -73,13 +73,11 @@ struct traits
 
     template <typename bulk_score_t = score_type<>, typename _score_t = score_type<>>
     constexpr std::pair<score_model_type<bulk_score_t>, result_factory_type<_score_t>>
-    create(trailing_gap_setting rule) const
+    create() const
     {
         return std::pair{score_model_type<bulk_score_t>{static_cast<bulk_score_t>(_match_score),
                                                         static_cast<bulk_score_t>(_mismatch_score)},
-                         result_factory_type<_score_t>{static_cast<_score_t>(_match_score),
-                                                       rule.column,
-                                                       rule.row}};
+                         result_factory_type<_score_t>{static_cast<_score_t>(_match_score)}};
     }
 };
 

@@ -102,8 +102,6 @@ private:
 
 struct result_factory_single
 {
-    dp_trailing_gaps _column_trailing_gaps{};
-    dp_trailing_gaps _row_trailing_gaps{};
 
     template <std::ranges::viewable_range sequence1_t,
               std::ranges::viewable_range sequence2_t,

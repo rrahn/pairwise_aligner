@@ -64,10 +64,9 @@ struct traits
 
     template <typename _score_t = score_t, typename _score2_t = score_t>
     constexpr std::pair<score_model_type<_score_t>, result_factory_type<_score2_t>>
-    create(trailing_gap_setting rule) const
+    create() const
     {
-        return std::pair{score_model_type<_score_t>{_match_score, _mismatch_score},
-                         result_factory_type<_score2_t>{rule.column, rule.row}};
+        return std::pair{score_model_type<_score_t>{_match_score, _mismatch_score}, result_factory_type<_score2_t>{}};
     }
 };
 

@@ -141,7 +141,7 @@ struct _configurator<pairwise_aligner_ref_t, score_t, bulk_score_t, score_model_
             std::tie(init_rule, trailing_rule) = get<method_index>(tpl_values).create();
         }
 
-        auto [score_model, result_factory] = get<score_model_index>(tpl_values).template create<bulk_score_t, score_t>(trailing_rule);
+        auto [score_model, result_factory] = get<score_model_index>(tpl_values).template create<bulk_score_t, score_t>();
         auto [gap_params, initialisation_rule] = get<gap_model_index>(tpl_values).create(init_rule);
 
         using result_factory_t = result_factory_chunk<std::remove_cvref_t<decltype(result_factory)>>;
