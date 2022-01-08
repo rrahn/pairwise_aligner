@@ -152,13 +152,17 @@ struct _result_factory_chunk<other_factory_t>::type
     auto operator()(sequence1_t && sequence1,
                     sequence2_t && sequence2,
                     dp_column_t dp_column,
-                    dp_row_t dp_row) const noexcept
+                    dp_row_t dp_row,
+                    dp_trailing_gaps _column_trailing_gaps = dp_trailing_gaps::regular,
+                    dp_trailing_gaps _row_trailing_gaps = dp_trailing_gaps::regular) const noexcept
     {
 
         auto result = _factory(std::forward<sequence1_t>(sequence1),
                                std::forward<sequence2_t>(sequence2),
                                _chunk_factory::detail::dp_vector_join<dp_column_t>{std::move(dp_column)},
-                               _chunk_factory::detail::dp_vector_join<dp_row_t>{std::move(dp_row)});
+                               _chunk_factory::detail::dp_vector_join<dp_row_t>{std::move(dp_row)},
+                               _column_trailing_gaps,
+                               _row_trailing_gaps);
 
         using result_t = decltype(result);
         return _chunk_factory::value<result_t>{std::move(result)};

@@ -143,7 +143,9 @@ struct _result_factory_bulk<score_t>::type
     auto operator()(std::array<sequence1_t, bulk1_size> sequence_bulk1,
                     std::array<sequence2_t, bulk2_size> sequence_bulk2,
                     dp_column_t dp_column,
-                    dp_row_t dp_row) const noexcept
+                    dp_row_t dp_row,
+                    dp_trailing_gaps _column_trailing_gaps = dp_trailing_gaps::regular,
+                    dp_trailing_gaps _row_trailing_gaps = dp_trailing_gaps::regular) const noexcept
     {
         static_assert(bulk1_size == bulk2_size, "The sequence bulks must have the same length.");
 

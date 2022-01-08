@@ -112,7 +112,9 @@ struct result_factory_single
     auto operator()(sequence1_t && sequence1,
                     sequence2_t && sequence2,
                     dp_column_t dp_column,
-                    dp_row_t dp_row) const noexcept
+                    dp_row_t dp_row,
+                    dp_trailing_gaps _column_trailing_gaps = dp_trailing_gaps::regular,
+                    dp_trailing_gaps _row_trailing_gaps = dp_trailing_gaps::regular) const noexcept
     {
         using aligner_result_t = _aligner_result::value<sequence1_t, sequence2_t, dp_column_t, dp_row_t>;
         return aligner_result_t{std::forward<sequence1_t>(sequence1),
