@@ -23,8 +23,8 @@ inline namespace v1
 
 struct initialisation_rule
 {
-    dp_initialisation_rule column{dp_initialisation_rule::regular};
-    dp_initialisation_rule row{dp_initialisation_rule::regular};
+    dp_initialisation_rule column_initialisation{dp_initialisation_rule::regular};
+    dp_initialisation_rule row_initialisation{dp_initialisation_rule::regular};
 };
 
 template <dp_vector_order order, typename affine_gap_model_t>

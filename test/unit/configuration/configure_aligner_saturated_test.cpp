@@ -26,8 +26,8 @@ TEST(configuration_test, prototype)
                 pa::cfg::score_model_unitary_simd((int16_t)4, (int16_t)-5),
                 -10, -1
             ),
-            pa::initialisation_rule{.column = pa::dp_initialisation_rule::regular,
-                                    .row = pa::dp_initialisation_rule::regular},
+            pa::initialisation_rule{.column_initialisation = pa::dp_initialisation_rule::regular,
+                                    .row_initialisation = pa::dp_initialisation_rule::regular},
             pa::trailing_gap_setting{.column = pa::dp_trailing_gaps::regular,
                                      .row = pa::dp_trailing_gaps::regular}
         )

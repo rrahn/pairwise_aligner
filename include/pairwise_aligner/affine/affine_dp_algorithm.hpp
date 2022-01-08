@@ -65,7 +65,8 @@ protected:
     {
         using init_t = affine_initialisation_strategy<dp_vector_order::row, gap_model_t const &>;
 
-        return dp_vector.initialise(std::forward<sequence_t>(sequence), init_t{_gap_model, _init_rule.row});
+        return dp_vector.initialise(std::forward<sequence_t>(sequence),
+                                    init_t{_gap_model, _init_rule.row_initialisation});
     }
 
     template <std::ranges::viewable_range sequence_t, typename dp_vector_t>
@@ -74,7 +75,8 @@ protected:
     {
         using init_t = affine_initialisation_strategy<dp_vector_order::column, gap_model_t const &>;
 
-        return dp_vector.initialise(std::forward<sequence_t>(sequence), init_t{_gap_model, _init_rule.column});
+        return dp_vector.initialise(std::forward<sequence_t>(sequence),
+                                    init_t{_gap_model, _init_rule.column_initialisation});
     }
 
     template <typename row_cell_t, typename column_cell_t>
