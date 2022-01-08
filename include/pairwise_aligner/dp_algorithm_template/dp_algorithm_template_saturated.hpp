@@ -227,13 +227,10 @@ protected:
         // Create result
         // ----------------------------------------------------------------------------
 
-        // auto best_score = dp_column.range().back().range().back().score();
-        using score_t = std::remove_cvref_t<decltype(dp_column.range().back().range().back().score())>;
         return as_derived().make_result(std::forward<sequence1_t>(sequence1),
                                         std::forward<sequence2_t>(sequence2),
                                         std::move(dp_column),
-                                        std::move(dp_row),
-                                        score_t{});
+                                        std::move(dp_row));
     }
 
     template <typename sequence1_t,

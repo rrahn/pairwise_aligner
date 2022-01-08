@@ -152,12 +152,10 @@ protected:
         // Create result
         // ----------------------------------------------------------------------------
 
-        auto best_score = get<0>(dp_column_vector[std::ranges::size(transformed_seq1)]);
         return as_derived().make_result(std::forward<sequence1_t>(sequence1),
                                         std::forward<sequence2_t>(sequence2),
                                         std::move(dp_column_vector),
-                                        std::move(dp_row_vector),
-                                        std::move(best_score));
+                                        std::move(dp_row_vector));
     }
 
     derived_t const & as_derived() const noexcept

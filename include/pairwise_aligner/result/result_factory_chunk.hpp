@@ -148,20 +148,17 @@ struct _result_factory_chunk<other_factory_t>::type
     template <typename sequence1_t,
               typename sequence2_t,
               typename dp_column_t,
-              typename dp_row_t,
-              typename score_t>
+              typename dp_row_t>
     auto operator()(sequence1_t && sequence1,
                     sequence2_t && sequence2,
                     dp_column_t dp_column,
-                    dp_row_t dp_row,
-                    score_t score) const noexcept
+                    dp_row_t dp_row) const noexcept
     {
 
         auto result = _factory(std::forward<sequence1_t>(sequence1),
                                std::forward<sequence2_t>(sequence2),
                                _chunk_factory::detail::dp_vector_join<dp_column_t>{std::move(dp_column)},
-                               _chunk_factory::detail::dp_vector_join<dp_row_t>{std::move(dp_row)},
-                               std::move(score));
+                               _chunk_factory::detail::dp_vector_join<dp_row_t>{std::move(dp_row)});
 
         using result_t = decltype(result);
         return _chunk_factory::value<result_t>{std::move(result)};

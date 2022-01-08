@@ -22,23 +22,24 @@ inline namespace v1
 {
 namespace _aligner_result
 {
-template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t, typename score_t>
+template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t>
 struct _value
 {
     struct type;
 };
 
-template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t, typename score_t>
-using value = typename _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t, score_t>::type;
+template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t>
+using value = typename _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t>::type;
 
-template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t, typename score_t>
-struct _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t, score_t>::type
+template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t>
+struct _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t>::type
 {
     sequence1_t _sequence1;
     sequence2_t _sequence2;
     dp_column_t _dp_column;
     dp_row_t _dp_row;
-    score_t _score;
+    dp_trailing_gaps _column_trailing_gaps;
+    dp_trailing_gaps _row_trailing_gaps;
 
     dp_column_t const & dp_column() const & noexcept
     {
@@ -70,9 +71,30 @@ struct _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t, score_t>::type
         return _sequence2;
     }
 
-    score_t const & score() const noexcept
+    auto score() const noexcept
     {
-        return _score;
+        return score_impl();
+    }
+
+private:
+
+    constexpr auto score_impl() const noexcept
+    {
+        auto best_score = dp_column()[dp_column().size() - 1].score();
+
+        if (_row_trailing_gaps == dp_trailing_gaps::free)
+        {
+            for (size_t cell_idx = 0; cell_idx < dp_row().size(); ++cell_idx)
+                best_score = std::max(dp_row()[cell_idx].score(), best_score);
+        }
+
+        if (_column_trailing_gaps == dp_trailing_gaps::free)
+        {
+            for (size_t cell_idx = 0; cell_idx < dp_column().size(); ++cell_idx)
+                best_score = std::max(dp_column()[cell_idx].score(), best_score);
+        }
+
+        return best_score;
     }
 };
 
@@ -86,44 +108,24 @@ struct result_factory_single
     template <std::ranges::viewable_range sequence1_t,
               std::ranges::viewable_range sequence2_t,
               typename dp_column_t,
-              typename dp_row_t,
-              typename score_t>
+              typename dp_row_t>
     auto operator()(sequence1_t && sequence1,
                     sequence2_t && sequence2,
                     dp_column_t dp_column,
-                    dp_row_t dp_row,
-                    score_t score) const noexcept
+                    dp_row_t dp_row) const noexcept
     {
-        using aligner_result_t = _aligner_result::value<sequence1_t, sequence2_t, dp_column_t, dp_row_t, score_t>;
-        score = update_score<score_t>(dp_column, dp_row);
+        using aligner_result_t = _aligner_result::value<sequence1_t, sequence2_t, dp_column_t, dp_row_t>;
         return aligner_result_t{std::forward<sequence1_t>(sequence1),
                                 std::forward<sequence2_t>(sequence2),
                                 std::move(dp_column),
                                 std::move(dp_row),
-                                std::move(score)};
+                                _column_trailing_gaps,
+                                _row_trailing_gaps};
     }
 
 private:
 
-    template <typename score_t, typename dp_column_t, typename dp_row_t>
-    constexpr score_t update_score(dp_column_t const & dp_column, dp_row_t const & dp_row) const noexcept
-    {
-        score_t best_score = dp_column[dp_column.size() - 1].score();
 
-        if (_row_trailing_gaps == dp_trailing_gaps::free)
-        {
-            for (size_t cell_idx = 0; cell_idx < dp_row.size(); ++cell_idx)
-                best_score = std::max<score_t>(dp_row[cell_idx].score(), best_score);
-        }
-
-        if (_column_trailing_gaps == dp_trailing_gaps::free)
-        {
-            for (size_t cell_idx = 0; cell_idx < dp_column.size(); ++cell_idx)
-                best_score = std::max<score_t>(dp_column[cell_idx].score(), best_score);
-        }
-
-        return best_score;
-    }
 };
 
 } // inline namespace v1

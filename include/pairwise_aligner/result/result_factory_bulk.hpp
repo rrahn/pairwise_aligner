@@ -36,8 +36,6 @@ template <typename base_value_t, typename score_t>
 struct _value<base_value_t, score_t>::type : public base_value_t
 {
     score_t _padding_score;
-    dp_trailing_gaps _column_trailing_gaps{};
-    dp_trailing_gaps _row_trailing_gaps{};
 
     constexpr auto score_at(size_t const idx) const noexcept
     {
@@ -49,7 +47,8 @@ struct _value<base_value_t, score_t>::type : public base_value_t
         assert(this->sequence2()[idx].has_value());
 
         scalar_t best_score = std::numeric_limits<scalar_t>::min();
-        if (_row_trailing_gaps == dp_trailing_gaps::regular && _column_trailing_gaps == dp_trailing_gaps::regular)
+        if (base_value_t::_row_trailing_gaps == dp_trailing_gaps::regular &&
+            base_value_t::_column_trailing_gaps == dp_trailing_gaps::regular)
         {
             auto && [row_idx, col_idx, offset] = projected_coordinate(idx);
 
@@ -71,13 +70,13 @@ struct _value<base_value_t, score_t>::type : public base_value_t
             return static_cast<scalar_t>(best_score - static_cast<scalar_t>(_padding_score[idx] * offset));
         }
 
-        if (_row_trailing_gaps == dp_trailing_gaps::free)
+        if (base_value_t::_row_trailing_gaps == dp_trailing_gaps::free)
         {
             for (size_t cell_idx = 0; cell_idx < this->dp_row().size(); ++cell_idx)
                 best_score = std::max<scalar_t>(score_at(this->dp_row()[cell_idx], idx), best_score);
         }
 
-        if (_column_trailing_gaps == dp_trailing_gaps::free)
+        if (base_value_t::_column_trailing_gaps == dp_trailing_gaps::free)
         {
             for (size_t cell_idx = 0; cell_idx < this->dp_column().size(); ++cell_idx)
                 best_score = std::max<scalar_t>(score_at(this->dp_column()[cell_idx], idx), best_score);
@@ -144,26 +143,22 @@ struct _result_factory_bulk<score_t>::type
     auto operator()(std::array<sequence1_t, bulk1_size> sequence_bulk1,
                     std::array<sequence2_t, bulk2_size> sequence_bulk2,
                     dp_column_t dp_column,
-                    dp_row_t dp_row,
-                    score_t score) const noexcept
+                    dp_row_t dp_row) const noexcept
     {
         static_assert(bulk1_size == bulk2_size, "The sequence bulks must have the same length.");
 
         using aligner_result_t = _aligner_result::value<std::array<sequence1_t, bulk1_size>,
                                                         std::array<sequence2_t, bulk2_size>,
                                                         dp_column_t,
-                                                        dp_row_t,
-                                                        score_t>;
+                                                        dp_row_t>;
         aligner_result_t base{std::move(sequence_bulk1),
                               std::move(sequence_bulk2),
                               std::move(dp_column),
                               std::move(dp_row),
-                              std::move(score)};
+                              _column_trailing_gaps,
+                              _row_trailing_gaps};
 
-        return _bulk_factory::value<aligner_result_t, score_t>{std::move(base),
-                                                               _padding_score,
-                                                               _column_trailing_gaps,
-                                                               _row_trailing_gaps};
+        return _bulk_factory::value<aligner_result_t, score_t>{std::move(base), _padding_score};
     }
 };
 
