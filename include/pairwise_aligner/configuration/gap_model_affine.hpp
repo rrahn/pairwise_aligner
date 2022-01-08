@@ -60,9 +60,9 @@ struct traits
                                                initialisation_rule,
                                                trailing_gap_setting>;
 
-    constexpr std::pair<gap_model_type, initialisation_rule> create(initialisation_rule rule) const
+    constexpr gap_model_type create() const
     {
-        return std::pair{gap_model_type{_gap_open_score, _gap_extension_score}, std::move(rule)};
+        return gap_model_type{_gap_open_score, _gap_extension_score};
     }
 };
 
