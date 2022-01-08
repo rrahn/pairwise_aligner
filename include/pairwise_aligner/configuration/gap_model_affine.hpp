@@ -16,6 +16,7 @@
 
 #include <pairwise_aligner/configuration/initial.hpp>
 #include <pairwise_aligner/configuration/rule_gap_model.hpp>
+#include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/affine/affine_cell.hpp>
 #include <pairwise_aligner/affine/affine_dp_algorithm.hpp>
 #include <pairwise_aligner/affine/affine_gap_model.hpp>
@@ -56,7 +57,8 @@ struct traits
                                                dp_score_model_t,
                                                result_factory_t,
                                                gap_model_type,
-                                               initialisation_rule>;
+                                               initialisation_rule,
+                                               trailing_gap_setting>;
 
     constexpr std::pair<gap_model_type, initialisation_rule> create(initialisation_rule rule) const
     {

@@ -102,7 +102,7 @@ protected:
     template <typename ...args_t>
     constexpr auto make_result(args_t && ...args) const noexcept
     {
-        return this->operator()(std::forward<args_t>(args)...);
+        return this->operator()(std::forward<args_t>(args)..., this->column, this->row);
     }
 
     template <typename cache_t, typename seq1_val_t, typename seq2_val_t, typename dp_cell_t>

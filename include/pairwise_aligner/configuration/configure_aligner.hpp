@@ -104,7 +104,8 @@ struct _configurator<pairwise_aligner_ref_t, score_model_index, gap_model_index,
         _aligner_ref.get() = pairwise_aligner_t{std::move(score_model),
                                                 std::move(result_factory),
                                                 std::move(gap_params),
-                                                std::move(initialisation_rule)};
+                                                std::move(initialisation_rule),
+                                                std::move(trailing_rule)};
     }
 };
 
