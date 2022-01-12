@@ -39,6 +39,8 @@ namespace _score_model_unitary
 template <typename score_t>
 struct traits
 {
+    static constexpr cfg::detail::rule_category category = cfg::detail::rule_category::score_model;
+
     score_t _match_score;
     score_t _mismatch_score;
 

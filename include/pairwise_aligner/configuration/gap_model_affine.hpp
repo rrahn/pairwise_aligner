@@ -39,6 +39,8 @@ namespace _gap_model_affine
 template <typename gap_score_t>
 struct traits
 {
+    static constexpr cfg::detail::rule_category category = cfg::detail::rule_category::gap_model;
+
     gap_score_t _gap_open_score;
     gap_score_t _gap_extension_score;
 

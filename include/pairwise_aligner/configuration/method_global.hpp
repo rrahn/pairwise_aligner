@@ -35,6 +35,8 @@ namespace _method_global
 
 struct traits
 {
+    static constexpr cfg::detail::rule_category category = cfg::detail::rule_category::method;
+
     initialisation_rule _leading_param;
     trailing_gap_setting _trailing_param;
 
