@@ -19,6 +19,9 @@
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
+#include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
+#include <pairwise_aligner/matrix/dp_vector_policy.hpp>
+#include <pairwise_aligner/matrix/dp_vector_single.hpp>
 #include <pairwise_aligner/result/aligner_result.hpp>
 #include <pairwise_aligner/score_model/score_model_unitary.hpp>
 #include <pairwise_aligner/type_traits.hpp>
@@ -45,11 +48,9 @@ struct traits
     score_t _mismatch_score;
 
     // Offer the score type here.
-    template <size_t max_size = 1>
     using score_type = score_t;
 
-    template <typename scalar_score_t = score_t>
-    using score_model_type = score_model_unitary<scalar_score_t>;
+    using score_model_type = score_model_unitary<score_type>;
 
     // Offer some overload for the column type.
     template <typename dp_vector_t>
@@ -61,14 +62,23 @@ struct traits
     template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vector_row_t>
     using dp_interface_type = interface_one_to_one_single<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>;
 
-    template <typename _score_t = score_t>
     using result_factory_type = result_factory_single;
 
-    template <typename _score_t = score_t, typename _score2_t = score_t>
-    constexpr std::pair<score_model_type<_score_t>, result_factory_type<_score2_t>>
+    constexpr std::pair<score_model_type, result_factory_type>
     create() const
     {
-        return std::pair{score_model_type<_score_t>{_match_score, _mismatch_score}, result_factory_type<_score2_t>{}};
+        return std::pair{score_model_type{_match_score, _mismatch_score}, result_factory_type{}};
+    }
+
+
+    template <typename common_configurations_t>
+    constexpr auto configure_dp_vector_policy([[maybe_unused]] common_configurations_t const & configuration) const noexcept
+    {
+        using column_cell_t = typename common_configurations_t::dp_cell_column_type<score_type>;
+        using row_cell_t = typename common_configurations_t::dp_cell_row_type<score_type>;
+
+        return dp_vector_policy{dp_vector_index_factory(dp_vector_single<column_cell_t>{}),
+                                dp_vector_index_factory(dp_vector_single<row_cell_t>{})};
     }
 };
 

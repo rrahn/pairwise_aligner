@@ -20,6 +20,8 @@
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
+#include <pairwise_aligner/matrix/dp_vector_policy.hpp>
+#include <pairwise_aligner/matrix/dp_vector_single.hpp>
 #include <pairwise_aligner/result/result_factory_bulk.hpp>
 #include <pairwise_aligner/score_model/score_model_unitary.hpp>
 #include <pairwise_aligner/type_traits.hpp>
@@ -47,52 +49,54 @@ struct traits
     score_t _mismatch_score;
 
     // Offer the score type here.
-    template <size_t bulk_size = simd_score<score_t>::size>
-    using score_type = simd_score<score_t, bulk_size>;
+    using score_type = simd_score<score_t>;
 
-    template <typename bulk_score_t = score_type<>>
-    using score_model_type = seqan::pairwise_aligner::score_model_unitary<bulk_score_t>;
-
-    // Offer some overload for the column type.
-    template <typename dp_vector_t, typename simd_t = score_type<>>
-    using dp_vector_column_type = dp_vector_bulk<dp_vector_t, simd_t>;
+    // substitution policy configurator
+    using score_model_type = seqan::pairwise_aligner::score_model_unitary<score_type>;
 
     // Offer some overload for the column type.
-    template <typename dp_vector_t, typename simd_t = score_type<>>
-    using dp_vector_row_type = dp_vector_bulk<dp_vector_t, simd_t>;
+    // dp_vector_policy configurator
+    template <typename dp_vector_t>
+    using dp_vector_column_type = dp_vector_bulk<dp_vector_t, score_type>;
+
+    // Offer some overload for the column type.
+    template <typename dp_vector_t>
+    using dp_vector_row_type = dp_vector_bulk<dp_vector_t, score_type>;
 
     template <typename dp_algorithm_t,
               typename dp_vector_column_t,
-              typename dp_vector_row_t,
-              size_t bulk_size = score_type<>::size>
+              typename dp_vector_row_t>
     using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t,
                                                         dp_vector_column_t,
                                                         dp_vector_row_t,
-                                                        bulk_size>;
+                                                        score_type::size>;
 
-    template <typename bulk_score_t = score_type<>>
-    using result_factory_type = result_factory_bulk<bulk_score_t>;
+    // result_factory configurator
+    using result_factory_type = result_factory_bulk<score_type>;
 
-    template <typename bulk_score_t = score_type<>, typename _score_t = score_type<>>
-    constexpr std::pair<score_model_type<bulk_score_t>, result_factory_type<_score_t>>
-    create() const
+    constexpr std::pair<score_model_type, result_factory_type> create() const
     {
-        return std::pair{score_model_type<bulk_score_t>{static_cast<bulk_score_t>(_match_score),
-                                                        static_cast<bulk_score_t>(_mismatch_score)},
-                         result_factory_type<_score_t>{static_cast<_score_t>(_match_score)}};
+        return std::pair{configure_substitution_policy(), configure_result_factory_policy()};
     }
 
-    template <typename bulk_score_t = score_type<>>
     constexpr auto configure_substitution_policy() const noexcept
     {
-        return score_model_type<bulk_score_t>{static_cast<bulk_score_t>(_match_score),
-                                              static_cast<bulk_score_t>(_mismatch_score)};
+        return score_model_type{static_cast<score_type>(_match_score), static_cast<score_type>(_mismatch_score)};
     }
 
-    template <typename bulk_score_t = score_type<>>
     constexpr auto configure_result_factory_policy() const noexcept
     {
-        return result_factory_type<bulk_score_t>{static_cast<bulk_score_t>(_match_score)};
+        return result_factory_type{static_cast<score_type>(_match_score)};
+    }
+
+    template <typename common_configurations_t>
+    constexpr auto configure_dp_vector_policy([[maybe_unused]] common_configurations_t const & configuration) const noexcept
+    {
+        using column_cell_t = typename common_configurations_t::dp_cell_column_type<score_type>;
+        using row_cell_t = typename common_configurations_t::dp_cell_row_type<score_type>;
+
+        return dp_vector_policy{dp_vector_index_factory(dp_vector_bulk_factory<score_type>(dp_vector_single<column_cell_t>{})),
+                                dp_vector_index_factory(dp_vector_bulk_factory<score_type>(dp_vector_single<row_cell_t>{}))};
     }
 };
 

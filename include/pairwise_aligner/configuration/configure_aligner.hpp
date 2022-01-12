@@ -43,23 +43,27 @@ struct traits
     using gap_model_config_traits_t = std::tuple_element_t<gap_model_position, configurator_types>;
 
     // Define all algorithm entities.
-    using score_t = typename score_model_config_traits_t::template score_type<>;
+    using score_t = typename score_model_config_traits_t::score_type;
     using dp_cell_row_t = typename gap_model_config_traits_t::template dp_cell_row_type<score_t>;
     using dp_cell_column_t = typename gap_model_config_traits_t::template dp_cell_column_type<score_t>;
     using dp_vector_row_t = dp_vector_chunk<typename score_model_config_traits_t::template dp_vector_row_type<dp_vector_single<dp_cell_row_t>>>;
     using dp_vector_column_t = dp_vector_chunk<typename score_model_config_traits_t::template dp_vector_column_type<dp_vector_single<dp_cell_column_t>>>;
 
     // Get the instantiated model types.
-    using score_model_t = typename score_model_config_traits_t::template score_model_type<>;
-    using result_factory_t = typename score_model_config_traits_t::template result_factory_type<>;
+    using score_model_t = typename score_model_config_traits_t::score_model_type;
+    using result_factory_t = typename score_model_config_traits_t::result_factory_type;
 
     // Define the kernel type.
+    using tmp_t = decltype(std::declval<score_model_config_traits_t>().
+        configure_dp_vector_policy(std::declval<gap_model_config_traits_t const &>()));
     using dp_kernel_t = typename gap_model_config_traits_t:: template dp_kernel_type<dp_algorithm_template_standard,
                                                                                      score_model_t,
-                                                                                     result_factory_t>;
+                                                                                     result_factory_t,
+                                                                                     tmp_t>;
+
     // define the pairwise aligner type.
     using aligner_type = typename score_model_config_traits_t::template
-        dp_interface_type<dp_kernel_t, dp_vector_column_t, dp_vector_row_t>;
+                            dp_interface_type<dp_kernel_t, dp_vector_column_t, dp_vector_row_t>;
 };
 
 // ----------------------------------------------------------------------------
@@ -100,9 +104,12 @@ struct _configurator<pairwise_aligner_ref_t, score_model_index, gap_model_index,
 
         auto [score_model, result_factory] = get<score_model_index>(tpl_values).create();
         auto gap_params = get<gap_model_index>(tpl_values).create();
+        auto dp_vector_policy = get<score_model_index>(tpl_values).
+            configure_dp_vector_policy(get<gap_model_index>(tpl_values));
 
         _aligner_ref.get() = pairwise_aligner_t{std::move(score_model),
                                                 std::move(result_factory),
+                                                std::move(dp_vector_policy),
                                                 std::move(gap_params),
                                                 std::move(init_rule),
                                                 std::move(trailing_rule)};
@@ -130,8 +137,6 @@ inline constexpr auto _impl(predecessor_t && predecessor)
 
     using traits_t = traits<configurator_types, score_model_position, gap_model_position>;
     using aligner_t = typename traits_t::aligner_type;
-
-    // TODO: convert positions to list of indices.
 
     aligner_t aligner{};
     configurator_t<std::reference_wrapper<aligner_t>,

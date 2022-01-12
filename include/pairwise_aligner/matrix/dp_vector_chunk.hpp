@@ -36,7 +36,9 @@ public:
     using const_reference = std::ranges::range_reference_t<range_type const>;
 
     dp_vector_chunk() = default;
-    explicit dp_vector_chunk(size_t const initial_index) noexcept : _index{initial_index}
+    explicit dp_vector_chunk(dp_vector_t dp_vector, size_t const initial_index) noexcept :
+        _dp_vector{std::move(dp_vector)},
+        _index{initial_index}
     {}
 
     reference operator[](size_t const pos) noexcept(noexcept(_dp_vector[pos]))
@@ -99,5 +101,23 @@ public:
                                      factory_t{std::forward<initialisation_strategy_t>(init_factory), _index});
     }
 };
+
+namespace detail
+{
+
+struct dp_vector_index_factory_fn
+{
+
+    template <typename dp_vector_t>
+    auto operator()(dp_vector_t && dp_vector) const noexcept
+    {
+        return dp_vector_chunk<std::remove_cvref_t<dp_vector_t>>{std::move(dp_vector), 0};
+    }
+};
+
+} // namespace detail
+
+inline constexpr detail::dp_vector_index_factory_fn dp_vector_index_factory{};
+
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner

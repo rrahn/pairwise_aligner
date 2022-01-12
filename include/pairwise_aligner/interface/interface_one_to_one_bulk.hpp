@@ -41,10 +41,11 @@ template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vect
 struct _interface_one_to_one_bulk<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t, max_bulk_size>::type :
     protected dp_algorithm_t
 {
-    using dp_vector_column_type = dp_vector_column_t;
-    using dp_vector_row_type = dp_vector_row_t;
 
     using dp_algorithm_t::dp_algorithm_t;
+
+    using dp_algorithm_t::column_vector;
+    using dp_algorithm_t::row_vector;
 
     template <std::ranges::forward_range sequence_bulk1_t,
               std::ranges::forward_range sequence_bulk2_t>
@@ -60,20 +61,22 @@ struct _interface_one_to_one_bulk<dp_algorithm_t, dp_vector_column_t, dp_vector_
 
         return compute(std::forward<sequence_bulk1_t>(sequence_bulk1),
                        std::forward<sequence_bulk2_t>(sequence_bulk2),
-                       dp_vector_column_t{},
-                       dp_vector_row_t{});
+                       column_vector(),
+                       row_vector());
     }
 
     template <std::ranges::forward_range sequence_bulk1_t,
-              std::ranges::forward_range sequence_bulk2_t>
+              std::ranges::forward_range sequence_bulk2_t,
+              typename dp_column_t,
+              typename dp_row_t>
         requires (std::ranges::forward_range<std::ranges::range_reference_t<sequence_bulk1_t>> &&
                   std::ranges::forward_range<std::ranges::range_reference_t<sequence_bulk2_t>>) &&
                  (std::ranges::viewable_range<std::ranges::range_reference_t<sequence_bulk1_t>> &&
                   std::ranges::viewable_range<std::ranges::range_reference_t<sequence_bulk2_t>>)
     auto compute(sequence_bulk1_t && sequence_bulk1,
                  sequence_bulk2_t && sequence_bulk2,
-                 dp_vector_column_t first_dp_column,
-                 dp_vector_row_t first_dp_row)
+                 dp_column_t first_dp_column,
+                 dp_row_t first_dp_row)
     {
         assert(static_cast<size_t>(std::ranges::distance(sequence_bulk1)) <= max_bulk_size);
         assert(static_cast<size_t>(std::ranges::distance(sequence_bulk2)) <= max_bulk_size);
