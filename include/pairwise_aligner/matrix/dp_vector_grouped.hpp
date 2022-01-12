@@ -129,5 +129,22 @@ public:
         return std::forward<sequence_t>(sequence);
     }
 };
+
+namespace detail
+{
+
+struct dp_vector_chunk_factory_fn
+{
+
+    template <typename dp_vector_t>
+    auto operator()([[maybe_unused]] dp_vector_t && dp_vector, size_t const block_size) const noexcept
+    {
+        return dp_vector_grouped<std::remove_cvref_t<dp_vector_t>>{block_size};
+    }
+};
+
+} // namespace detail
+
+inline constexpr detail::dp_vector_chunk_factory_fn dp_vector_chunk_factory{};
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner

@@ -30,6 +30,10 @@ private:
 
 public:
 
+    dp_vector_bulk() = default;
+    explicit dp_vector_bulk(dp_vector_t dp_vector) : _dp_vector{std::move(dp_vector)}
+    {}
+
     using range_type = typename dp_vector_t::range_type;
     using value_type = typename dp_vector_t::value_type;
     using reference = typename dp_vector_t::reference;
@@ -99,6 +103,24 @@ public:
         return _dp_vector.initialise(std::move(simd_sequence), std::forward<initialisation_strategy_t>(init_strategy));
     }
 };
+
+namespace detail
+{
+
+template <typename simd_t>
+struct dp_vector_bulk_factory_fn
+{
+    template <typename dp_vector_t>
+    auto operator()(dp_vector_t && dp_vector) const noexcept
+    {
+        return dp_vector_bulk<std::remove_cvref_t<dp_vector_t>, simd_t>{std::forward<dp_vector_t>(dp_vector)};
+    }
+};
+
+} // namespace detail
+
+template <typename simd_t>
+inline constexpr detail::dp_vector_bulk_factory_fn<simd_t> dp_vector_bulk_factory{};
 
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner

@@ -97,6 +97,8 @@ public:
     using const_reference = _proxy<true>;
 
     dp_vector_saturated() = default;
+    explicit dp_vector_saturated(dp_vector_t dp_vector) : _dp_vector{std::move(dp_vector)}
+    {}
 
     // return a proxy!
     reference operator[](size_t const pos) noexcept
@@ -200,5 +202,25 @@ public:
                                      _factory<factory_t>{std::forward<factory_t>(init_factory), _offset});
     }
 };
+
+namespace detail
+{
+
+template <typename original_cell_t>
+struct dp_vector_saturated_factory_fn
+{
+
+    template <typename dp_vector_t>
+    auto operator()(dp_vector_t && dp_vector) const noexcept
+    {
+        return dp_vector_saturated<std::remove_cvref_t<dp_vector_t>, original_cell_t>{std::forward<dp_vector_t>(dp_vector)};
+    }
+};
+
+} // namespace detail
+
+template <typename original_cell_t>
+inline constexpr detail::dp_vector_saturated_factory_fn<original_cell_t> dp_vector_saturated_factory{};
+
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner
