@@ -88,7 +88,7 @@ private:
         //     typename seqan3::pack_traits::at<seqan3::pack_traits::find_if<is_gap_configuration, _configurations_t...>,
         //                                      _configurations_t...>;
 
-        using score_type = typename substitution_configuration_t::score_type<simd_score<int8_t>::size>;
+        using score_type = typename substitution_configuration_t::score_type;
 
     };
 
@@ -107,28 +107,24 @@ public:
         using score_model_config_traits_t = typename accessor_t::substitution_configuration_t;
         using gap_model_config_traits_t = typename accessor_t::gap_configuration_t;
 
-        static constexpr size_t max_size = simd_score<int8_t>::size;
-        using saturated_score_t = simd_score<int8_t, max_size>;
-
-        using original_score_t = typename score_model_config_traits_t::template score_type<max_size>;
+        using saturated_score_t = typename accessor_t::score_type;
+        using original_score_t = typename score_model_config_traits_t::original_score_type;
 
         using dp_cell_column_t = typename gap_model_config_traits_t::template dp_cell_column_type<saturated_score_t>;
         using dp_cell_column_original_t = typename gap_model_config_traits_t::template dp_cell_column_type<original_score_t>;
         using dp_column_saturated_t = dp_vector_saturated<dp_vector_single<dp_cell_column_t>, dp_cell_column_original_t>;
         using dp_column_chunked_t = dp_vector_grouped<dp_column_saturated_t>;
-        using dp_vector_column_t = typename score_model_config_traits_t::template dp_vector_column_type<dp_column_chunked_t,
-                                                                                                        saturated_score_t>;
+        using dp_vector_column_t = typename score_model_config_traits_t::template dp_vector_column_type<dp_column_chunked_t>;
 
         using dp_cell_row_t = typename gap_model_config_traits_t::template dp_cell_row_type<saturated_score_t>;
         using dp_cell_row_original_t = typename gap_model_config_traits_t::template dp_cell_row_type<original_score_t>;
         using dp_row_saturated_t = dp_vector_saturated<dp_vector_single<dp_cell_row_t>, dp_cell_row_original_t>;
         using dp_row_chunked_t = dp_vector_grouped<dp_row_saturated_t>;
-        using dp_vector_row_t = typename score_model_config_traits_t::template dp_vector_row_type<dp_row_chunked_t,
-                                                                                                saturated_score_t>;
+        using dp_vector_row_t = typename score_model_config_traits_t::template dp_vector_row_type<dp_row_chunked_t>;
 
         // Get the instantiated model types.
-        using score_model_t = typename score_model_config_traits_t::score_model_type<saturated_score_t>;
-        using result_factory_t = result_factory_chunk<typename score_model_config_traits_t::result_factory_type<original_score_t>>;
+        using score_model_t = typename score_model_config_traits_t::score_model_type;
+        using result_factory_t = result_factory_chunk<typename score_model_config_traits_t::result_factory_type>;
 
         // we need to set some parameters to the template without removing its types
         using dp_kernel_t = typename gap_model_config_traits_t:: template dp_kernel_type<dp_algorithm_template_saturated,
@@ -137,14 +133,12 @@ public:
         // define the pairwise aligner type.
         using aligner_t = typename score_model_config_traits_t::template dp_interface_type<dp_kernel_t,
                                                                                             dp_vector_column_t,
-                                                                                            dp_vector_row_t,
-                                                                                            max_size>;
+                                                                                            dp_vector_row_t>;
 
-        using bulk_score_t = saturated_score_t;
 
-        auto substitution_policy = _configurations_accessor.template configure_substitution_policy<bulk_score_t>();
+        auto substitution_policy = _configurations_accessor.configure_substitution_policy();
         auto gap_policy = _configurations_accessor.configure_gap_policy();
-        auto result_factory_policy = _configurations_accessor.template configure_result_factory_policy<original_score_t>();
+        auto result_factory_policy = _configurations_accessor.configure_result_factory_policy();
 
         // TODO: Handle defaults.
         initialisation_rule leading_gap_policy{};

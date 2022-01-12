@@ -19,6 +19,7 @@
 #include <seqan3/core/configuration/configuration.hpp>
 
 #include <pairwise_aligner/configuration/configure_aligner_saturated.hpp>
+#include <pairwise_aligner/configuration/score_model_unitary_simd_saturated.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
 
@@ -46,7 +47,7 @@ void alignment_global_affine_bulk_simd_saturated(benchmark::State & state)
 
     auto aligner = pa::cfg::configure_aligner_saturated(
         pa::cfg::gap_model_affine(
-            pa::cfg::score_model_unitary_simd(static_cast<int16_t>(4), static_cast<int16_t>(-5)),
+            pa::cfg::score_model_unitary_simd_saturated(static_cast<int16_t>(4), static_cast<int16_t>(-5)),
             -10, -1
         )
     );

@@ -15,6 +15,7 @@
 #include <pairwise_aligner/configuration/method_global.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
+#include <pairwise_aligner/configuration/score_model_unitary_simd_saturated.hpp>
 
 TEST(configuration_test, prototype)
 {
@@ -23,7 +24,7 @@ TEST(configuration_test, prototype)
     auto aligner = pa::cfg::configure_aligner_saturated(
         pa::cfg::method_global(
             pa::cfg::gap_model_affine(
-                pa::cfg::score_model_unitary_simd((int16_t)4, (int16_t)-5),
+                pa::cfg::score_model_unitary_simd_saturated((int16_t)4, (int16_t)-5),
                 -10, -1
             ),
             pa::initialisation_rule{.column_initialisation = pa::dp_initialisation_rule::regular,
