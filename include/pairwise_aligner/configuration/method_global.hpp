@@ -44,6 +44,16 @@ struct traits
     {
         return std::pair{std::move(_leading_param), std::move(_trailing_param)};
     }
+
+    constexpr auto configure_leading_gap_policy() const noexcept
+    {
+        return _leading_param;
+    }
+
+    constexpr auto configure_trailing_gap_policy() const noexcept
+    {
+        return _trailing_param;
+    }
 };
 
 // ----------------------------------------------------------------------------

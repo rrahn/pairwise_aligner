@@ -17,6 +17,7 @@
 #include <seqan3/std/type_traits>
 
 #include <seqan3/utility/type_pack/traits.hpp>
+#include <seqan3/utility/type_traits/lazy_conditional.hpp>
 
 #include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
 #include <pairwise_aligner/configuration/rule_category.hpp>
@@ -77,9 +78,17 @@ private:
             typename seqan3::pack_traits::at<seqan3::pack_traits::find_if<is_gap_configuration, _configurations_t...>,
                                              _configurations_t...>;
 
-        // using method_configuration_t =
-        //     typename seqan3::pack_traits::at<seqan3::pack_traits::find_if<is_gap_configuration, _configurations_t...>,
-        //                                      _configurations_t...>;
+
+        static constexpr std::ptrdiff_t method_configuration_index =
+            seqan3::pack_traits::find_if<is_method_configuration, _configurations_t...>;
+
+        template <typename index_t>
+        using at_wrapper = seqan3::pack_traits::at<index_t::value, _configurations_t...>;
+
+        using method_configuration_type =
+            seqan3::detail::lazy_conditional_t<method_configuration_index != -1,
+                seqan3::detail::lazy<at_wrapper, std::integral_constant<std::ptrdiff_t, method_configuration_index>>,
+                std::void_t<>>;
 
         using score_type = typename substitution_configuration_t::score_type;
 
@@ -110,9 +119,13 @@ public:
         auto result_factory_policy = _configurations_accessor.configure_result_factory_policy();
         auto dp_vector_policy = _configurations_accessor.configure_dp_vector_policy(_configurations_accessor);
 
-        // TODO: Handle defaults.
         initialisation_rule leading_gap_policy{};
         trailing_gap_setting trailing_gap_policy{};
+
+        if constexpr (!std::same_as<typename accessor_t::method_configuration_type, std::void_t<>>) {
+            leading_gap_policy = _configurations_accessor.configure_leading_gap_policy();
+            trailing_gap_policy = _configurations_accessor.configure_trailing_gap_policy();
+        }
 
         return _configurations_accessor.configure_algorithm(_configurations_accessor,
                                                             std::move(dp_vector_policy),
