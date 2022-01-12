@@ -21,6 +21,7 @@
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
+#include <pairwise_aligner/configuration/configure_aligner_saturated.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -166,7 +167,7 @@ struct _fn
 } // namespace _cpo
 } // namespace _configure_aligner
 
-inline constexpr _configure_aligner::_cpo::_fn configure_aligner{};
+inline constexpr _configure_aligner_saturated::_cpo::_fn configure_aligner{};
 
 } // namespace cfg
 } // inline namespace v1

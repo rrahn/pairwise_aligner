@@ -31,7 +31,8 @@ using interface_one_to_one_single = typename _interface_one_to_one_single<dp_alg
 template <typename dp_algorithm_t>
 struct _interface_one_to_one_single<dp_algorithm_t>::type : protected dp_algorithm_t
 {
-    using dp_algorithm_t::dp_algorithm_t;
+    explicit type(dp_algorithm_t algorithm) : dp_algorithm_t{std::move(algorithm)}
+    {}
 
     using dp_algorithm_t::column_vector;
     using dp_algorithm_t::row_vector;

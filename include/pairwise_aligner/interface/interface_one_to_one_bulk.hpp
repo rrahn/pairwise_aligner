@@ -37,11 +37,8 @@ using interface_one_to_one_bulk = typename _interface_one_to_one_bulk<dp_algorit
 template <typename dp_algorithm_t, size_t max_bulk_size>
 struct _interface_one_to_one_bulk<dp_algorithm_t, max_bulk_size>::type : protected dp_algorithm_t
 {
-
-    type() = default;
     explicit type(dp_algorithm_t algorithm) noexcept : dp_algorithm_t{std::move(algorithm)}
     {}
-    using dp_algorithm_t::dp_algorithm_t;
 
     using dp_algorithm_t::column_vector;
     using dp_algorithm_t::row_vector;
