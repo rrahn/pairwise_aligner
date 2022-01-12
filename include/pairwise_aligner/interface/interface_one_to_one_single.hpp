@@ -19,25 +19,22 @@ namespace seqan::pairwise_aligner
 inline namespace v1
 {
 
-template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vector_row_t>
+template <typename dp_algorithm_t>
 struct _interface_one_to_one_single
 {
     struct type;
 };
 
-template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vector_row_t>
-using interface_one_to_one_single = typename _interface_one_to_one_single<dp_algorithm_t,
-                                                                                  dp_vector_column_t,
-                                                                                  dp_vector_row_t>::type;
+template <typename dp_algorithm_t>
+using interface_one_to_one_single = typename _interface_one_to_one_single<dp_algorithm_t>::type;
 
-template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vector_row_t>
-struct _interface_one_to_one_single<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t>::type :
-    protected dp_algorithm_t
+template <typename dp_algorithm_t>
+struct _interface_one_to_one_single<dp_algorithm_t>::type : protected dp_algorithm_t
 {
-    using dp_vector_column_type = dp_vector_column_t;
-    using dp_vector_row_type = dp_vector_row_t;
-
     using dp_algorithm_t::dp_algorithm_t;
+
+    using dp_algorithm_t::column_vector;
+    using dp_algorithm_t::row_vector;
 
     template <std::ranges::forward_range sequence1_t,
               std::ranges::forward_range sequence2_t>
@@ -47,18 +44,20 @@ struct _interface_one_to_one_single<dp_algorithm_t, dp_vector_column_t, dp_vecto
     {
         return compute(std::forward<sequence1_t>(sequence1),
                        std::forward<sequence2_t>(sequence2),
-                       dp_vector_column_t{},
-                       dp_vector_row_t{});
+                       column_vector(),
+                       row_vector());
     }
 
     template <std::ranges::forward_range sequence1_t,
-              std::ranges::forward_range sequence2_t>
+              std::ranges::forward_range sequence2_t,
+              typename column_vector_t,
+              typename row_vector_t>
         requires (std::ranges::viewable_range<sequence1_t> &&
                   std::ranges::viewable_range<sequence2_t>)
     auto compute(sequence1_t && sequence1,
                  sequence2_t && sequence2,
-                 dp_vector_column_t first_dp_column,
-                 dp_vector_row_t first_dp_row)
+                 column_vector_t first_dp_column,
+                 row_vector_t first_dp_row)
     {
         return dp_algorithm_t::run(std::forward<sequence1_t>(sequence1),
                                    std::forward<sequence2_t>(sequence2),

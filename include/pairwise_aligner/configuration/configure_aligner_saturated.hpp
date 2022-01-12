@@ -122,11 +122,7 @@ public:
                                                                                decltype(result_factory_policy),
                                                                                decltype(dp_vector_policy)>;
 
-        using dp_vector_column_t = decltype(dp_vector_policy.column_vector());
-        using dp_vector_row_t = decltype(dp_vector_policy.row_vector());
-        using aligner_t = typename score_model_config_traits_t::dp_interface_type<dp_kernel_t,
-                                                                                  dp_vector_column_t,
-                                                                                  dp_vector_row_t>;
+        using aligner_t = typename score_model_config_traits_t::dp_interface_type<dp_kernel_t>;
 
         return aligner_t{std::move(substitution_policy),
                          std::move(result_factory_policy),

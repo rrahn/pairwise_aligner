@@ -25,20 +25,17 @@ namespace seqan::pairwise_aligner
 inline namespace v1
 {
 
-template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vector_row_t, size_t max_bulk_size>
+template <typename dp_algorithm_t, size_t max_bulk_size>
 struct _interface_one_to_one_bulk
 {
     struct type;
 };
 
-template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vector_row_t, size_t max_bulk_size>
-using interface_one_to_one_bulk = typename _interface_one_to_one_bulk<dp_algorithm_t,
-                                                                      dp_vector_column_t,
-                                                                      dp_vector_row_t,
-                                                                      max_bulk_size>::type;
+template <typename dp_algorithm_t, size_t max_bulk_size>
+using interface_one_to_one_bulk = typename _interface_one_to_one_bulk<dp_algorithm_t, max_bulk_size>::type;
 
-template <typename dp_algorithm_t, typename dp_vector_column_t, typename dp_vector_row_t, size_t max_bulk_size>
-struct _interface_one_to_one_bulk<dp_algorithm_t, dp_vector_column_t, dp_vector_row_t, max_bulk_size>::type :
+template <typename dp_algorithm_t, size_t max_bulk_size>
+struct _interface_one_to_one_bulk<dp_algorithm_t, max_bulk_size>::type :
     protected dp_algorithm_t
 {
 

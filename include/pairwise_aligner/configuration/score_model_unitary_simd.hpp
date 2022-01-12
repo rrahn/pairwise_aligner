@@ -63,13 +63,8 @@ struct traits
     template <typename dp_vector_t>
     using dp_vector_row_type = dp_vector_bulk<dp_vector_t, score_type>;
 
-    template <typename dp_algorithm_t,
-              typename dp_vector_column_t,
-              typename dp_vector_row_t>
-    using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t,
-                                                        dp_vector_column_t,
-                                                        dp_vector_row_t,
-                                                        score_type::size>;
+    template <typename dp_algorithm_t>
+    using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t, score_type::size>;
 
     // result_factory configurator
     using result_factory_type = result_factory_bulk<score_type>;
