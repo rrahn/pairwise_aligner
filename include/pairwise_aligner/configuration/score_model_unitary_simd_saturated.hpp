@@ -15,6 +15,7 @@
 #include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_grouped.hpp>
+#include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
 #include <pairwise_aligner/result/result_factory_chunk.hpp>
@@ -26,33 +27,6 @@ namespace cfg
 {
 namespace _score_model_unitary_simd_saturated
 {
-
-template <typename column_vector_t, typename row_vector_t>
-class dp_vector_policy
-{
-private:
-
-    column_vector_t _column_vector;
-    row_vector_t _row_vector;
-
-public:
-
-    dp_vector_policy(column_vector_t column_vector,
-                             row_vector_t row_vector) noexcept :
-        _column_vector{std::move(column_vector)},
-        _row_vector{std::move(row_vector)}
-    {}
-
-    constexpr column_vector_t column_vector() const noexcept
-    {
-        return _column_vector;
-    }
-
-    constexpr row_vector_t row_vector() const noexcept
-    {
-        return _row_vector;
-    }
-};
 
 // ----------------------------------------------------------------------------
 // traits
@@ -83,13 +57,8 @@ struct traits
     using dp_vector_row_type = dp_vector_bulk<dp_vector_t, score_type>;
 
     // interface configurator
-    template <typename dp_algorithm_t,
-              typename dp_vector_column_t,
-              typename dp_vector_row_t>
-    using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t,
-                                                        dp_vector_column_t,
-                                                        dp_vector_row_t,
-                                                        score_type::size>;
+    template <typename dp_algorithm_t, typename dp_vector_t, typename dp_row_t>
+    using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t, dp_vector_t, dp_row_t, score_type::size>;
 
     // result_factory configurator
     using result_factory_type = result_factory_bulk<original_score_type>;
