@@ -17,6 +17,7 @@
 
 #include <pairwise_aligner/configuration/initial.hpp>
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
+#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
@@ -70,6 +71,15 @@ struct traits
         return std::pair{score_model_type{_match_score, _mismatch_score}, result_factory_type{}};
     }
 
+    constexpr auto configure_substitution_policy() const noexcept
+    {
+        return score_model_type{_match_score, _mismatch_score};
+    }
+
+    constexpr auto configure_result_factory_policy() const noexcept
+    {
+        return result_factory_type{};
+    }
 
     template <typename common_configurations_t>
     constexpr auto configure_dp_vector_policy([[maybe_unused]] common_configurations_t const & configuration) const noexcept
@@ -79,6 +89,15 @@ struct traits
 
         return dp_vector_policy{dp_vector_index_factory(dp_vector_single<column_cell_t>{}),
                                 dp_vector_index_factory(dp_vector_single<row_cell_t>{})};
+    }
+
+    template <typename configuration_t, typename ...policies_t>
+    constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
+    {
+        using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
+                                                                     std::remove_cvref_t<policies_t>...>;
+
+        return interface_one_to_one_single<algorithm_t>{algorithm_t{std::move(policies)...}};
     }
 };
 

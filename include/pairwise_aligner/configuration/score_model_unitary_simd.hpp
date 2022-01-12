@@ -17,6 +17,7 @@
 
 #include <pairwise_aligner/configuration/initial.hpp>
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
+#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
@@ -92,6 +93,15 @@ struct traits
 
         return dp_vector_policy{dp_vector_index_factory(dp_vector_bulk_factory<score_type>(dp_vector_single<column_cell_t>{})),
                                 dp_vector_index_factory(dp_vector_bulk_factory<score_type>(dp_vector_single<row_cell_t>{}))};
+    }
+
+    template <typename configuration_t, typename ...policies_t>
+    constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
+    {
+        using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
+                                                                     std::remove_cvref_t<policies_t>...>;
+
+        return interface_one_to_one_bulk<algorithm_t, score_type::size>{algorithm_t{std::move(policies)...}};
     }
 };
 

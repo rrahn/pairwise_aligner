@@ -100,7 +100,6 @@ struct traits
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_saturated,
                                                                      std::remove_cvref_t<policies_t>...>;
 
-
         return interface_one_to_one_bulk<algorithm_t, score_type::size>{algorithm_t{std::move(policies)...}};
     }
 };
