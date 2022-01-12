@@ -13,6 +13,11 @@
 #pragma once
 
 #include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
+#include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
+#include <pairwise_aligner/matrix/dp_vector_grouped.hpp>
+#include <pairwise_aligner/matrix/dp_vector_saturated.hpp>
+#include <pairwise_aligner/matrix/dp_vector_single.hpp>
+#include <pairwise_aligner/result/result_factory_chunk.hpp>
 
 namespace seqan::pairwise_aligner {
 inline namespace v1
@@ -21,6 +26,33 @@ namespace cfg
 {
 namespace _score_model_unitary_simd_saturated
 {
+
+template <typename column_vector_t, typename row_vector_t>
+class dp_vector_policy
+{
+private:
+
+    column_vector_t _column_vector;
+    row_vector_t _row_vector;
+
+public:
+
+    dp_vector_policy(column_vector_t column_vector,
+                             row_vector_t row_vector) noexcept :
+        _column_vector{std::move(column_vector)},
+        _row_vector{std::move(row_vector)}
+    {}
+
+    constexpr column_vector_t column_vector() const noexcept
+    {
+        return _column_vector;
+    }
+
+    constexpr row_vector_t row_vector() const noexcept
+    {
+        return _row_vector;
+    }
+};
 
 // ----------------------------------------------------------------------------
 // traits
@@ -69,7 +101,40 @@ struct traits
 
     constexpr auto configure_result_factory_policy() const noexcept
     {
-        return result_factory_type{static_cast<original_score_type>(_match_score)};
+        return result_factory_chunk<result_factory_type>{result_factory_type{static_cast<original_score_type>(_match_score)}};
+    }
+
+    template <typename common_configurations_t>
+    constexpr auto configure_dp_vector_policy(common_configurations_t const & configuration) const
+    {
+        size_t max_score = std::numeric_limits<int8_t>::max();
+        size_t block_size_mismatch = max_score / (_match_score - _mismatch_score);
+        size_t block_size_gap = (max_score + configuration._gap_open_score) / (_match_score - configuration._gap_extension_score);
+        size_t block_size = std::max(block_size_mismatch, block_size_gap);
+
+        using column_cell_t = typename common_configurations_t::dp_cell_column_type<score_type>;
+        using original_column_cell_t = typename common_configurations_t::dp_cell_column_type<original_score_type>;
+
+        auto column_vector =
+            dp_vector_bulk_factory<score_type>(
+                dp_vector_chunk_factory(
+                    dp_vector_saturated_factory<original_column_cell_t>(dp_vector_single<column_cell_t>{}),
+                    block_size
+                )
+            );
+
+        using row_cell_t = typename common_configurations_t::dp_cell_row_type<score_type>;
+        using original_row_cell_t = typename common_configurations_t::dp_cell_row_type<original_score_type>;
+
+        auto row_vector =
+            dp_vector_bulk_factory<score_type>(
+                dp_vector_chunk_factory(
+                    dp_vector_saturated_factory<original_row_cell_t>(dp_vector_single<row_cell_t>{}),
+                    block_size
+                )
+            );
+
+        return dp_vector_policy{std::move(column_vector), std::move(row_vector)};
     }
 };
 

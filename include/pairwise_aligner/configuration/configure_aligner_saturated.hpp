@@ -21,13 +21,8 @@
 #include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
 #include <pairwise_aligner/configuration/rule_category.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_saturated.hpp>
-#include <pairwise_aligner/matrix/dp_vector_grouped.hpp>
-#include <pairwise_aligner/matrix/dp_vector_saturated.hpp>
-#include <pairwise_aligner/matrix/dp_vector_single.hpp>
-#include <pairwise_aligner/result/result_factory_chunk.hpp>
 #include <pairwise_aligner/utility/type_list.hpp>
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
-#include <pairwise_aligner/simd/simd_score_type.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -90,6 +85,12 @@ private:
 
         using score_type = typename substitution_configuration_t::score_type;
 
+        template <typename score_t>
+        using dp_cell_column_type = typename gap_configuration_t::dp_cell_column_type<score_t>;
+
+        template <typename score_t>
+        using dp_cell_row_type = typename gap_configuration_t::dp_cell_row_type<score_t>;
+
     };
 
     using accessor_t = accessor<configurations_t...>;
@@ -107,45 +108,29 @@ public:
         using score_model_config_traits_t = typename accessor_t::substitution_configuration_t;
         using gap_model_config_traits_t = typename accessor_t::gap_configuration_t;
 
-        using saturated_score_t = typename accessor_t::score_type;
-        using original_score_t = typename score_model_config_traits_t::original_score_type;
-
-        using dp_cell_column_t = typename gap_model_config_traits_t::template dp_cell_column_type<saturated_score_t>;
-        using dp_cell_column_original_t = typename gap_model_config_traits_t::template dp_cell_column_type<original_score_t>;
-        using dp_column_saturated_t = dp_vector_saturated<dp_vector_single<dp_cell_column_t>, dp_cell_column_original_t>;
-        using dp_column_chunked_t = dp_vector_grouped<dp_column_saturated_t>;
-        using dp_vector_column_t = typename score_model_config_traits_t::template dp_vector_column_type<dp_column_chunked_t>;
-
-        using dp_cell_row_t = typename gap_model_config_traits_t::template dp_cell_row_type<saturated_score_t>;
-        using dp_cell_row_original_t = typename gap_model_config_traits_t::template dp_cell_row_type<original_score_t>;
-        using dp_row_saturated_t = dp_vector_saturated<dp_vector_single<dp_cell_row_t>, dp_cell_row_original_t>;
-        using dp_row_chunked_t = dp_vector_grouped<dp_row_saturated_t>;
-        using dp_vector_row_t = typename score_model_config_traits_t::template dp_vector_row_type<dp_row_chunked_t>;
-
-        // Get the instantiated model types.
-        using score_model_t = typename score_model_config_traits_t::score_model_type;
-        using result_factory_t = result_factory_chunk<typename score_model_config_traits_t::result_factory_type>;
-
-        // we need to set some parameters to the template without removing its types
-        using dp_kernel_t = typename gap_model_config_traits_t:: template dp_kernel_type<dp_algorithm_template_saturated,
-                                                                                        score_model_t,
-                                                                                        result_factory_t>;
-        // define the pairwise aligner type.
-        using aligner_t = typename score_model_config_traits_t::template dp_interface_type<dp_kernel_t,
-                                                                                            dp_vector_column_t,
-                                                                                            dp_vector_row_t>;
-
-
         auto substitution_policy = _configurations_accessor.configure_substitution_policy();
         auto gap_policy = _configurations_accessor.configure_gap_policy();
         auto result_factory_policy = _configurations_accessor.configure_result_factory_policy();
+        auto dp_vector_policy = _configurations_accessor.configure_dp_vector_policy(_configurations_accessor);
 
         // TODO: Handle defaults.
         initialisation_rule leading_gap_policy{};
         trailing_gap_setting trailing_gap_policy{};
 
+        using dp_kernel_t = typename gap_model_config_traits_t::dp_kernel_type<dp_algorithm_template_saturated,
+                                                                               decltype(substitution_policy),
+                                                                               decltype(result_factory_policy),
+                                                                               decltype(dp_vector_policy)>;
+
+        using dp_vector_column_t = decltype(dp_vector_policy.column_vector());
+        using dp_vector_row_t = decltype(dp_vector_policy.row_vector());
+        using aligner_t = typename score_model_config_traits_t::dp_interface_type<dp_kernel_t,
+                                                                                  dp_vector_column_t,
+                                                                                  dp_vector_row_t>;
+
         return aligner_t{std::move(substitution_policy),
-                         result_factory_t{std::move(result_factory_policy)},
+                         std::move(result_factory_policy),
+                         std::move(dp_vector_policy),
                          std::move(gap_policy),
                          std::move(leading_gap_policy),
                          std::move(trailing_gap_policy)};
