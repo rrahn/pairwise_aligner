@@ -20,7 +20,6 @@
 
 #include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
 #include <pairwise_aligner/configuration/rule_category.hpp>
-#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_saturated.hpp>
 #include <pairwise_aligner/utility/type_list.hpp>
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
 
@@ -78,7 +77,6 @@ private:
             typename seqan3::pack_traits::at<seqan3::pack_traits::find_if<is_gap_configuration, _configurations_t...>,
                                              _configurations_t...>;
 
-
         // using method_configuration_t =
         //     typename seqan3::pack_traits::at<seqan3::pack_traits::find_if<is_gap_configuration, _configurations_t...>,
         //                                      _configurations_t...>;
@@ -91,6 +89,8 @@ private:
         template <typename score_t>
         using dp_cell_row_type = typename gap_configuration_t::dp_cell_row_type<score_t>;
 
+        template <template <typename ...> typename algorithm_template_t, typename ...policies_t>
+        using algorithm_type = typename gap_configuration_t::dp_kernel_type<algorithm_template_t, policies_t...>;
     };
 
     using accessor_t = accessor<configurations_t...>;
@@ -105,9 +105,6 @@ public:
 
     auto configure() const
     {
-        using score_model_config_traits_t = typename accessor_t::substitution_configuration_t;
-        using gap_model_config_traits_t = typename accessor_t::gap_configuration_t;
-
         auto substitution_policy = _configurations_accessor.configure_substitution_policy();
         auto gap_policy = _configurations_accessor.configure_gap_policy();
         auto result_factory_policy = _configurations_accessor.configure_result_factory_policy();
@@ -117,19 +114,13 @@ public:
         initialisation_rule leading_gap_policy{};
         trailing_gap_setting trailing_gap_policy{};
 
-        using dp_kernel_t = typename gap_model_config_traits_t::dp_kernel_type<dp_algorithm_template_saturated,
-                                                                               decltype(substitution_policy),
-                                                                               decltype(result_factory_policy),
-                                                                               decltype(dp_vector_policy)>;
-
-        using aligner_t = typename score_model_config_traits_t::dp_interface_type<dp_kernel_t>;
-
-        return aligner_t{std::move(substitution_policy),
-                         std::move(result_factory_policy),
-                         std::move(dp_vector_policy),
-                         std::move(gap_policy),
-                         std::move(leading_gap_policy),
-                         std::move(trailing_gap_policy)};
+        return _configurations_accessor.configure_algorithm(_configurations_accessor,
+                                                            std::move(dp_vector_policy),
+                                                            std::move(leading_gap_policy),
+                                                            std::move(trailing_gap_policy),
+                                                            std::move(result_factory_policy),
+                                                            std::move(gap_policy),
+                                                            std::move(substitution_policy));
     }
 };
 

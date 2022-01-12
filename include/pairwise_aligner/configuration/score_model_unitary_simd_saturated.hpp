@@ -13,6 +13,7 @@
 #pragma once
 
 #include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
+#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_grouped.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
@@ -46,19 +47,6 @@ struct traits
 
     // substitution policy configurator
     using score_model_type = seqan::pairwise_aligner::score_model_unitary<score_type>;
-
-    // Offer some overload for the column type.
-    // dp_vector_policy configurator
-    template <typename dp_vector_t>
-    using dp_vector_column_type = dp_vector_bulk<dp_vector_t, score_type>;
-
-    // Offer some overload for the column type.
-    template <typename dp_vector_t>
-    using dp_vector_row_type = dp_vector_bulk<dp_vector_t, score_type>;
-
-    // interface configurator
-    template <typename dp_algorithm_t>
-    using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t, score_type::size>;
 
     // result_factory configurator
     using result_factory_type = result_factory_bulk<original_score_type>;
@@ -104,6 +92,16 @@ struct traits
             );
 
         return dp_vector_policy{std::move(column_vector), std::move(row_vector)};
+    }
+
+    template <typename configuration_t, typename ...policies_t>
+    constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
+    {
+        using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_saturated,
+                                                                     std::remove_cvref_t<policies_t>...>;
+
+
+        return interface_one_to_one_bulk<algorithm_t, score_type::size>{algorithm_t{std::move(policies)...}};
     }
 };
 

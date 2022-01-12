@@ -55,11 +55,7 @@ struct traits
 
     // Offer some overload for the column type.
     template <template <typename ...> typename dp_template_t, typename ...policies_t>
-    using dp_kernel_type = affine_dp_algorithm<dp_template_t,
-                                               policies_t...,
-                                               gap_model_type,
-                                               initialisation_rule,
-                                               trailing_gap_setting>;
+    using dp_kernel_type = affine_dp_algorithm<dp_template_t, policies_t...>;
 
     constexpr gap_model_type create() const
     {

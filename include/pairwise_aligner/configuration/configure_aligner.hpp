@@ -52,7 +52,10 @@ struct traits
     using dp_kernel_t = typename gap_model_config_traits_t:: template dp_kernel_type<dp_algorithm_template_standard,
                                                                                      score_model_t,
                                                                                      result_factory_t,
-                                                                                     tmp_t>;
+                                                                                     tmp_t,
+                                                                                     typename gap_model_config_traits_t::gap_model_type,
+                                                                                     initialisation_rule,
+                                                                                     trailing_gap_setting>;
 
     // define the pairwise aligner type.
     using aligner_type = typename score_model_config_traits_t::template dp_interface_type<dp_kernel_t>;
