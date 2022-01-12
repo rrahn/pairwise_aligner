@@ -22,6 +22,7 @@
 #include <pairwise_aligner/matrix/dp_vector_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
 #include <pairwise_aligner/result/result_factory_chunk.hpp>
+#include <pairwise_aligner/utility/type_list.hpp>
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/simd/simd_score_type.hpp>
 
@@ -89,67 +90,60 @@ struct traits
 // configurator
 // ----------------------------------------------------------------------------
 
-template <typename pairwise_aligner_ref_t,
-          typename score_t,
-          typename bulk_score_t,
-          int32_t score_model_index,
-          int32_t gap_model_index,
-          int32_t method_index>
-struct _configurator
+template <typename ...configurations_t>
+struct configurator
 {
-    struct type;
+    class type;
 };
 
-template <typename pairwise_aligner_ref_t,
-          typename score_t,
-          typename bulk_score_t,
-          int32_t score_model_index,
-          int32_t gap_model_index,
-          int32_t method_index>
-using configurator_t = typename _configurator<pairwise_aligner_ref_t,
-                                              score_t,
-                                              bulk_score_t,
-                                              score_model_index,
-                                              gap_model_index,
-                                              method_index>::type;
+template <typename ...configurations_t>
+using configurator_t = typename configurator<configurations_t...>::type;
 
-template <typename pairwise_aligner_ref_t,
-          typename score_t,
-          typename bulk_score_t,
-          int32_t score_model_index,
-          int32_t gap_model_index,
-          int32_t method_index>
-struct _configurator<pairwise_aligner_ref_t, score_t, bulk_score_t, score_model_index, gap_model_index, method_index>::type
+template <typename ...configurations_t>
+class configurator<configurations_t...>::type
 {
-    pairwise_aligner_ref_t _aligner_ref;
-    using pairwise_aligner_t = typename pairwise_aligner_ref_t::type;
+private:
 
-    type() = delete;
-    explicit type(pairwise_aligner_ref_t aligner_ref) : _aligner_ref{aligner_ref}
-    {}
+    template <typename ..._configurations_t>
+    struct accessor : _configurations_t...
+    {};
 
-    template <typename ...actions_t>
-    void set_config(actions_t && ...actions) && noexcept
+    using accessor_t = accessor<configurations_t...>;
+    accessor_t _configurations_accessor;
+
+public:
+
+    void set_config(configurations_t && ...configurations) noexcept
     {
-        std::tuple tpl_values{std::forward<actions_t>(actions)...};
+        _configurations_accessor = accessor_t{std::move(configurations)...};
+    }
 
-        initialisation_rule init_rule{};
-        trailing_gap_setting trailing_rule{};
+    template <size_t ...index>
+    auto configure([[maybe_unused]] std::index_sequence<index...> const & configuration_indices) const
+    {
+        constexpr size_t score_configurator_index = at<0, std::integral_constant<size_t, index>...>::value;
+        constexpr size_t gap_configurator_index = at<1, std::integral_constant<size_t, index>...>::value;
 
-        if constexpr (method_index != -1)
-        {
-            std::tie(init_rule, trailing_rule) = get<method_index>(tpl_values).create();
-        }
+        using traits_t = traits<std::tuple<configurations_t...>, score_configurator_index, gap_configurator_index>;
 
-        auto [score_model, result_factory] = get<score_model_index>(tpl_values).template create<bulk_score_t, score_t>();
-        auto gap_params = get<gap_model_index>(tpl_values).create();
+        using bulk_score_t = typename traits_t::saturated_score_t;
+        using original_score_t = typename traits_t::original_score_t;
 
-        using result_factory_t = result_factory_chunk<std::remove_cvref_t<decltype(result_factory)>>;
-        _aligner_ref.get() = pairwise_aligner_t{std::move(score_model),
-                                                result_factory_t{std::move(result_factory)},
-                                                std::move(gap_params),
-                                                std::move(init_rule),
-                                                std::move(trailing_rule)};
+        auto substitution_policy = _configurations_accessor.template configure_substitution_policy<bulk_score_t>();
+        auto gap_policy = _configurations_accessor.configure_gap_policy();
+        auto result_factory_policy = _configurations_accessor.template configure_result_factory_policy<original_score_t>();
+
+        // TODO: Handle defaults.
+        initialisation_rule leading_gap_policy{};
+        trailing_gap_setting trailing_gap_policy{};
+
+        using result_factory_t = result_factory_chunk<std::remove_cvref_t<decltype(result_factory_policy)>>;
+        using aligner_t = typename traits_t::aligner_type;
+        return aligner_t{std::move(substitution_policy),
+                         result_factory_t{std::move(result_factory_policy)},
+                         std::move(gap_policy),
+                         std::move(leading_gap_policy),
+                         std::move(trailing_gap_policy)};
     }
 };
 
@@ -162,7 +156,7 @@ inline constexpr auto _impl(predecessor_t && predecessor)
 {
     // Define the value types.
     using pure_predecessor_t = std::remove_cvref_t<predecessor_t>;
-    using configurator_types = typename pure_predecessor_t::template configurator_types<std::tuple>;
+    using aligner_configurator_t = typename pure_predecessor_t::template configurator_types<configurator_t>;
 
     // Get configuration traits positions.
     constexpr size_t score_model_position = pure_predecessor_t::configurator_index_of[0];
@@ -172,27 +166,13 @@ inline constexpr auto _impl(predecessor_t && predecessor)
     static_assert(score_model_position != -1, "The score model category is required!");
     static_assert(gap_model_position != -1, "The gap model category is required!");
 
-    using traits_t = traits<configurator_types, score_model_position, gap_model_position>;
-    using original_score_t = typename traits_t::original_score_t;
-    using saturated_score_t = typename traits_t::saturated_score_t;
-    using aligner_t = typename traits_t::aligner_type;
-
-    // TODO: convert positions to list of indices.
-
-    aligner_t aligner{};
-    configurator_t<std::reference_wrapper<aligner_t>,
-                   original_score_t,
-                   saturated_score_t,
-                   score_model_position,
-                   gap_model_position,
-                   method_position> cfg{std::ref(aligner)};
-
-    // Store state for the operation on the stack.
-    auto operation = std::forward<predecessor_t>(predecessor).apply(std::move(cfg));
-
+    // Initialise the configurator with the respective types.
+    aligner_configurator_t aligner_configurator{};
+    auto operation = std::forward<predecessor_t>(predecessor).apply(aligner_configurator);
     operation.start();
 
-    return aligner;
+    // TODO: Automatically get the index position.
+    return aligner_configurator.configure(std::index_sequence<score_model_position, gap_model_position, method_position>{});
 }
 
 // ----------------------------------------------------------------------------

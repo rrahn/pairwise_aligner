@@ -79,6 +79,19 @@ struct traits
                                                         static_cast<bulk_score_t>(_mismatch_score)},
                          result_factory_type<_score_t>{static_cast<_score_t>(_match_score)}};
     }
+
+    template <typename bulk_score_t = score_type<>>
+    constexpr auto configure_substitution_policy() const noexcept
+    {
+        return score_model_type<bulk_score_t>{static_cast<bulk_score_t>(_match_score),
+                                              static_cast<bulk_score_t>(_mismatch_score)};
+    }
+
+    template <typename bulk_score_t = score_type<>>
+    constexpr auto configure_result_factory_policy() const noexcept
+    {
+        return result_factory_type<bulk_score_t>{static_cast<bulk_score_t>(_match_score)};
+    }
 };
 
 // ----------------------------------------------------------------------------
@@ -101,7 +114,7 @@ struct _configurator<next_configurator_t, traits_t>::type
     traits_t _traits;
 
     template <typename ...values_t>
-    void set_config(values_t && ... values) && noexcept
+    void set_config(values_t && ... values) noexcept
     {
         std::forward<next_configurator_t>(_next_configurator).set_config(std::forward<values_t>(values)...,
                                                                          std::forward<traits_t>(_traits));
@@ -138,7 +151,7 @@ struct _rule<predecessor_t, traits_t>::type : cfg::score_model::rule<predecessor
     auto apply(next_configurator_t && next_configurator)
     {
         return std::forward<predecessor_t>(_predecessor).apply(
-                configurator_t<std::remove_cvref_t<next_configurator_t>, traits_t>{
+                configurator_t<next_configurator_t, traits_t>{
                                 std::forward<next_configurator_t>(next_configurator),
                                 std::forward<traits_t>(_traits)});
     }

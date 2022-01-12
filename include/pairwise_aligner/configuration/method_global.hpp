@@ -64,7 +64,7 @@ struct _configurator<next_configurator_t, traits_t>::type
     traits_t _traits;
 
     template <typename ...values_t>
-    void set_config(values_t && ... values) && noexcept
+    void set_config(values_t && ... values) noexcept
     {
         std::forward<next_configurator_t>(_next_configurator).set_config(std::forward<values_t>(values)...,
                                                                          std::forward<traits_t>(_traits));
@@ -101,7 +101,7 @@ struct _rule<predecessor_t, traits_t>::type : cfg::method::rule<predecessor_t>
     auto apply(next_configurator_t && next_configurator)
     {
         return std::forward<predecessor_t>(_predecessor).apply(
-                configurator_t<std::remove_cvref_t<next_configurator_t>, traits_t>{
+                configurator_t<next_configurator_t, traits_t>{
                                 std::forward<next_configurator_t>(next_configurator),
                                 std::forward<traits_t>(_traits)});
     }
