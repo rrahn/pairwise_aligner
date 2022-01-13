@@ -167,8 +167,8 @@ protected:
         size_t const col_chunk_size = dp_column[0].size() - 1;
         size_t const row_chunk_size = dp_row[0].size() - 1;
 
-        using dp_column_chunk_t = std::ranges::range_value_t<decltype(dp_column.range())>;
-        using dp_row_chunk_t = std::ranges::range_value_t<decltype(dp_row.range())>;
+        using dp_column_chunk_t = typename dp_column_t::value_type; // std::ranges::range_value_t<decltype(dp_column.range())>;
+        using dp_row_chunk_t = typename dp_row_t::value_type; // std::ranges::range_value_t<decltype(dp_row.range())>;
 
         using value_t = std::ranges::range_value_t<decltype(simd_seq1)>;
         std::vector<std::span<value_t>> seq1_chunked{};
@@ -182,11 +182,11 @@ protected:
         {
             seq1_chunked.emplace_back(std::ranges::next(std::ranges::begin(simd_seq1), (i * col_chunk_size)),
                                       std::ranges::next(std::ranges::begin(simd_seq1), ((i + 1) * col_chunk_size), std::ranges::end(simd_seq1)));
-            dp_column_chunks.emplace_back(dp_column.range()[i]);
+            dp_column_chunks.emplace_back(dp_column[i]);
         }
 
         for (size_t j = 0; j < col_count; ++j) {
-            detail::saturated_wrapper<dp_row_chunk_t> current_row_vector{dp_row.range()[j]};
+            detail::saturated_wrapper<dp_row_chunk_t> current_row_vector{dp_row[j]};
             std::span transformed_seq2{std::ranges::next(std::ranges::begin(simd_seq2), (j * row_chunk_size)),
                                        std::ranges::next(std::ranges::begin(simd_seq2), ((j + 1) * row_chunk_size), std::ranges::end(simd_seq2))};
 
