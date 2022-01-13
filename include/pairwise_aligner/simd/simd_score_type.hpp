@@ -275,5 +275,20 @@ private:
     }
 };
 
+template <typename stream_t, typename simd_score_t>
+    requires requires {
+        std::remove_cvref_t<simd_score_t>::size;
+        typename std::remove_cvref_t<simd_score_t>::simd_type;
+    }
+inline stream_t & operator<<(stream_t & ostream, simd_score_t && simd_score)
+{
+    ostream << "<";
+    for (size_t i = 0; i < simd_score.size - 1; ++i)
+        ostream << (int32_t) simd_score[i] << ", ";
+
+    ostream << (int32_t) simd_score[simd_score.size - 1] << ">";
+    return ostream;
+}
+
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner
