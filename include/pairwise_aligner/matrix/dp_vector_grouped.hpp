@@ -30,7 +30,7 @@ class dp_vector_grouped
 private:
 
     std::vector<dp_vector_t> _dp_vector_group{};
-    size_t _element_size{25};
+    size_t _element_size{};
 
 public:
 
@@ -39,7 +39,6 @@ public:
     using reference = std::ranges::range_reference_t<range_type>;
     using const_reference = std::ranges::range_reference_t<range_type const>;
 
-    dp_vector_grouped() = default;
     explicit dp_vector_grouped(size_t const element_size) noexcept : _element_size{element_size}
     {}
 
