@@ -242,16 +242,16 @@ protected:
               dp_column_vector_t && dp_column_vector,
               dp_row_vector_t && dp_row_vector) const
     {
-        size_t const seq1_size = std::ranges::size(sequence1);
-        size_t const seq2_size = std::ranges::size(sequence2);
+        std::ptrdiff_t const seq1_size = std::ranges::ssize(sequence1);
+        std::ptrdiff_t const seq2_size = std::ranges::ssize(sequence2);
 
         using value_t = typename std::remove_cvref_t<dp_row_vector_t>::value_type;
 
         // Initialise bulk_cache array.
-        constexpr size_t cache_size = 8;
+        constexpr std::ptrdiff_t cache_size = 8;
         std::array<value_t, cache_size> bulk_cache{};
 
-        size_t j = 0;
+        std::ptrdiff_t j = 0;
         for (; j < seq2_size - (cache_size - 1); j += cache_size)
         {
             // copy values into cache.
@@ -259,7 +259,7 @@ protected:
             unroll_load(bulk_cache, dp_row_vector, j + 1, std::make_index_sequence<cache_size>());
 
             // compute cache many cells in one row for one horziontal value.
-            for (size_t i = 0; i < seq1_size; ++i) {
+            for (std::ptrdiff_t i = 0; i < seq1_size; ++i) {
                 auto cacheH = dp_column_vector[i+1];
 
                 unroll_loop(bulk_cache, cacheH, sequence1[i], seq2_slice, std::make_index_sequence<cache_size>());
@@ -275,7 +275,7 @@ protected:
         for (; j < seq2_size; ++j) {
             auto cache = dp_row_vector[j + 1];
 
-            for (size_t i = 0; i < seq1_size; ++i) {
+            for (std::ptrdiff_t i = 0; i < seq1_size; ++i) {
                 as_derived().compute_cell(cache, dp_column_vector[i+1], sequence1[i], sequence2[j]);
             }
 
