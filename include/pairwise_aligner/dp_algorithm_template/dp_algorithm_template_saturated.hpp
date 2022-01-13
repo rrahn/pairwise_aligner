@@ -198,11 +198,11 @@ protected:
 
             // Iterate over blocks in current column.
             for (size_t i = 0; i < row_count; ++i) {
-
                 if (i > 0) {
+                    current_row_vector[0].score() = dp_column_chunks[i - 1][dp_column_chunks[i - 1].size() - 1].score();
                     current_row_vector.offset(current_row_vector[1].score());
                     dp_column_chunks[i].offset(dp_column_chunks[i][0].score());
-                    dp_column_chunks[i][0].score() = current_row_vector[current_row_vector.size() - 1].score();
+                    dp_column_chunks[i][0].score() = current_row_vector[0].score();
                 }
 
                 _run(seq1_chunked[i], transformed_seq2, dp_column_chunks[i], current_row_vector);
@@ -370,14 +370,11 @@ protected:
 
         for (size_t j = row_vector_size; j > 0; --j)
             row_vector[j].score() = row_vector[j - 1].score();
-
-        row_vector[0].score() = column_vector[column_vector.size() - 1].score();
     }
 
     template <typename column_vector_t, typename row_vector_t>
     constexpr void postprocess_block(column_vector_t const & column_vector, row_vector_t && row_vector) const noexcept
     {
-
         size_t const row_vector_size = row_vector.size() - 1;
         for (size_t j = 0; j < row_vector_size; ++j)
             row_vector[j].score() = row_vector[j + 1].score();
