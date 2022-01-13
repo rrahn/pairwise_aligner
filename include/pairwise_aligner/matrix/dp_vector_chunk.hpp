@@ -26,7 +26,7 @@ class dp_vector_chunk
 private:
 
     dp_vector_t _dp_vector{};
-    size_t _index{};
+    size_t _offset{};
 
 public:
 
@@ -36,9 +36,9 @@ public:
     using const_reference = std::ranges::range_reference_t<range_type const>;
 
     dp_vector_chunk() = default;
-    explicit dp_vector_chunk(dp_vector_t dp_vector, size_t const initial_index) noexcept :
+    explicit dp_vector_chunk(dp_vector_t dp_vector, size_t const initial_offset) noexcept :
         _dp_vector{std::move(dp_vector)},
-        _index{initial_index}
+        _offset{initial_offset}
     {}
 
     reference operator[](size_t const pos) noexcept(noexcept(_dp_vector[pos]))
@@ -71,17 +71,17 @@ public:
     struct _factory
     {
         predecessor_t _predecessor;
-        size_t _index;
+        size_t _offset;
 
         template <typename score_t, typename op_t>
         struct _op
         {
             op_t _op;
-            size_t _index;
+            size_t _offset;
 
-            constexpr auto operator()() noexcept
+            constexpr auto operator()(size_t const index) noexcept
             {
-                return _op(_index++);
+                return _op(index + _offset);
             }
         };
 
@@ -89,7 +89,7 @@ public:
         constexpr auto create() const noexcept
         {
             using op_t = std::remove_reference_t<decltype(std::declval<predecessor_t>().template create<score_t>())>;
-            return _op<score_t, op_t>{_predecessor.template create<score_t>(), _index};
+            return _op<score_t, op_t>{_predecessor.template create<score_t>(), _offset};
         }
     };
 
@@ -98,7 +98,7 @@ public:
     {
         using factory_t = _factory<initialisation_strategy_t>;
         return _dp_vector.initialise(std::forward<sequence_t>(sequence),
-                                     factory_t{std::forward<initialisation_strategy_t>(init_factory), _index});
+                                     factory_t{std::forward<initialisation_strategy_t>(init_factory), _offset});
     }
 };
 

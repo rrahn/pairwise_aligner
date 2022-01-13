@@ -73,17 +73,17 @@ public:
     struct _factory
     {
         predecessor_t _predecessor;
-        size_t _index;
+        size_t _offset;
 
         template <typename op_t>
         struct _op
         {
             op_t _op;
-            size_t _index;
+            size_t _offset;
 
-            constexpr auto operator()() noexcept
+            constexpr auto operator()(size_t const index) noexcept
             {
-                return _op(_index++);
+                return _op(index + _offset);
             }
         };
 
@@ -91,7 +91,7 @@ public:
         constexpr auto create() const noexcept
         {
             using op_t = std::remove_reference_t<decltype(std::declval<predecessor_t>().template create<score_t>())>;
-            return _op<op_t>{_predecessor.template create<score_t>(), _index};
+            return _op<op_t>{_predecessor.template create<score_t>(), _offset};
         }
     };
 

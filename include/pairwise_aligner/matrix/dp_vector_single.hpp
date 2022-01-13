@@ -72,7 +72,9 @@ public:
 
         using score_t = typename dp_cell_t::score_type;
 
-        std::ranges::generate(_dp_vector, init_factory.template create<score_t>());
+        auto generator = init_factory.template create<score_t>();
+        size_t index{};
+        std::ranges::generate(_dp_vector, [&] () { return generator(index++); });
 
         return sequence;
     }

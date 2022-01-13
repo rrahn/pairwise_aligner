@@ -170,10 +170,9 @@ public:
             offset_score_t & _offset;
             bool _first_call{true};
 
-            template <typename ...args_t>
-            constexpr small_cell_t operator()(args_t && ...args) noexcept
+            constexpr small_cell_t operator()(size_t const index) noexcept
             {
-                auto scalar_cell = _op(std::forward<args_t>(args)...);
+                auto scalar_cell = _op(index);
                 if (_first_call)
                 {
                     _offset = offset_score_t{scalar_cell.score()};
