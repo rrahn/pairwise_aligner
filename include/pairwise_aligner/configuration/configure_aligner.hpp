@@ -107,9 +107,10 @@ private:
 
 public:
 
-    void set_config(configurations_t && ...configurations) noexcept
+    template <typename ..._configurations_t>
+    void set_config(_configurations_t && ...configurations) noexcept
     {
-        _configurations_accessor = accessor_t{std::move(configurations)...};
+        _configurations_accessor = accessor_t{std::forward<_configurations_t>(configurations)...};
     }
 
     auto configure() const
@@ -173,7 +174,7 @@ namespace _cpo
 struct _fn
 {
     template <typename predecessor_t>
-    auto operator()(predecessor_t && predecessor) const noexcept
+    constexpr auto operator()(predecessor_t && predecessor) const noexcept
     {
         return _configure_aligner::_impl(std::forward<predecessor_t>(predecessor));
     }

@@ -73,8 +73,7 @@ struct _configurator<next_configurator_t, traits_t>::type
     template <typename ...values_t>
     void set_config(values_t && ... values) noexcept
     {
-        std::forward<next_configurator_t>(_next_configurator).set_config(std::forward<values_t>(values)...,
-                                                                         std::forward<traits_t>(_traits));
+        std::forward<next_configurator_t>(_next_configurator).set_config(std::forward<values_t>(values)..., _traits);
     }
 };
 
@@ -105,12 +104,12 @@ struct _rule<predecessor_t, traits_t>::type : cfg::method::rule<predecessor_t>
                                                             traits_type>::template apply<type_list_t>;
 
     template <typename next_configurator_t>
-    auto apply(next_configurator_t && next_configurator)
+    auto apply(next_configurator_t && next_configurator) const
     {
-        return std::forward<predecessor_t>(_predecessor).apply(
-                configurator_t<next_configurator_t, traits_t>{
-                                std::forward<next_configurator_t>(next_configurator),
-                                std::forward<traits_t>(_traits)});
+        return _predecessor.apply(configurator_t<next_configurator_t, traits_t>{
+                    std::forward<next_configurator_t>(next_configurator),
+                    _traits
+                });
     }
 };
 
@@ -124,7 +123,9 @@ struct _fn
 {
     // implementation of function style connection
     template <typename predecessor_t>
-    auto operator()(predecessor_t && predecessor, initialisation_rule init_rule, trailing_gap_setting final_rule) const
+    constexpr auto operator()(predecessor_t && predecessor,
+                              initialisation_rule init_rule,
+                              trailing_gap_setting final_rule) const
     {
         return _method_global::rule<predecessor_t, traits>{{},
                                                            std::forward<predecessor_t>(predecessor),
@@ -132,7 +133,7 @@ struct _fn
     }
 
     template <typename score_t>
-    auto operator()(initialisation_rule init_rule, trailing_gap_setting final_rule) const
+    constexpr auto operator()(initialisation_rule init_rule, trailing_gap_setting final_rule) const
     {
         return this->operator()(cfg::initial, std::move(init_rule), std::move(final_rule));
     }

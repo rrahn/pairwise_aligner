@@ -112,8 +112,7 @@ struct _configurator<next_configurator_t, traits_t>::type
     template <typename ...values_t>
     void set_config(values_t && ... values) noexcept
     {
-        std::forward<next_configurator_t>(_next_configurator).set_config(std::forward<values_t>(values)...,
-                                                                         std::forward<traits_t>(_traits));
+        std::forward<next_configurator_t>(_next_configurator).set_config(std::forward<values_t>(values)..., _traits);
     }
 };
 
@@ -144,12 +143,12 @@ struct _rule<predecessor_t, traits_t>::type : cfg::score_model::rule<predecessor
                                                             traits_type>::template apply<type_list_t>;
 
     template <typename next_configurator_t>
-    auto apply(next_configurator_t && next_configurator)
+    auto apply(next_configurator_t && next_configurator) const
     {
-        return std::forward<predecessor_t>(_predecessor).apply(
-                configurator_t<next_configurator_t, traits_t>{
-                                std::forward<next_configurator_t>(next_configurator),
-                                std::forward<traits_t>(_traits)});
+        return _predecessor.apply(configurator_t<next_configurator_t, traits_t>{
+                    std::forward<next_configurator_t>(next_configurator),
+                    _traits
+                });
     }
 };
 
@@ -162,7 +161,9 @@ namespace _cpo
 struct _fn
 {
     template <typename predecessor_t, typename score_t>
-    auto operator()(predecessor_t && predecessor, score_t const match_score, score_t const mismatch_score) const
+    constexpr auto operator()(predecessor_t && predecessor,
+                              score_t const match_score,
+                              score_t const mismatch_score) const
     {
         using traits_t = traits<score_t>;
         return _score_model_unitary::rule<predecessor_t, traits_t>{{},
@@ -171,7 +172,7 @@ struct _fn
     }
 
     template <typename score_t>
-    auto operator()(score_t const match_score, score_t const mismatch_score) const
+    constexpr auto operator()(score_t const match_score, score_t const mismatch_score) const
     {
         return this->operator()(cfg::initial, match_score, mismatch_score);
     }
