@@ -15,7 +15,7 @@
 #include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
-#include <pairwise_aligner/matrix/dp_vector_grouped.hpp>
+#include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>

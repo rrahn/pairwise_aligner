@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides seqan::pairwise_aligner::dp_vector_grouped.
+ * \brief Provides seqan::pairwise_aligner::dp_vector_chunk.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
@@ -16,21 +16,18 @@
 #include <seqan3/std/ranges>
 #include <seqan3/std/span>
 
-#include <seqan3/utility/views/slice.hpp>
-#include <seqan3/utility/views/to.hpp>
-
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
 
 template <typename dp_vector_t>
-class dp_vector_grouped
+class dp_vector_chunk
 {
 private:
 
-    std::vector<dp_vector_t> _dp_vector_group{};
-    size_t _element_size{};
+    std::vector<dp_vector_t> _dp_vector_chunks{};
+    size_t _chunk_size{};
 
 public:
 
@@ -39,32 +36,32 @@ public:
     using reference = std::ranges::range_reference_t<range_type>;
     using const_reference = std::ranges::range_reference_t<range_type const>;
 
-    explicit dp_vector_grouped(size_t const element_size) noexcept : _element_size{element_size}
+    explicit dp_vector_chunk(size_t const chunk_size) noexcept : _chunk_size{chunk_size}
     {}
 
     reference operator[](size_t const pos) noexcept
     {
-        return _dp_vector_group[pos];
+        return _dp_vector_chunks[pos];
     }
 
     const_reference operator[](size_t const pos) const noexcept
     {
-        return _dp_vector_group[pos];
+        return _dp_vector_chunks[pos];
     }
 
     constexpr size_t size() const noexcept
     {
-        return _dp_vector_group.size();
+        return _dp_vector_chunks.size();
     }
 
     range_type & range() noexcept
     {
-        return _dp_vector_group;
+        return _dp_vector_chunks;
     }
 
     range_type const & range() const noexcept
     {
-        return _dp_vector_group;
+        return _dp_vector_chunks;
     }
 
     // initialisation interface
@@ -98,31 +95,20 @@ public:
     auto initialise(sequence_t && sequence, factory_t && init_factory)
     {
         using pure_factory_t = std::remove_cvref_t<factory_t>;
-        // using value_t = std::ranges::range_value_t<sequence_t>;
-        // using chunk_seq_t = std::vector<value_t>;
+
         size_t const sequence_size = std::ranges::distance(sequence);
-        size_t const element_count = (sequence_size + _element_size - 1) / _element_size;
+        size_t const element_count = (sequence_size + _chunk_size - 1) / _chunk_size;
 
-        _dp_vector_group.resize(element_count);
+        _dp_vector_chunks.resize(element_count);
 
-        // std::cout << "sequence_size = " << sequence_size << "\n";
-        // std::cout << "_element_size = " << _element_size << "\n";
-        // std::cout << "element_count = " << element_count << "\n";
-
-        // std::vector<chunk_seq_t> sequence_group{};
-        // sequence_group.resize(element_count);
-
-        for (size_t i = 0; i < _dp_vector_group.size(); ++i)
+        for (size_t i = 0; i < _dp_vector_chunks.size(); ++i)
         {
-            size_t const first = i * _element_size;
-            size_t const last = (i + 1) * _element_size;
+            size_t const first = i * _chunk_size;
+            size_t const last = (i + 1) * _chunk_size;
             std::span tmp{std::ranges::next(std::ranges::begin(sequence), first),
                           std::ranges::next(std::ranges::begin(sequence), last, std::ranges::end(sequence))};
 
-            // std::cout << "begin = " << begin << "\n";
-            // std::cout << "end = " << end << "\n";
-            _dp_vector_group[i].initialise(std::move(tmp), _factory<pure_factory_t>{init_factory, first});
-            // std::cout << "size(sequence_group[i]) = " << std::ranges::size(sequence_group[i]) << "\n";
+            _dp_vector_chunks[i].initialise(std::move(tmp), _factory<pure_factory_t>{init_factory, first});
         }
 
         return std::forward<sequence_t>(sequence);
@@ -138,7 +124,7 @@ struct dp_vector_chunk_factory_fn
     template <typename dp_vector_t>
     auto operator()([[maybe_unused]] dp_vector_t && dp_vector, size_t const block_size) const noexcept
     {
-        return dp_vector_grouped<std::remove_cvref_t<dp_vector_t>>{block_size};
+        return dp_vector_chunk<std::remove_cvref_t<dp_vector_t>>{block_size};
     }
 };
 
