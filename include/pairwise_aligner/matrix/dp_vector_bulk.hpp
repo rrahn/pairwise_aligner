@@ -77,7 +77,7 @@ public:
         using simd_score_t = typename simd_t::simd_type::value_type;
 
         constexpr size_t bit_count = sizeof(score_t) * 8;
-        constexpr score_t padding_mask = static_cast<score_t>(1 << (bit_count - 1));
+        constexpr score_t padding_mask = static_cast<score_t>(1ull << (bit_count - 1));
 
         std::vector<simd_t, seqan3::aligned_allocator<simd_t, alignof(simd_t)>> simd_sequence{};
         simd_sequence.reserve(max_sequence_size);
