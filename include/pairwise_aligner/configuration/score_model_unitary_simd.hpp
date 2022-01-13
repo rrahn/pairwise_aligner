@@ -21,6 +21,7 @@
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
+#include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
 #include <pairwise_aligner/result/result_factory_bulk.hpp>
