@@ -64,24 +64,13 @@ public:
         return _dp_vector.range();
     }
 
-    template <std::ranges::forward_range sequence_t, typename initialisation_strategy_t>
-    auto initialise(sequence_t && sequence, initialisation_strategy_t && init_strategy)
+    template <std::ranges::forward_range sequence_collection_t, typename initialisation_strategy_t>
+    auto initialise(sequence_collection_t && sequence_collection, initialisation_strategy_t && init_strategy)
     {
-        size_t const sequence_count = std::ranges::distance(sequence);
         size_t max_sequence_size = 0;
 
-        using optional_t = std::ranges::range_value_t<sequence_t>;
-        using seq_view_t = typename optional_t::value_type;
-
-        std::vector<seq_view_t, seqan3::aligned_allocator<seq_view_t, alignof(simd_t)>> sequences{};
-        sequences.reserve(sequence_count);
-
-        std::ranges::for_each(sequence, [&] (auto && optional_sequence)
-        {
-            if (optional_sequence.has_value()) {
-                max_sequence_size = std::max<size_t>(max_sequence_size, std::ranges::distance(*optional_sequence));
-                sequences.push_back(*optional_sequence);
-            }
+        std::ranges::for_each(sequence_collection, [&] (auto && sequence) {
+            max_sequence_size = std::max<size_t>(max_sequence_size, std::ranges::distance(sequence));
         });
 
         using score_t = typename simd_t::value_type;
@@ -93,7 +82,7 @@ public:
         std::vector<simd_t, seqan3::aligned_allocator<simd_t, alignof(simd_t)>> simd_sequence{};
         simd_sequence.reserve(max_sequence_size);
 
-        auto simd_view = sequences | seqan3::views::to_simd<simd_score_t>(padding_mask);
+        auto simd_view = sequence_collection | seqan3::views::to_simd<simd_score_t>(padding_mask);
 
         for (auto && simd_vector_chunk : simd_view) {
             for (auto && simd_vector : simd_vector_chunk) {

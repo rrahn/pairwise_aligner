@@ -78,37 +78,21 @@ struct _interface_one_to_one_bulk<dp_algorithm_t, max_bulk_size>::type : protect
         assert(static_cast<size_t>(std::ranges::distance(sequence_bulk2)) <= max_bulk_size);
         assert(std::ranges::distance(sequence_bulk1) == std::ranges::distance(sequence_bulk2));
 
-        // how can we handle wrong types?
-        using sequence1_ref_t = std::ranges::range_reference_t<sequence_bulk1_t>;
-        using sequence2_ref_t = std::ranges::range_reference_t<sequence_bulk2_t>;
-        using bulk1_t = std::array<std::optional<std::views::all_t<sequence1_ref_t>>, max_bulk_size>;
-        using bulk2_t = std::array<std::optional<std::views::all_t<sequence2_ref_t>>, max_bulk_size>;
-
-        bulk1_t bulk1{};
-        bulk2_t bulk2{};
-
-        auto sequence1_it = std::ranges::begin(sequence_bulk1);
-        auto sequence2_it = std::ranges::begin(sequence_bulk2);
-        size_t sequence_idx{};
-        for (; sequence1_it != std::ranges::end(sequence_bulk1); ++sequence_idx, ++sequence1_it, ++sequence2_it)
-        {
-            bulk1[sequence_idx] = *sequence1_it | std::views::all;
-            bulk2[sequence_idx] = *sequence2_it | std::views::all;
-        }
-
-        auto result = dp_algorithm_t::run(std::move(bulk1),
-                                          std::move(bulk2),
+        auto result = dp_algorithm_t::run(std::forward<sequence_bulk1_t>(sequence_bulk1),
+                                          std::forward<sequence_bulk2_t>(sequence_bulk2),
                                           std::move(first_dp_column),
                                           std::move(first_dp_row));
 
         // Transfrom bulk result to single results.
         using result_t = decltype(result);
+
+        size_t const bulk_size = std::ranges::distance(sequence_bulk1);
         std::vector<aligner_result_bulk<result_t>> results{};
-        results.reserve(sequence_idx);
+        results.reserve(bulk_size);
 
         auto shared_result = std::make_shared<result_t>(std::move(result));
 
-        for (size_t result_idx = 0; result_idx < sequence_idx; ++result_idx)
+        for (size_t result_idx = 0; result_idx < bulk_size; ++result_idx)
             results.emplace_back(shared_result, result_idx);
 
         return results;
