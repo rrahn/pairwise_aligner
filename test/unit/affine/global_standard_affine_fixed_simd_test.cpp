@@ -5,7 +5,7 @@
 // shipped with this file and also available at: https://github.com/rrahn/pairwise_aligner/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
 
-#include "alignment_global_affine_test_template.hpp"
+#include "alignment_simd_test_template.hpp"
 
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
 #include <pairwise_aligner/configuration/method_global.hpp>
