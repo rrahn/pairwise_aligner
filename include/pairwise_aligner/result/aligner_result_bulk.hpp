@@ -47,12 +47,12 @@ public:
 
     auto const & sequence1() const noexcept
     {
-        return *(_result->sequence1()[_index]);
+        return _result->sequence1()[_index];
     }
 
     auto const & sequence2() const noexcept
     {
-        return *(_result->sequence2()[_index]);
+        return _result->sequence2()[_index];
     }
 
     auto score() const noexcept
