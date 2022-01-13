@@ -57,11 +57,6 @@ struct traits
     template <template <typename ...> typename dp_template_t, typename ...policies_t>
     using dp_kernel_type = affine_dp_algorithm<dp_template_t, policies_t...>;
 
-    constexpr gap_model_type create() const
-    {
-        return gap_model_type{_gap_open_score, _gap_extension_score};
-    }
-
     constexpr auto configure_gap_policy() const noexcept
     {
         return gap_model_type{_gap_open_score, _gap_extension_score};

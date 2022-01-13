@@ -68,13 +68,7 @@ struct traits
     template <typename dp_algorithm_t>
     using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t, score_type::size>;
 
-    // result_factory configurator
     using result_factory_type = result_factory_bulk<score_type>;
-
-    constexpr std::pair<score_model_type, result_factory_type> create() const
-    {
-        return std::pair{configure_substitution_policy(), configure_result_factory_policy()};
-    }
 
     constexpr auto configure_substitution_policy() const noexcept
     {

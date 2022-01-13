@@ -65,12 +65,6 @@ struct traits
 
     using result_factory_type = result_factory_single;
 
-    constexpr std::pair<score_model_type, result_factory_type>
-    create() const
-    {
-        return std::pair{score_model_type{_match_score, _mismatch_score}, result_factory_type{}};
-    }
-
     constexpr auto configure_substitution_policy() const noexcept
     {
         return score_model_type{_match_score, _mismatch_score};

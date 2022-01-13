@@ -40,11 +40,6 @@ struct traits
     initialisation_rule _leading_param;
     trailing_gap_setting _trailing_param;
 
-    constexpr std::pair<initialisation_rule, trailing_gap_setting> create() const noexcept
-    {
-        return std::pair{std::move(_leading_param), std::move(_trailing_param)};
-    }
-
     constexpr auto configure_leading_gap_policy() const noexcept
     {
         return _leading_param;
