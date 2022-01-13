@@ -21,7 +21,6 @@
 #include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
-#include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
 #include <pairwise_aligner/result/result_factory_bulk.hpp>
@@ -50,18 +49,13 @@ struct traits
     score_t _match_score;
     score_t _mismatch_score;
 
-    // Offer the score type here.
     using score_type = simd_score<score_t>;
 
-    // substitution policy configurator
     using score_model_type = seqan::pairwise_aligner::score_model_unitary<score_type>;
 
-    // Offer some overload for the column type.
-    // dp_vector_policy configurator
     template <typename dp_vector_t>
     using dp_vector_column_type = dp_vector_bulk<dp_vector_t, score_type>;
 
-    // Offer some overload for the column type.
     template <typename dp_vector_t>
     using dp_vector_row_type = dp_vector_bulk<dp_vector_t, score_type>;
 
@@ -86,8 +80,8 @@ struct traits
         using column_cell_t = typename common_configurations_t::dp_cell_column_type<score_type>;
         using row_cell_t = typename common_configurations_t::dp_cell_row_type<score_type>;
 
-        return dp_vector_policy{dp_vector_index_factory(dp_vector_bulk_factory<score_type>(dp_vector_single<column_cell_t>{})),
-                                dp_vector_index_factory(dp_vector_bulk_factory<score_type>(dp_vector_single<row_cell_t>{}))};
+        return dp_vector_policy{dp_vector_bulk_factory<score_type>(dp_vector_single<column_cell_t>{}),
+                                dp_vector_bulk_factory<score_type>(dp_vector_single<row_cell_t>{})};
     }
 
     template <typename configuration_t, typename ...policies_t>
