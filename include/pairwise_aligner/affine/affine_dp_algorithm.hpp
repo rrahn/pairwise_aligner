@@ -13,6 +13,7 @@
 #pragma once
 
 #include <functional>
+#include <seqan3/std/ranges>
 #include <seqan3/std/type_traits>
 
 #include <pairwise_aligner/affine/affine_gap_model.hpp>
