@@ -18,21 +18,21 @@
 
 #include "fixture_base.hpp"
 
-namespace aligner = seqan::pairwise_aligner;
-
 // ----------------------------------------------------------------------------
 // Helper macro to define test values
 // ----------------------------------------------------------------------------
 
 #define DEFINE_TEST_VALUES(name, score_t, ...)  \
-static auto name = [](){ return pairwise_aligner_fixture_values{.score_v = score_t{}__VA_OPT__(,) __VA_ARGS__}; }();
+static auto name = [](){ return alignment::test::simd::values{.score_v = score_t{}__VA_OPT__(,) __VA_ARGS__}; }();
+
+namespace alignment::test::simd {
 
 // ----------------------------------------------------------------------------
 // Values for test fixture
 // ----------------------------------------------------------------------------
 
 template <typename score_t, typename base_configurator_t, typename score_configurator_t>
-struct pairwise_aligner_fixture_values
+struct values
 {
     using score_type =  score_t;
 
@@ -49,7 +49,7 @@ struct pairwise_aligner_fixture_values
 // ----------------------------------------------------------------------------
 
 template <typename fixture_t>
-struct pairwise_aligner_test : public fixture_t
+struct test : public fixture_t
 {
     using test_values_type = typename fixture_t::test_values_type;
     using scalar_score_type = typename test_values_type::score_type;
@@ -87,21 +87,28 @@ private:
     }
 };
 
-TYPED_TEST_SUITE_P(pairwise_aligner_test);
+} // namespace alignment::test::simd
+
+template <typename fixture_t>
+using test_suite = alignment::test::simd::test<fixture_t>;
+
+TYPED_TEST_SUITE_P(test_suite);
 
 // ----------------------------------------------------------------------------
 // Define test cases
 // ----------------------------------------------------------------------------
 
-TYPED_TEST_P(pairwise_aligner_test, score)
+TYPED_TEST_P(test_suite, score)
 {
     auto [match_score, mismatch_score] = this->GetParam().substitution_scores;
 
-    auto scalar_aligner = aligner::cfg::configure_aligner(
-        aligner::cfg::score_model_unitary(this->GetParam().base_configurator, match_score, mismatch_score)
+    auto scalar_aligner = seqan::pairwise_aligner::cfg::configure_aligner(
+        seqan::pairwise_aligner::cfg::score_model_unitary(this->GetParam().base_configurator,
+                                                          match_score,
+                                                          mismatch_score)
     );
 
-    auto simd_aligner = aligner::cfg::configure_aligner(
+    auto simd_aligner = seqan::pairwise_aligner::cfg::configure_aligner(
         this->GetParam().score_configurator(this->GetParam().base_configurator,
                                             static_cast<TestFixture::scalar_score_type>(match_score),
                                             static_cast<TestFixture::scalar_score_type>(mismatch_score))
@@ -117,4 +124,4 @@ TYPED_TEST_P(pairwise_aligner_test, score)
 // Register test cases
 // ----------------------------------------------------------------------------
 
-REGISTER_TYPED_TEST_SUITE_P(pairwise_aligner_test, score);
+REGISTER_TYPED_TEST_SUITE_P(test_suite, score);

@@ -9,12 +9,13 @@
 
 #include <seqan3/std/type_traits>
 
+namespace alignment::test {
 // ----------------------------------------------------------------------------
 // Base fixture: extracts the values object it is parameterised with
 // ----------------------------------------------------------------------------
 
 template <auto _fixture>
-struct pairwise_aligner_fixture : public ::testing::Test
+struct fixture : public ::testing::Test
 {
     using test_values_type = std::remove_cvref_t<decltype(*_fixture)>;
 
@@ -24,3 +25,5 @@ struct pairwise_aligner_fixture : public ::testing::Test
         return *_fixture;
     }
 };
+
+} // namespace alignment::test

@@ -5,13 +5,15 @@
 // shipped with this file and also available at: https://github.com/rrahn/pairwise_aligner/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
 
-#include "alignment_simd_test_template.hpp"
-
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
 #include <pairwise_aligner/configuration/method_global.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary_simd_saturated.hpp>
 
+#include "alignment_simd_test_template.hpp"
+
 namespace global::standard::affine::saturated_simd {
+
+namespace aligner = seqan::pairwise_aligner;
 
 inline constexpr auto base_config =
     aligner::cfg::method_global(
@@ -53,10 +55,10 @@ DEFINE_TEST_VALUES(equal_size_8, int8_t,
 
 using equal_size_types =
     ::testing::Types<
-        pairwise_aligner_fixture<&equal_size_64>,
-        pairwise_aligner_fixture<&equal_size_32>,
-        pairwise_aligner_fixture<&equal_size_16>,
-        pairwise_aligner_fixture<&equal_size_8>
+        alignment::test::fixture<&equal_size_64>,
+        alignment::test::fixture<&equal_size_32>,
+        alignment::test::fixture<&equal_size_16>,
+        alignment::test::fixture<&equal_size_8>
     >;
 // ----------------------------------------------------------------------------
 // Variable size
@@ -92,17 +94,17 @@ DEFINE_TEST_VALUES(variable_size_8, int8_t,
 
 using variable_size_types =
     ::testing::Types<
-        pairwise_aligner_fixture<&variable_size_64>,
-        pairwise_aligner_fixture<&variable_size_32>,
-        pairwise_aligner_fixture<&variable_size_16>,
-        pairwise_aligner_fixture<&variable_size_8>
+        alignment::test::fixture<&variable_size_64>,
+        alignment::test::fixture<&variable_size_32>,
+        alignment::test::fixture<&variable_size_16>,
+        alignment::test::fixture<&variable_size_8>
     >;
 } // global::affine::saturated_simd
 
-INSTANTIATE_TYPED_TEST_SUITE_P(global_standard_affine_saturated_simd_equal_size_test,
-                               pairwise_aligner_test,
+INSTANTIATE_TYPED_TEST_SUITE_P(equal_size_test,
+                               test_suite,
                                global::standard::affine::saturated_simd::equal_size_types,);
 
-INSTANTIATE_TYPED_TEST_SUITE_P(global_standard_affine_saturated_simd_variable_size_test,
-                               pairwise_aligner_test,
+INSTANTIATE_TYPED_TEST_SUITE_P(variable_size_test,
+                               test_suite,
                                global::standard::affine::saturated_simd::variable_size_types,);

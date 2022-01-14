@@ -9,15 +9,17 @@
 
 #include <string_view>
 
-#include "alignment_scalar_test_template.hpp"
-
 #include <pairwise_aligner/configuration/method_global.hpp>
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary.hpp>
 
+#include "alignment_scalar_test_template.hpp"
+
 using namespace std::literals;
 
 namespace global::standard::affine::scalar {
+
+namespace aligner = seqan::pairwise_aligner;
 
 inline constexpr auto base_config =
     aligner::cfg::method_global(
@@ -52,13 +54,13 @@ DEFINE_TEST_VALUES(related_sequence,
 
 using test_types =
     ::testing::Types<
-        pairwise_aligner_fixture<&same_sequence>,
-        pairwise_aligner_fixture<&unequal_sequence>,
-        pairwise_aligner_fixture<&related_sequence>
+        alignment::test::fixture<&same_sequence>,
+        alignment::test::fixture<&unequal_sequence>,
+        alignment::test::fixture<&related_sequence>
     >;
 
 } // namespace global::standard::affine::scalar
 
-INSTANTIATE_TYPED_TEST_SUITE_P(global_standard_affine_scalar,
-                               pairwise_aligner_test,
+INSTANTIATE_TYPED_TEST_SUITE_P(test,
+                               test_suite,
                                global::standard::affine::scalar::test_types,);

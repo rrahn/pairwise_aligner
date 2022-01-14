@@ -11,21 +11,21 @@
 
 #include "fixture_base.hpp"
 
-namespace aligner = seqan::pairwise_aligner;
-
 // ----------------------------------------------------------------------------
 // Helper macro to define test values
 // ----------------------------------------------------------------------------
 
 #define DEFINE_TEST_VALUES(name, ...)  \
-static auto name = [](){ return pairwise_aligner_fixture_values{__VA_ARGS__}; }();
+static auto name = [](){ return alignment::test::scalar::values{__VA_ARGS__}; }();
+
+namespace alignment::test::scalar {
 
 // ----------------------------------------------------------------------------
-// Values for test fixture
+// Values for test
 // ----------------------------------------------------------------------------
 
 template <typename aligner_configurator_t, typename sequence1_t, typename sequence2_t, typename score_t>
-struct pairwise_aligner_fixture_values
+struct values
 {
     aligner_configurator_t configurator;
     sequence1_t sequence1;
@@ -34,22 +34,27 @@ struct pairwise_aligner_fixture_values
 };
 
 // ----------------------------------------------------------------------------
-// Define test fixture
+// Define test
 // ----------------------------------------------------------------------------
 
 template <typename fixture_t>
-struct pairwise_aligner_test : public fixture_t
+struct test : public fixture_t
 {};
 
-TYPED_TEST_SUITE_P(pairwise_aligner_test);
+} // namespec alignment::test::scalar
+
+template <typename fixture_t>
+using test_suite = alignment::test::scalar::test<fixture_t>;
+
+TYPED_TEST_SUITE_P(test_suite);
 
 // ----------------------------------------------------------------------------
 // Define test cases
 // ----------------------------------------------------------------------------
 
-TYPED_TEST_P(pairwise_aligner_test, score)
+TYPED_TEST_P(test_suite, score)
 {
-    auto aligner = aligner::cfg::configure_aligner(this->GetParam().configurator);
+    auto aligner = seqan::pairwise_aligner::cfg::configure_aligner(this->GetParam().configurator);
 
     auto result = aligner.compute(this->GetParam().sequence1, this->GetParam().sequence2);
     EXPECT_EQ(result.score(), this->GetParam().expected_score);
@@ -59,4 +64,4 @@ TYPED_TEST_P(pairwise_aligner_test, score)
 // Register test cases
 // ----------------------------------------------------------------------------
 
-REGISTER_TYPED_TEST_SUITE_P(pairwise_aligner_test, score);
+REGISTER_TYPED_TEST_SUITE_P(test_suite, score);
