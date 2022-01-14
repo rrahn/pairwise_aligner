@@ -14,7 +14,7 @@
 
 #include <limits>
 
-#include <pairwise_aligner/dp_trailing_gaps.hpp>
+#include <pairwise_aligner/configuration/end_gap_policy.hpp>
 #include <pairwise_aligner/result/aligner_result.hpp>
 
 namespace seqan::pairwise_aligner
@@ -44,8 +44,8 @@ struct _value<base_value_t, score_t>::type : public base_value_t
         // std::cout << "index = " << idx << "\n";
 
         scalar_t best_score = std::numeric_limits<scalar_t>::min();
-        if (base_value_t::_row_trailing_gaps == dp_trailing_gaps::regular &&
-            base_value_t::_column_trailing_gaps == dp_trailing_gaps::regular)
+        if (base_value_t::_row_trailing_gaps == cfg::end_gap::penalised &&
+            base_value_t::_column_trailing_gaps == cfg::end_gap::penalised)
         {
             auto && [row_idx, col_idx, offset] = projected_coordinate(idx);
 
@@ -67,13 +67,13 @@ struct _value<base_value_t, score_t>::type : public base_value_t
             return static_cast<scalar_t>(best_score - static_cast<scalar_t>(_padding_score[idx] * offset));
         }
 
-        if (base_value_t::_row_trailing_gaps == dp_trailing_gaps::free)
+        if (base_value_t::_row_trailing_gaps == cfg::end_gap::free)
         {
             for (size_t cell_idx = 0; cell_idx < this->dp_row().size(); ++cell_idx)
                 best_score = std::max<scalar_t>(score_at(this->dp_row()[cell_idx], idx), best_score);
         }
 
-        if (base_value_t::_column_trailing_gaps == dp_trailing_gaps::free)
+        if (base_value_t::_column_trailing_gaps == cfg::end_gap::free)
         {
             for (size_t cell_idx = 0; cell_idx < this->dp_column().size(); ++cell_idx)
                 best_score = std::max<scalar_t>(score_at(this->dp_column()[cell_idx], idx), best_score);
@@ -139,8 +139,8 @@ struct _result_factory_bulk<score_t>::type
                     sequence_bulk2_t && sequence_bulk2,
                     dp_column_t dp_column,
                     dp_row_t dp_row,
-                    dp_trailing_gaps _column_trailing_gaps = dp_trailing_gaps::regular,
-                    dp_trailing_gaps _row_trailing_gaps = dp_trailing_gaps::regular) const noexcept
+                    cfg::end_gap _column_trailing_gaps = cfg::end_gap::penalised,
+                    cfg::end_gap _row_trailing_gaps = cfg::end_gap::penalised) const noexcept
     {
         using aligner_result_t = _aligner_result::value<sequence_bulk1_t, sequence_bulk2_t, dp_column_t, dp_row_t>;
         aligner_result_t base{std::forward<sequence_bulk1_t>(sequence_bulk1),

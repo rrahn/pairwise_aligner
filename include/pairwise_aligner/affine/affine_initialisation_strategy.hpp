@@ -13,6 +13,7 @@
 #pragma once
 
 #include <pairwise_aligner/affine/affine_cell.hpp>
+#include <pairwise_aligner/configuration/end_gap_policy.hpp>
 #include <pairwise_aligner/dp_initialisation_rule.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 
@@ -31,7 +32,7 @@ template <dp_vector_order order, typename affine_gap_model_t>
 struct affine_initialisation_strategy
 {
     affine_gap_model_t _gap_model;
-    dp_initialisation_rule _rule;
+    cfg::end_gap _rule;
 
     template <typename score_t>
     struct _op
@@ -39,7 +40,7 @@ struct affine_initialisation_strategy
         using cell_t = affine_cell<score_t, order>;
 
         affine_gap_model_t _gap_model;
-        dp_initialisation_rule _rule;
+        cfg::end_gap _rule;
 
         constexpr cell_t operator()(size_t const index) const noexcept
         {
@@ -48,7 +49,7 @@ struct affine_initialisation_strategy
             auto [gap_open, gap_extension] = _gap_model;
             score_t first{0};
             score_t second{static_cast<score_t>(gap_open + gap_extension)};
-            if (_rule == dp_initialisation_rule::regular && index > 0) {
+            if (_rule == cfg::end_gap::penalised && index > 0) {
                 first = static_cast<score_t>(gap_open + gap_extension * index);
                 second += first;
             }

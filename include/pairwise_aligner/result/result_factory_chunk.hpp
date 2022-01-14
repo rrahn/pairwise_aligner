@@ -14,7 +14,7 @@
 
 #include <limits>
 
-#include <pairwise_aligner/dp_trailing_gaps.hpp>
+#include <pairwise_aligner/configuration/end_gap_policy.hpp>
 #include <pairwise_aligner/result/aligner_result.hpp>
 
 namespace seqan::pairwise_aligner
@@ -153,8 +153,8 @@ struct _result_factory_chunk<other_factory_t>::type
                     sequence2_t && sequence2,
                     dp_column_t dp_column,
                     dp_row_t dp_row,
-                    dp_trailing_gaps _column_trailing_gaps = dp_trailing_gaps::regular,
-                    dp_trailing_gaps _row_trailing_gaps = dp_trailing_gaps::regular) const noexcept
+                    cfg::end_gap _column_trailing_gaps = cfg::end_gap::penalised,
+                    cfg::end_gap _row_trailing_gaps = cfg::end_gap::penalised) const noexcept
     {
 
         auto result = _factory(std::forward<sequence1_t>(sequence1),

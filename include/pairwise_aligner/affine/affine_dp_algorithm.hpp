@@ -53,7 +53,7 @@ protected:
 
         return dp_vector.initialise(std::forward<sequence_t>(sequence),
                                     init_t{gap_model_t{this->gap_open_score, this->gap_extension_score},
-                                           this->row_initialisation});
+                                           this->first_row});
     }
 
     template <std::ranges::viewable_range sequence_t, typename dp_vector_t>
@@ -66,7 +66,7 @@ protected:
 
         return dp_vector.initialise(std::forward<sequence_t>(sequence),
                                     init_t{gap_model_t{this->gap_open_score, this->gap_extension_score},
-                                           this->column_initialisation});
+                                           this->first_column});
     }
 
     template <typename row_cell_t, typename column_cell_t>
@@ -102,7 +102,7 @@ protected:
     template <typename ...args_t>
     constexpr auto make_result(args_t && ...args) const noexcept
     {
-        return this->operator()(std::forward<args_t>(args)..., this->column, this->row);
+        return this->operator()(std::forward<args_t>(args)..., this->last_column, this->last_row);
     }
 
     template <typename cache_t, typename seq1_val_t, typename seq2_val_t, typename dp_cell_t>

@@ -14,10 +14,9 @@
 
 #include <seqan3/std/type_traits>
 
-#include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
+#include <pairwise_aligner/configuration/end_gap_policy.hpp>
 #include <pairwise_aligner/configuration/initial.hpp>
 #include <pairwise_aligner/configuration/rule_method.hpp>
-#include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 #include <pairwise_aligner/utility/type_list.hpp>
 
@@ -37,8 +36,8 @@ struct traits
 {
     static constexpr cfg::detail::rule_category category = cfg::detail::rule_category::method;
 
-    initialisation_rule _leading_param;
-    trailing_gap_setting _trailing_param;
+    leading_end_gap _leading_param;
+    trailing_end_gap _trailing_param;
 
     constexpr auto configure_leading_gap_policy() const noexcept
     {
@@ -124,8 +123,8 @@ struct _fn
     // implementation of function style connection
     template <typename predecessor_t>
     constexpr auto operator()(predecessor_t && predecessor,
-                              initialisation_rule init_rule,
-                              trailing_gap_setting final_rule) const
+                              leading_end_gap init_rule,
+                              trailing_end_gap final_rule) const
     {
         return _method_global::rule<predecessor_t, traits>{{},
                                                            std::forward<predecessor_t>(predecessor),
@@ -133,7 +132,7 @@ struct _fn
     }
 
     template <typename score_t>
-    constexpr auto operator()(initialisation_rule init_rule, trailing_gap_setting final_rule) const
+    constexpr auto operator()(leading_end_gap init_rule, trailing_end_gap final_rule) const
     {
         return this->operator()(cfg::initial, std::move(init_rule), std::move(final_rule));
     }

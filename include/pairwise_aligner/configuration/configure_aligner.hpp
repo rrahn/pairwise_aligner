@@ -19,10 +19,9 @@
 #include <seqan3/utility/type_pack/traits.hpp>
 #include <seqan3/utility/type_traits/lazy_conditional.hpp>
 
-#include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
+#include <pairwise_aligner/configuration/end_gap_policy.hpp>
 #include <pairwise_aligner/configuration/rule_category.hpp>
 #include <pairwise_aligner/utility/type_list.hpp>
-#include <pairwise_aligner/dp_trailing_gaps.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -120,8 +119,8 @@ public:
         auto result_factory_policy = _configurations_accessor.configure_result_factory_policy();
         auto dp_vector_policy = _configurations_accessor.configure_dp_vector_policy(_configurations_accessor);
 
-        initialisation_rule leading_gap_policy{};
-        trailing_gap_setting trailing_gap_policy{};
+        leading_end_gap leading_gap_policy{};
+        trailing_end_gap trailing_gap_policy{};
 
         if constexpr (!std::same_as<typename accessor_t::method_configuration_type, std::void_t<>>) {
             leading_gap_policy = _configurations_accessor.configure_leading_gap_policy();

@@ -25,10 +25,8 @@ TEST(configuration_test, prototype)
                 pa::cfg::score_model_unitary(4, -5),
                 -10, -1
             ),
-            pa::initialisation_rule{.column_initialisation = pa::dp_initialisation_rule::regular,
-                                    .row_initialisation = pa::dp_initialisation_rule::zero},
-            pa::trailing_gap_setting{.column = pa::dp_trailing_gaps::regular,
-                                     .row = pa::dp_trailing_gaps::free}
+            pa::cfg::leading_end_gap{.first_column = pa::cfg::end_gap::penalised, .first_row = pa::cfg::end_gap::free},
+            pa::cfg::trailing_end_gap{.last_column = pa::cfg::end_gap::penalised, .last_row = pa::cfg::end_gap::free}
         )
     );
 

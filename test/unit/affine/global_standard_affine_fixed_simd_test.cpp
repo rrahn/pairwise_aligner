@@ -16,7 +16,7 @@ namespace global::standard::affine::fixed_simd {
 inline constexpr auto base_config =
     aligner::cfg::method_global(
         aligner::cfg::gap_model_affine(-10, -1),
-        aligner::initialisation_rule{}, aligner::trailing_gap_setting{}
+        aligner::cfg::leading_end_gap{}, aligner::cfg::trailing_end_gap{}
     );
 
 // ----------------------------------------------------------------------------

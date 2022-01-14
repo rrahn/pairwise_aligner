@@ -14,7 +14,7 @@
 
 #include <seqan3/std/ranges>
 
-#include <pairwise_aligner/dp_trailing_gaps.hpp>
+#include <pairwise_aligner/configuration/end_gap_policy.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -38,8 +38,8 @@ struct _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t>::type
     sequence2_t _sequence2;
     dp_column_t _dp_column;
     dp_row_t _dp_row;
-    dp_trailing_gaps _column_trailing_gaps;
-    dp_trailing_gaps _row_trailing_gaps;
+    cfg::end_gap _column_trailing_gaps;
+    cfg::end_gap _row_trailing_gaps;
 
     dp_column_t const & dp_column() const & noexcept
     {
@@ -82,13 +82,13 @@ private:
     {
         auto best_score = dp_column()[dp_column().size() - 1].score();
 
-        if (_row_trailing_gaps == dp_trailing_gaps::free)
+        if (_row_trailing_gaps == cfg::end_gap::free)
         {
             for (size_t cell_idx = 0; cell_idx < dp_row().size(); ++cell_idx)
                 best_score = std::max(dp_row()[cell_idx].score(), best_score);
         }
 
-        if (_column_trailing_gaps == dp_trailing_gaps::free)
+        if (_column_trailing_gaps == cfg::end_gap::free)
         {
             for (size_t cell_idx = 0; cell_idx < dp_column().size(); ++cell_idx)
                 best_score = std::max(dp_column()[cell_idx].score(), best_score);
@@ -111,8 +111,8 @@ struct result_factory_single
                     sequence2_t && sequence2,
                     dp_column_t dp_column,
                     dp_row_t dp_row,
-                    dp_trailing_gaps _column_trailing_gaps = dp_trailing_gaps::regular,
-                    dp_trailing_gaps _row_trailing_gaps = dp_trailing_gaps::regular) const noexcept
+                    cfg::end_gap _column_trailing_gaps = cfg::end_gap::penalised,
+                    cfg::end_gap _row_trailing_gaps = cfg::end_gap::penalised) const noexcept
     {
         using aligner_result_t = _aligner_result::value<sequence1_t, sequence2_t, dp_column_t, dp_row_t>;
         return aligner_result_t{std::forward<sequence1_t>(sequence1),
