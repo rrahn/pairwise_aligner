@@ -9,40 +9,56 @@
 
 #include <string_view>
 
-#include <pairwise_aligner/configuration/configure_aligner.hpp>
-#include <pairwise_aligner/configuration/score_model_unitary.hpp>
+#include "alignment_scalar_test_template.hpp"
+
+#include <pairwise_aligner/configuration/method_global.hpp>
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
+#include <pairwise_aligner/configuration/score_model_unitary.hpp>
 
-TEST(affine_test, all_match)
-{
-    namespace pa = seqan::pairwise_aligner;
+using namespace std::literals;
 
-    auto aligner = pa::cfg::configure_aligner(
-        pa::cfg::gap_model_affine(
-            pa::cfg::score_model_unitary(4, -5),
-            -10, -1
-        )
+namespace global::standard::affine::scalar {
+
+inline constexpr auto base_config =
+    aligner::cfg::method_global(
+        aligner::cfg::gap_model_affine(-10, -1),
+        aligner::cfg::leading_end_gap{}, aligner::cfg::trailing_end_gap{}
     );
 
-    std::string_view seq1{"ACGTGACTGACACTACGACT"};
-    std::string_view seq2{"ACGTGACTGACACTACGACT"};
+// ----------------------------------------------------------------------------
+// Equal size
+// ----------------------------------------------------------------------------
 
-    EXPECT_EQ((aligner.compute(seq1, seq2)).score(), 80);
-}
+DEFINE_TEST_VALUES(same_sequence,
+    .configurator = aligner::cfg::score_model_unitary(base_config, 4, -5),
+    .sequence1 = "ACGTGACTGACACTACGACT"sv,
+    .sequence2 = "ACGTGACTGACACTACGACT"sv,
+    .expected_score = 80
+)
 
-TEST(affine_test, all_mismatch)
-{
-    namespace pa = seqan::pairwise_aligner;
+DEFINE_TEST_VALUES(unequal_sequence,
+    .configurator = aligner::cfg::score_model_unitary(base_config, 4, -5),
+    .sequence1 = "AAAAAAAAAA"sv,
+    .sequence2 = "TTTTTTTTTT"sv,
+    .expected_score = -40
+)
 
-    auto aligner = pa::cfg::configure_aligner(
-        pa::cfg::gap_model_affine(
-            pa::cfg::score_model_unitary(4, -5),
-            -10, -1
-        )
-    );
+DEFINE_TEST_VALUES(related_sequence,
+    .configurator = aligner::cfg::score_model_unitary(base_config, 4, -5),
+    .sequence1 = "AGATCGACTAGCGAGCTACGAGCTAGC"sv,
+    .sequence2 = "AGACGATCGACGAGCGACTACGTACGA"sv,
+    .expected_score = 26
+)
 
-    std::string_view seq1{"AAAAAAAAAA"};
-    std::string_view seq2{"TTTTTTTTTT"};
+using test_types =
+    ::testing::Types<
+        pairwise_aligner_fixture<&same_sequence>,
+        pairwise_aligner_fixture<&unequal_sequence>,
+        pairwise_aligner_fixture<&related_sequence>
+    >;
 
-    EXPECT_EQ((aligner.compute(seq1, seq2)).score(), -40);
-}
+} // namespace global::standard::affine::scalar
+
+INSTANTIATE_TYPED_TEST_SUITE_P(global_standard_affine_scalar,
+                               pairwise_aligner_test,
+                               global::standard::affine::scalar::test_types,);
