@@ -136,91 +136,65 @@ protected:
         // Initialisation
         // ----------------------------------------------------------------------------
 
-        // auto start = std::chrono::high_resolution_clock::now();
-
-        // step 1) initialise original vectors
         auto simd_seq1 = as_derived().initialise_column_vector(sequence1, dp_column);
         auto simd_seq2 = as_derived().initialise_row_vector(sequence2, dp_row);
-
-        // auto end = std::chrono::high_resolution_clock::now();
-        // std::cout << "Initialise: " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - start).count() << " [ns]" << std::endl;
-
-        // 1) transformed sequence is a vector of chunks.
-        // 2) the range is a vector of ranges (but should return proxies)
-        // 3) we don't want to work with proxy but only with the pure types.
-        // 4) we want to modify the offset again.
-
-        // first dp row is initialised correctly
-        // first dp col is initialised correctly
-
-    /*
-        TODO: make_result without score!
-        return make_result(...);
-    */
 
         // ----------------------------------------------------------------------------
         // Recursion
         // ----------------------------------------------------------------------------
 
-        size_t const col_count = dp_column.size();
-        size_t const row_count = dp_row.size();
-        size_t const col_chunk_size = dp_column[0].size() - 1;
-        size_t const row_chunk_size = dp_row[0].size() - 1;
+        size_t const column_block_count = dp_column.size();
+        size_t const row_block_count = dp_row.size();
+        size_t const column_block_size = dp_column[0].size() - 1;
+        size_t const row_block_size = dp_row[0].size() - 1;
 
-        using dp_column_chunk_t = typename dp_column_t::value_type; // std::ranges::range_value_t<decltype(dp_column.range())>;
-        using dp_row_chunk_t = typename dp_row_t::value_type; // std::ranges::range_value_t<decltype(dp_row.range())>;
+        using dp_column_block_t = typename dp_column_t::value_type;
+        using dp_row_block_t = typename dp_row_t::value_type;
 
         using value_t = std::ranges::range_value_t<decltype(simd_seq1)>;
-        std::vector<std::span<value_t>> seq1_chunked{};
-        seq1_chunked.reserve(col_count);
+        std::vector<std::span<value_t>> seq1_blocked{};
+        seq1_blocked.reserve(column_block_count);
 
-        using saturated_col_t = detail::saturated_wrapper<dp_column_chunk_t>;
-        std::vector<saturated_col_t> dp_column_chunks{};
-        dp_column_chunks.reserve(col_count);
+        using saturated_col_t = detail::saturated_wrapper<dp_column_block_t>;
+        std::vector<saturated_col_t> dp_column_blocks{};
+        dp_column_blocks.reserve(column_block_count);
 
-        for (size_t i = 0; i < col_count; ++i)
+        for (size_t i = 0; i < column_block_count; ++i)
         {
-            seq1_chunked.emplace_back(std::ranges::next(std::ranges::begin(simd_seq1), (i * col_chunk_size)),
-                                      std::ranges::next(std::ranges::begin(simd_seq1), ((i + 1) * col_chunk_size), std::ranges::end(simd_seq1)));
-            dp_column_chunks.emplace_back(dp_column[i]);
+            seq1_blocked.emplace_back(std::ranges::next(std::ranges::begin(simd_seq1), (i * column_block_size)),
+                                      std::ranges::next(std::ranges::begin(simd_seq1),
+                                                        ((i + 1) * column_block_size),
+                                                        std::ranges::end(simd_seq1)));
+            dp_column_blocks.emplace_back(dp_column[i]);
         }
 
-        for (size_t j = 0; j < row_count; ++j) {
-            detail::saturated_wrapper<dp_row_chunk_t> current_row_vector{dp_row[j]};
-            std::span transformed_seq2{std::ranges::next(std::ranges::begin(simd_seq2), (j * row_chunk_size)),
-                                       std::ranges::next(std::ranges::begin(simd_seq2), ((j + 1) * row_chunk_size), std::ranges::end(simd_seq2))};
+        for (size_t j = 0; j < row_block_count; ++j) {
+            detail::saturated_wrapper<dp_row_block_t> current_row_vector{dp_row[j]};
+            std::span transformed_seq2{std::ranges::next(std::ranges::begin(simd_seq2), (j * row_block_size)),
+                                       std::ranges::next(std::ranges::begin(simd_seq2),
+                                                         ((j + 1) * row_block_size),
+                                                         std::ranges::end(simd_seq2))};
 
             // Initialise first block of current column.
             current_row_vector.offset(current_row_vector[0].score());
-            dp_column_chunks[0].offset(dp_column_chunks[0][0].score());
+            dp_column_blocks[0].offset(dp_column_blocks[0][0].score());
 
-            initialise_block(dp_column_chunks[0], current_row_vector);
+            initialise_block(dp_column_blocks[0], current_row_vector);
 
             // Iterate over blocks in current column.
-            for (size_t i = 0; i < col_count; ++i) {
+            for (size_t i = 0; i < column_block_count; ++i) {
                 if (i > 0) {
-                    current_row_vector[0].score() = dp_column_chunks[i - 1][dp_column_chunks[i - 1].size() - 1].score();
+                    current_row_vector[0].score() = dp_column_blocks[i - 1][dp_column_blocks[i - 1].size() - 1].score();
                     current_row_vector.offset(current_row_vector[1].score());
-                    dp_column_chunks[i].offset(dp_column_chunks[i][0].score());
-                    dp_column_chunks[i][0].score() = current_row_vector[0].score();
+                    dp_column_blocks[i].offset(dp_column_blocks[i][0].score());
+                    dp_column_blocks[i][0].score() = current_row_vector[0].score();
                 }
 
-                _run(seq1_chunked[i], transformed_seq2, dp_column_chunks[i], current_row_vector);
-
-                // std::cout << "col:";
-                // for (size_t k = 0; k < current_column_vector.size(); ++k)
-                //     std::cout << " " << (int32_t) current_column_vector[k].score()[0];
-                // std::cout << "\n";
-
-                // std::cout << "row:";
-                // for (size_t k = 0; k < current_row_vector.size(); ++k)
-                //     std::cout << " " << (int32_t) current_row_vector[k].score()[0];
-                // std::cout << "\n";
-
+                _run(seq1_blocked[i], transformed_seq2, dp_column_blocks[i], current_row_vector);
             }
 
             // Write back optimal score to row vector.
-            postprocess_block(dp_column_chunks.back(), current_row_vector);
+            postprocess_block(dp_column_blocks.back(), current_row_vector);
         }
 
         // ----------------------------------------------------------------------------
