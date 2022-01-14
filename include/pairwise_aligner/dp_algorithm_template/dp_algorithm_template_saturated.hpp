@@ -185,7 +185,7 @@ protected:
             dp_column_chunks.emplace_back(dp_column[i]);
         }
 
-        for (size_t j = 0; j < col_count; ++j) {
+        for (size_t j = 0; j < row_count; ++j) {
             detail::saturated_wrapper<dp_row_chunk_t> current_row_vector{dp_row[j]};
             std::span transformed_seq2{std::ranges::next(std::ranges::begin(simd_seq2), (j * row_chunk_size)),
                                        std::ranges::next(std::ranges::begin(simd_seq2), ((j + 1) * row_chunk_size), std::ranges::end(simd_seq2))};
@@ -197,7 +197,7 @@ protected:
             initialise_block(dp_column_chunks[0], current_row_vector);
 
             // Iterate over blocks in current column.
-            for (size_t i = 0; i < row_count; ++i) {
+            for (size_t i = 0; i < col_count; ++i) {
                 if (i > 0) {
                     current_row_vector[0].score() = dp_column_chunks[i - 1][dp_column_chunks[i - 1].size() - 1].score();
                     current_row_vector.offset(current_row_vector[1].score());
