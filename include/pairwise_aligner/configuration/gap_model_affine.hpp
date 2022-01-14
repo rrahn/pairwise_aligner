@@ -16,11 +16,9 @@
 
 #include <pairwise_aligner/configuration/initial.hpp>
 #include <pairwise_aligner/configuration/rule_gap_model.hpp>
-#include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/affine/affine_cell.hpp>
 #include <pairwise_aligner/affine/affine_dp_algorithm.hpp>
 #include <pairwise_aligner/affine/affine_gap_model.hpp>
-#include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 #include <pairwise_aligner/utility/type_list.hpp>
 

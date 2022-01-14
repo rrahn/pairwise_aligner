@@ -14,19 +14,12 @@
 
 #include <pairwise_aligner/affine/affine_cell.hpp>
 #include <pairwise_aligner/configuration/end_gap_policy.hpp>
-#include <pairwise_aligner/dp_initialisation_rule.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
-
-struct initialisation_rule
-{
-    dp_initialisation_rule column_initialisation{dp_initialisation_rule::regular};
-    dp_initialisation_rule row_initialisation{dp_initialisation_rule::regular};
-};
 
 template <dp_vector_order order, typename affine_gap_model_t>
 struct affine_initialisation_strategy

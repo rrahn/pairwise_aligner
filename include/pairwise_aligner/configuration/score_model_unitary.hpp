@@ -18,7 +18,6 @@
 #include <pairwise_aligner/configuration/initial.hpp>
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
-#include <pairwise_aligner/dp_trailing_gaps.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
