@@ -9,6 +9,8 @@
 
 #include <pairwise_aligner/configuration/configure_aligner.hpp>
 
+#include "fixture_base.hpp"
+
 namespace aligner = seqan::pairwise_aligner;
 
 // ----------------------------------------------------------------------------
@@ -29,20 +31,6 @@ struct pairwise_aligner_fixture_values
     sequence1_t sequence1;
     sequence2_t sequence2;
     score_t expected_score;
-};
-
-// ----------------------------------------------------------------------------
-// Fixture wrapper to access static test values
-// ----------------------------------------------------------------------------
-
-template <auto _fixture>
-struct pairwise_aligner_fixture : public ::testing::Test
-{
-    // Method in same naming scheme as used by Google Test
-    auto GetParam() -> decltype(pairwise_aligner_fixture_values{*_fixture}) const &
-    {
-        return *_fixture;
-    }
 };
 
 // ----------------------------------------------------------------------------

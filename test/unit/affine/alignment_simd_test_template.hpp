@@ -16,6 +16,8 @@
 #include <pairwise_aligner/configuration/configure_aligner.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary.hpp>
 
+#include "fixture_base.hpp"
+
 namespace aligner = seqan::pairwise_aligner;
 
 // ----------------------------------------------------------------------------
@@ -23,7 +25,7 @@ namespace aligner = seqan::pairwise_aligner;
 // ----------------------------------------------------------------------------
 
 #define DEFINE_TEST_VALUES(name, score_t, ...)  \
-static auto name = [](){ return pairwise_aligner_fixture_values{.score_type = score_t{}__VA_OPT__(,) __VA_ARGS__}; }();
+static auto name = [](){ return pairwise_aligner_fixture_values{.score_v = score_t{}__VA_OPT__(,) __VA_ARGS__}; }();
 
 // ----------------------------------------------------------------------------
 // Values for test fixture
@@ -32,28 +34,14 @@ static auto name = [](){ return pairwise_aligner_fixture_values{.score_type = sc
 template <typename score_t, typename base_configurator_t, typename score_configurator_t>
 struct pairwise_aligner_fixture_values
 {
-    score_t score_type;
+    using score_type =  score_t;
+
+    score_t score_v;
     base_configurator_t base_configurator;
     score_configurator_t score_configurator;
     std::pair<int32_t, int32_t> substitution_scores;
     std::tuple<std::size_t, std::size_t, std::size_t> sequence_generation_param;
     unsigned seed{42};
-};
-
-// ----------------------------------------------------------------------------
-// Fixture wrapper to access static test values
-// ----------------------------------------------------------------------------
-
-template <auto _fixture>
-struct pairwise_aligner_fixture : public ::testing::Test
-{
-    using scalar_score_type = decltype(_fixture->score_type);
-
-    // Method in same naming scheme as used by Google Test
-    auto GetParam() -> decltype(pairwise_aligner_fixture_values{*_fixture}) const &
-    {
-        return *_fixture;
-    }
 };
 
 // ----------------------------------------------------------------------------
@@ -63,6 +51,9 @@ struct pairwise_aligner_fixture : public ::testing::Test
 template <typename fixture_t>
 struct pairwise_aligner_test : public fixture_t
 {
+    using test_values_type = typename fixture_t::test_values_type;
+    using scalar_score_type = typename test_values_type::score_type;
+
     std::vector<std::string> sequence_collection1{};
     std::vector<std::string> sequence_collection2{};
 
