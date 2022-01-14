@@ -1,3 +1,3 @@
-pairwise_aligner_test (alignment_global_affine_scalar_test)
 pairwise_aligner_test (global_standard_affine_fixed_simd_test)
 pairwise_aligner_test (global_standard_affine_saturated_simd_test)
+pairwise_aligner_test (global_standard_affine_scalar_test)
