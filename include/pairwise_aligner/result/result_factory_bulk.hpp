@@ -41,9 +41,7 @@ struct _value<base_value_t, score_t>::type : public base_value_t
     {
         using scalar_t = typename score_t::value_type;
 
-        // std::cout << "index = " << idx << "\n";
-
-        scalar_t best_score = std::numeric_limits<scalar_t>::min();
+        scalar_t best_score = std::numeric_limits<scalar_t>::lowest();
         if (base_value_t::_row_trailing_gaps == cfg::end_gap::penalised &&
             base_value_t::_column_trailing_gaps == cfg::end_gap::penalised)
         {
