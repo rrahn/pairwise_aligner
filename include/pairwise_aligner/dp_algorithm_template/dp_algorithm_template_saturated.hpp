@@ -13,7 +13,6 @@
 #pragma once
 
 #include <array>
-#include <iostream>
 #include <seqan3/std/span>
 
 #include <seqan3/utility/views/slice.hpp>

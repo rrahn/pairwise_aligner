@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include <iostream>
 #include <seqan3/std/concepts>
 #include <seqan3/std/type_traits>
 
