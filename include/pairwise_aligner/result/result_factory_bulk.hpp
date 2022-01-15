@@ -39,32 +39,14 @@ struct _value<base_value_t, score_t>::type : public base_value_t
 
     constexpr auto score_at(size_t const idx) const noexcept
     {
-        using scalar_t = typename score_t::value_type;
-
-        scalar_t best_score = std::numeric_limits<scalar_t>::lowest();
         if (base_value_t::_row_trailing_gaps == cfg::end_gap::penalised &&
-            base_value_t::_column_trailing_gaps == cfg::end_gap::penalised)
-        {
-            auto && [row_idx, col_idx, offset] = projected_coordinate(idx);
-
-            // std::cout << "row_idx = " << row_idx << "\n";
-            // std::cout << "col_idx = " << col_idx << "\n";
-            // std::cout << "offset = " << offset << "\n";
-
-            assert(row_idx == this->dp_column().size() - 1 || col_idx == this->dp_row().size() - 1);
-
-            if (row_idx == this->dp_column().size() - 1) {
-                best_score = score_at(this->dp_row()[col_idx], idx);
-                // std::cout << "this->dp_row()[col_idx].score()[idx] = " << this->dp_row()[col_idx].score()[idx] << "\n";
-            } else {
-                best_score = score_at(this->dp_column()[row_idx], idx);
-                // std::cout << "this->dp_column()[row_idx].score()[idx] = " << this->dp_column()[row_idx].score()[idx] << "\n";
-            }
-
-            // std::cout << "best_score = " << best_score << "\n";
-            return static_cast<scalar_t>(best_score - static_cast<scalar_t>(_padding_score[idx] * offset));
+            base_value_t::_column_trailing_gaps == cfg::end_gap::penalised) {
+            return select_score(idx);
         }
 
+        // Maximal score is either in last row or in last column or in both.
+        using scalar_t = typename score_t::value_type;
+        scalar_t best_score{};
         if (base_value_t::_column_trailing_gaps == cfg::end_gap::free) {
             best_score = find_max_score(this->sequence1()[idx], this->dp_column(),
                                         this->sequence2()[idx], this->dp_row(),
@@ -80,19 +62,39 @@ struct _value<base_value_t, score_t>::type : public base_value_t
         return best_score;
     }
 
-    constexpr std::tuple<size_t, size_t, size_t> projected_coordinate(size_t const idx) const noexcept
+private:
+
+    template <typename sequence_t, typename dp_vector_t>
+    constexpr auto get_offsets(sequence_t && sequence, dp_vector_t && dp_vector) const noexcept
     {
-        size_t const original_row_dim = std::ranges::distance(this->sequence1()[idx]);
-        size_t const original_column_dim = std::ranges::distance(this->sequence2()[idx]);
+        size_t sequence_size = std::ranges::distance(sequence);
+        size_t dp_vector_size = dp_vector.size();
 
-        // std::cout << "original_row_dim = " << original_row_dim << "\n";
-        // std::cout << "original_column_dim = " << original_column_dim << "\n";
+        assert(dp_vector_size > sequence_size);
+        size_t offset = dp_vector_size - 1 - sequence_size;
 
-        size_t offset = std::min<size_t>(this->dp_column().size() - 1 - original_row_dim,
-                                         this->dp_row().size() -1 - original_column_dim);
+        return std::tuple{sequence_size, dp_vector_size, offset};
+    }
 
-        // std::cout << "this->dp_column().size() = " << this->dp_column().size() << "\n";
-        // std::cout << "this->dp_row().size() = " << this->dp_row().size() << "\n";
+    constexpr auto select_score(size_t const simd_idx) const noexcept
+        -> typename score_t::value_type
+    {
+        auto [column_sequence_size, column_vector_size, row_offset] =
+            get_offsets(this->sequence1()[simd_idx], this->dp_column());
+        auto [row_sequence_size, row_vector_size, column_offset] =
+            get_offsets(this->sequence2()[simd_idx], this->dp_row());
+
+        using scalar_t = typename score_t::value_type;
+        size_t scale = std::min(column_offset, row_offset);
+        scalar_t best_score{};
+
+        if (scale == column_offset) {
+            best_score = score_at(this->dp_column()[column_sequence_size + scale], simd_idx);
+        } else {
+            best_score = score_at(this->dp_row()[row_sequence_size + row_offset], simd_idx);
+        }
+
+        return best_score - (_padding_score[simd_idx] * scale);
     }
 
     template <typename first_sequence_t, typename first_vector_t, typename second_sequence_t, typename second_vector_t>
@@ -101,16 +103,12 @@ struct _value<base_value_t, score_t>::type : public base_value_t
                                   second_sequence_t && second_sequence,
                                   second_vector_t && second_vector,
                                   size_t const simd_idx) const noexcept
+        -> typename score_t::value_type
     {
         using scalar_t = typename score_t::value_type;
 
-        size_t const first_sequence_size = std::ranges::distance(first_sequence);
-        size_t const second_sequence_size = std::ranges::distance(second_sequence);
-        size_t const first_vector_size = first_vector.size();
-        size_t const second_vector_size = second_vector.size();
-
-        size_t const first_offset = second_vector_size - 1 - second_sequence_size;
-        size_t const second_offset = first_vector_size - 1 - first_sequence_size;
+        auto [first_sequence_size, first_vector_size, second_offset] = get_offsets(first_sequence, first_vector);
+        auto [second_sequence_size, second_vector_size, first_offset] = get_offsets(second_sequence, second_vector);
 
         // Iterate over the corresponding slice in the projected dp vector (first_vector) and subtract the scaled
         // padding score from the retrieved values of the corresponding simd index.
@@ -136,8 +134,6 @@ struct _value<base_value_t, score_t>::type : public base_value_t
 
         return best_score;
     }
-
-private:
 
     template <typename cell_t>
         requires requires (cell_t const & cell, size_t const idx){ { cell.score_at(idx) } -> std::integral; }
