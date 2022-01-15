@@ -1,3 +1,4 @@
+pairwise_aligner_test (global_overlap_affine_fixed_simd_test)
 pairwise_aligner_test (global_overlap_affine_scalar_test)
 pairwise_aligner_test (global_semi_first_affine_fixed_simd_test)
 pairwise_aligner_test (global_semi_first_affine_scalar_test)
