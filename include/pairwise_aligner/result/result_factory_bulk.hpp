@@ -46,7 +46,7 @@ struct _value<base_value_t, score_t>::type : public base_value_t
 
         // Maximal score is either in last row or in last column or in both.
         using scalar_t = typename score_t::value_type;
-        scalar_t best_score{};
+        scalar_t best_score =  std::numeric_limits<scalar_t>::lowest();
         if (base_value_t::_column_trailing_gaps == cfg::end_gap::free) {
             best_score = find_max_score(this->sequence1()[idx], this->dp_column(),
                                         this->sequence2()[idx], this->dp_row(),
@@ -54,9 +54,9 @@ struct _value<base_value_t, score_t>::type : public base_value_t
         }
 
         if (base_value_t::_row_trailing_gaps == cfg::end_gap::free) {
-            best_score = find_max_score(this->sequence2()[idx], this->dp_row(),
-                                        this->sequence1()[idx], this->dp_column(),
-                                        idx);
+            best_score = std::max(best_score, find_max_score(this->sequence2()[idx], this->dp_row(),
+                                                             this->sequence1()[idx], this->dp_column(),
+                                                              idx));
         }
 
         return best_score;
