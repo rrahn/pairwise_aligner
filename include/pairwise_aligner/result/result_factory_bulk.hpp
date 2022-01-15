@@ -65,16 +65,16 @@ struct _value<base_value_t, score_t>::type : public base_value_t
             return static_cast<scalar_t>(best_score - static_cast<scalar_t>(_padding_score[idx] * offset));
         }
 
-        if (base_value_t::_row_trailing_gaps == cfg::end_gap::free)
-        {
-            for (size_t cell_idx = 0; cell_idx < this->dp_row().size(); ++cell_idx)
-                best_score = std::max<scalar_t>(score_at(this->dp_row()[cell_idx], idx), best_score);
+        if (base_value_t::_column_trailing_gaps == cfg::end_gap::free) {
+            best_score = find_max_score(this->sequence1()[idx], this->dp_column(),
+                                        this->sequence2()[idx], this->dp_row(),
+                                        idx);
         }
 
-        if (base_value_t::_column_trailing_gaps == cfg::end_gap::free)
-        {
-            for (size_t cell_idx = 0; cell_idx < this->dp_column().size(); ++cell_idx)
-                best_score = std::max<scalar_t>(score_at(this->dp_column()[cell_idx], idx), best_score);
+        if (base_value_t::_row_trailing_gaps == cfg::end_gap::free) {
+            best_score = find_max_score(this->sequence2()[idx], this->dp_row(),
+                                        this->sequence1()[idx], this->dp_column(),
+                                        idx);
         }
 
         return best_score;
@@ -93,7 +93,48 @@ struct _value<base_value_t, score_t>::type : public base_value_t
 
         // std::cout << "this->dp_column().size() = " << this->dp_column().size() << "\n";
         // std::cout << "this->dp_row().size() = " << this->dp_row().size() << "\n";
-        return std::tuple{original_row_dim + offset, original_column_dim + offset, offset};
+    }
+
+    template <typename first_sequence_t, typename first_vector_t, typename second_sequence_t, typename second_vector_t>
+    constexpr auto find_max_score(first_sequence_t && first_sequence,
+                                  first_vector_t && first_vector,
+                                  second_sequence_t && second_sequence,
+                                  second_vector_t && second_vector,
+                                  size_t const simd_idx) const noexcept
+    {
+        using scalar_t = typename score_t::value_type;
+
+        size_t const first_sequence_size = std::ranges::distance(first_sequence);
+        size_t const second_sequence_size = std::ranges::distance(second_sequence);
+        size_t const first_vector_size = first_vector.size();
+        size_t const second_vector_size = second_vector.size();
+
+        size_t const first_offset = second_vector_size - 1 - second_sequence_size;
+        size_t const second_offset = first_vector_size - 1 - first_sequence_size;
+
+        // Iterate over the corresponding slice in the projected dp vector (first_vector) and subtract the scaled
+        // padding score from the retrieved values of the corresponding simd index.
+        scalar_t best_score = std::numeric_limits<scalar_t>::lowest();
+        size_t first_slice_end = std::min<size_t>(first_offset + first_sequence_size + 1, first_vector_size);
+        size_t scale = first_offset;
+        for (size_t idx = first_offset; idx < first_slice_end; ++idx) {
+            best_score = std::max<scalar_t>(score_at(first_vector[idx], simd_idx) -
+                                                static_cast<scalar_t>(_padding_score[simd_idx] * scale),
+                                            best_score);
+        }
+
+        // Note if second_offset is less than first_offset, the last (first_offset - second_offset) elements of the
+        // second vector must be considered as well; these cells contain the values of the projected first vector, which
+        // breaks around the cell (n, m) of the extended simd matrix.
+        // This slice starts at the projected second vector cell.
+        scale = second_offset; // Reset scaling factor to second_offset.
+        for (size_t idx = second_sequence_size + second_offset; idx < second_vector_size; ++idx, ++scale) {
+            best_score = std::max<scalar_t>(score_at(second_vector[idx], simd_idx) -
+                                                static_cast<scalar_t>(_padding_score[simd_idx] * scale),
+                                            best_score);
+        }
+
+        return best_score;
     }
 
 private:
