@@ -115,8 +115,13 @@ TYPED_TEST_P(test_suite, score)
     );
 
     auto simd_results = simd_aligner.compute(this->sequence_collection1, this->sequence_collection2);
+    size_t index = 0;
     for (auto result : simd_results) {
-        EXPECT_EQ(result.score(), (scalar_aligner.compute(result.sequence1(), result.sequence2()).score()));
+        EXPECT_EQ(result.score(), (scalar_aligner.compute(result.sequence1(), result.sequence2()).score()))
+            << "index: " << index << "\n"
+            << "seq1: " << result.sequence1() << "\n"
+            << "seq2: " << result.sequence2() << "\n";
+        ++index;
     }
 }
 
