@@ -19,24 +19,14 @@
 #include <seqan3/utility/simd/simd_traits.hpp>
 #include <seqan3/utility/simd/simd.hpp>
 
+#include <pairwise_aligner/simd/simd_base.hpp>
+#include <pairwise_aligner/simd/simd_mask_type.hpp>
+
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
-
-namespace detail
-{
-#if defined(__AVX512F__)
-inline constexpr size_t max_simd_size = 64;
-#elif defined(__AVX2__)
-inline constexpr size_t max_simd_size = 32;
-#else
-inline constexpr size_t max_simd_size = 16;
-#endif
-
-} // namespace detail
-
-template <std::integral score_t, size_t simd_size = detail::max_simd_size / sizeof(score_t)>
+template <std::integral score_t, size_t simd_size>
 class alignas(detail::max_simd_size) simd_score
 {
 private:
@@ -54,6 +44,7 @@ public:
     inline static constexpr size_t size = simd_size;
 
     using simd_type = std::array<native_simd_t, native_simd_count>;
+    using mask_type = simd_mask<std::make_unsigned_t<score_t>, simd_size>;
     using value_type = score_t;
     using reference = score_t &;
     using const_reference = score_t const &;
@@ -231,32 +222,56 @@ public:
         return fn(left, right);
     }
 
-    constexpr auto lt(simd_score const & rhs) const noexcept
+    constexpr mask_type lt(simd_score const & rhs) const noexcept
     {
-        using result_t = decltype(std::declval<native_simd_t>() < std::declval<native_simd_t>());
-        std::array<result_t, native_simd_count> masks{};
-        apply([&] (result_t & mask, native_simd_t const & left, native_simd_t const & right) {
+        mask_type masks{};
+        apply([&] <typename result_t> (result_t & mask, native_simd_t const & left, native_simd_t const & right) {
                 mask = left < right;
-        }, masks, values, rhs.values);
+        }, masks.values, values, rhs.values);
         return masks;
     }
 
-    constexpr auto le(simd_score const & rhs) const noexcept
+    constexpr mask_type le(simd_score const & rhs) const noexcept
     {
-        using result_t = decltype(std::declval<native_simd_t>() <= std::declval<native_simd_t>());
-        std::array<result_t, native_simd_count> masks{};
-        apply([&] (result_t & mask, native_simd_t const & left, native_simd_t const & right) {
+        mask_type masks{};
+        apply([&] <typename result_t> (result_t & mask, native_simd_t const & left, native_simd_t const & right) {
                 mask = left <= right;
-        }, masks, values, rhs.values);
+        }, masks.values, values, rhs.values);
         return masks;
     }
 
-    constexpr friend simd_score blend(auto const & masks, simd_score const & left, simd_score const & right) noexcept
+    constexpr friend simd_score blend(mask_type const & masks, simd_score const & left, simd_score const & right) noexcept
     {
         simd_score tmp{};
         apply([] (native_simd_t & res, auto const & mask, native_simd_t const & left, native_simd_t const & right) {
                 res = mask ? left : right;
-        }, tmp.values, masks, left.values, right.values);
+        }, tmp.values, masks.values, left.values, right.values);
+        return tmp;
+    }
+
+    constexpr friend simd_score mask_max(simd_score const & source,
+                                         mask_type const & mask,
+                                         simd_score const & left,
+                                         simd_score const & right) noexcept
+    {
+        simd_score tmp{};
+        apply([] <typename mask_t> (native_simd_t & res, native_simd_t const & src, mask_t const & k,
+                                    native_simd_t const & a, native_simd_t const & b) {
+                res = k ? (a < b ? b : a) : src;
+        }, tmp.values, source.values, mask.values, left.values, right.values);
+        return tmp;
+    }
+
+    constexpr friend simd_score mask_add(simd_score const & source,
+                                         mask_type const & mask,
+                                         simd_score const & left,
+                                         simd_score const & right) noexcept
+    {
+        simd_score tmp{};
+        apply([] <typename mask_t> (native_simd_t & res, native_simd_t const & src, mask_t const & k,
+                                    native_simd_t const & a, native_simd_t const & b) {
+                res = k ? a + b : src;
+        }, tmp.values, source.values, mask.values, left.values, right.values);
         return tmp;
     }
 
