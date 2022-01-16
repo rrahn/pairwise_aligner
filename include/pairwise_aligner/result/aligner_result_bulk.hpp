@@ -57,7 +57,7 @@ public:
 
     auto score() const noexcept
     {
-        return _result->score_at(_index);
+        return _result->score()[_index];
     }
 };
 
