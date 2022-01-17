@@ -19,7 +19,7 @@
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
-#include <pairwise_aligner/result/result_factory_chunk.hpp>
+#include <pairwise_aligner/result/result_factory_bulk_saturated.hpp>
 
 namespace seqan::pairwise_aligner {
 inline namespace v1
@@ -49,7 +49,7 @@ struct traits
     using score_model_type = seqan::pairwise_aligner::score_model_unitary<score_type>;
 
     // result_factory configurator
-    using result_factory_type = result_factory_bulk<original_score_type>;
+    using result_factory_type = result_factory_bulk_saturated<original_score_type>;
 
     constexpr auto configure_substitution_policy() const noexcept
     {
@@ -58,7 +58,7 @@ struct traits
 
     constexpr auto configure_result_factory_policy() const noexcept
     {
-        return result_factory_chunk<result_factory_type>{result_factory_type{static_cast<original_score_type>(_match_score)}};
+    return result_factory_type{static_cast<original_score_type>(_match_score)};
     }
 
     template <typename common_configurations_t>
