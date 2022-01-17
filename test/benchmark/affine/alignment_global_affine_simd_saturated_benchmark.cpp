@@ -17,11 +17,15 @@
 namespace aligner::benchmark::saturated_simd {
 namespace pa = seqan::pairwise_aligner;
 
+using score_t = int16_t;
+
+inline constexpr auto base_configurator =
+    pa::cfg::gap_model_affine(pa::cfg::score_model_unitary_simd_saturated(static_cast<score_t>(4),
+                                                                          static_cast<score_t>(-5)),
+                              -10, -1);
+
 DEFINE_BENCHMARK_VALUES(standard_unitary_same_size,
-    .configurator = pa::cfg::gap_model_affine(
-                        pa::cfg::score_model_unitary_simd_saturated(static_cast<int16_t>(4),
-                                                                    static_cast<int16_t>(-5)),
-                        -10, -1),
+    .configurator = base_configurator,
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
     .sequence_size_mean = 150,
     .sequence_size_variance = 0,
@@ -29,11 +33,7 @@ DEFINE_BENCHMARK_VALUES(standard_unitary_same_size,
 )
 
 DEFINE_BENCHMARK_VALUES(semi_first_unitary_same_size,
-    .configurator = pa::cfg::method_global(
-                        pa::cfg::gap_model_affine(
-                            pa::cfg::score_model_unitary_simd_saturated(static_cast<int16_t>(4),
-                                                                        static_cast<int16_t>(-5)),
-                            -10, -1),
+    .configurator = pa::cfg::method_global(base_configurator,
                         pa::cfg::leading_end_gap{.first_column = pa::cfg::end_gap::free },
                         pa::cfg::trailing_end_gap{.last_column = pa::cfg::end_gap::free }),
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
@@ -42,8 +42,30 @@ DEFINE_BENCHMARK_VALUES(semi_first_unitary_same_size,
     .sequence_count = seqan::pairwise_aligner::detail::max_simd_size
 )
 
+DEFINE_BENCHMARK_VALUES(semi_second_unitary_same_size,
+    .configurator = pa::cfg::method_global(base_configurator,
+                        pa::cfg::leading_end_gap{.first_row = pa::cfg::end_gap::free },
+                        pa::cfg::trailing_end_gap{.last_row = pa::cfg::end_gap::free }),
+    .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
+    .sequence_size_mean = 150,
+    .sequence_size_variance = 0,
+    .sequence_count = seqan::pairwise_aligner::detail::max_simd_size
+)
+
+DEFINE_BENCHMARK_VALUES(overlap_unitary_same_size,
+    .configurator = pa::cfg::method_global(base_configurator,
+                        pa::cfg::leading_end_gap{pa::cfg::end_gap::free, pa::cfg::end_gap::free},
+                        pa::cfg::trailing_end_gap{pa::cfg::end_gap::free, pa::cfg::end_gap::free}),
+    .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
+    .sequence_size_mean = 150,
+    .sequence_size_variance = 0,
+    .sequence_count = seqan::pairwise_aligner::detail::max_simd_size
+)
+
 ALIGNER_BENCHMARK(saturated_simd, standard_unitary_same_size)
 ALIGNER_BENCHMARK(saturated_simd, semi_first_unitary_same_size)
+ALIGNER_BENCHMARK(saturated_simd, semi_second_unitary_same_size)
+ALIGNER_BENCHMARK(saturated_simd, overlap_unitary_same_size)
 
 } // namespace aligner::benchmark::saturated_simd
 
