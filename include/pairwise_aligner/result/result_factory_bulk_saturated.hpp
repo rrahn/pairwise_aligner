@@ -76,8 +76,7 @@ struct _result_factory_bulk_saturated<score_t>::type
                                           dp_column,
                                           dp_row,
                                           _column_trailing_gaps,
-                                          _row_trailing_gaps,
-                                          dp_column[0].size() - 1);
+                                          _row_trailing_gaps);
 
         using aligner_result_t = _aligner_result::value<sequence_bulk1_t, sequence_bulk2_t, dp_column_t, dp_row_t>;
         aligner_result_t base{std::forward<sequence_bulk1_t>(sequence_bulk1),
@@ -101,24 +100,23 @@ private:
                               dp_column_t && dp_column,
                               dp_row_t && dp_row,
                               cfg::end_gap last_column,
-                              cfg::end_gap last_row,
-                              size_t const chunk_size) const noexcept
+                              cfg::end_gap last_row) const noexcept
     {
         if (last_column == cfg::end_gap::penalised && last_row == cfg::end_gap::penalised) {
             score_t best_score{};
             for (std::ptrdiff_t idx = 0; idx < std::ranges::distance(sequence_bulk1); ++idx) {
-                best_score[idx] = select_score(idx, sequence_bulk1[idx], sequence_bulk2[idx], dp_column, dp_row, chunk_size);
+                best_score[idx] = select_score(idx, sequence_bulk1[idx], sequence_bulk2[idx], dp_column, dp_row);
             }
             return best_score;
         }
 
         score_t best_score{std::numeric_limits<typename score_t::value_type>::lowest()};
         if (last_column == cfg::end_gap::free) {
-            best_score = find_max_score_bulk(sequence_bulk1, dp_column, sequence_bulk2, dp_row, chunk_size);
+            best_score = find_max_score_bulk(sequence_bulk1, dp_column, sequence_bulk2, dp_row);
         }
 
         if (last_row == cfg::end_gap::free) {
-            best_score = max(best_score, find_max_score_bulk(sequence_bulk2, dp_row, sequence_bulk1, dp_column, chunk_size));
+            best_score = max(best_score, find_max_score_bulk(sequence_bulk2, dp_row, sequence_bulk1, dp_column));
         }
         return best_score;
     }
@@ -146,12 +144,9 @@ private:
                                 sequence1_t && sequence1,
                                 sequence2_t && sequence2,
                                 dp_column_t && dp_column,
-                                dp_row_t && dp_row,
-                                size_t const chunk_size) const noexcept
+                                dp_row_t && dp_row) const noexcept
         -> typename score_t::value_type
     {
-
-
         auto [column_sequence_size, column_vector_size, row_offset] = get_offsets(sequence1, dp_column);
         auto [row_sequence_size, row_vector_size, column_offset] = get_offsets(sequence2, dp_row);
 
@@ -159,11 +154,15 @@ private:
         size_t scale = std::min(column_offset, row_offset);
         scalar_t best_score{};
 
+        size_t const chunk_size = dp_column[0].size() - 1;
+
         if (scale == column_offset) {
-            auto [chunk_id, chunk_offset] = to_local_position(column_sequence_size + column_offset, chunk_size, dp_column.size());
+            auto [chunk_id, chunk_offset] =
+                to_local_position(column_sequence_size + column_offset, chunk_size, dp_column.size());
             best_score = score_at(dp_column[chunk_id][chunk_offset], simd_idx);
         } else {
-            auto [chunk_id, chunk_offset] = to_local_position(row_sequence_size + row_offset, chunk_size, dp_row.size());
+            auto [chunk_id, chunk_offset] =
+                to_local_position(row_sequence_size + row_offset, chunk_size, dp_row.size());
             best_score = score_at(dp_row[chunk_id][chunk_offset], simd_idx);
         }
 
@@ -174,8 +173,7 @@ private:
     constexpr auto find_max_score_bulk(first_sequence_t && first_sequence,
                                        first_vector_t && first_vector,
                                        second_sequence_t && second_sequence,
-                                       second_vector_t && second_vector,
-                                       size_t const chunk_size) const noexcept
+                                       second_vector_t && second_vector) const noexcept
     {
         using scalar_t = typename score_t::value_type;
         using unsigned_scalar_t = std::make_unsigned_t<scalar_t>;
@@ -214,11 +212,13 @@ private:
 
         score_t best_score{std::numeric_limits<scalar_t>::lowest()};
         score_t scale = _padding_score * scale_first;
-        for (unsigned_scalar_t idx = 0; idx < first_vector_size; ++idx) {
-            offset_simd_t simd_idx{idx};
-            auto mask = (start_offset_first.le(simd_idx) && simd_idx.lt(end_offset_first));
-            auto [chunk_id, chunk_offset] = to_local_position(idx, chunk_size, first_vector.size());
-            best_score = mask_max(best_score, mask, best_score, first_vector[chunk_id][chunk_offset].score() - scale);
+        offset_simd_t simd_idx{0};
+        for (size_t chunk_idx = 0; chunk_idx < first_vector.size(); ++chunk_idx) {
+            size_t chunk_end = first_vector[chunk_idx].size() - (chunk_idx < first_vector.size() - 1);
+            for (size_t local_idx = 0; local_idx < chunk_end; ++local_idx, ++simd_idx) {
+                auto mask = (start_offset_first.le(simd_idx) && simd_idx.lt(end_offset_first));
+                best_score = mask_max(best_score, mask, best_score, first_vector[chunk_idx][local_idx].score() - scale);
+            }
         }
 
         // Note if second_offset is less than first_offset, the last (first_offset - second_offset) elements of the
@@ -226,13 +226,15 @@ private:
         // breaks around the cell (n, m) of the extended simd matrix.
         // This slice starts at the projected second vector cell.
         scale = _padding_score * scale_second;
-        for (unsigned_scalar_t idx = 0; idx < second_vector_size; ++idx) {
-            offset_simd_t simd_idx{idx};
-
-            auto mask = (start_offset_second.le(simd_idx) && simd_idx.lt(end_offset_second));
-            auto [chunk_id, chunk_offset] = to_local_position(idx, chunk_size, second_vector.size());
-            best_score = mask_max(best_score, mask, best_score, second_vector[chunk_id][chunk_offset].score() - scale);
-            scale = mask_add(scale, mask, scale, _padding_score);
+        simd_idx = offset_simd_t{0};
+        for (size_t chunk_idx = 0; chunk_idx < second_vector.size(); ++chunk_idx) {
+            size_t chunk_end = second_vector[chunk_idx].size() - (chunk_idx < second_vector.size() - 1);
+            for (size_t local_idx = 0; local_idx < chunk_end; ++local_idx, ++simd_idx) {
+                auto mask = (start_offset_second.le(simd_idx) && simd_idx.lt(end_offset_second));
+                best_score = mask_max(best_score, mask, best_score, second_vector[chunk_idx][local_idx].score() -
+                                        scale);
+                scale = mask_add(scale, mask, scale, _padding_score);
+            }
         }
 
         return best_score;
@@ -258,7 +260,7 @@ private:
         size_t offset = position % chunk_size;
         // The last block has one more cell to account for the initialisation cell.
         // If the last given position of the currently processed vector is a multiple of the chunk size, then
-        // it is the stored inside the last chunk. The respective index and offset are corrected accoringly.
+        // it is the stored inside the last chunk. The respective index and offset are corrected accordingly.
         size_t is_last_position = (idx == chunk_count);
         return {idx - is_last_position, offset + (chunk_size * is_last_position)};
     }
