@@ -24,8 +24,6 @@ DEFINE_BENCHMARK_VALUES(global_affine_unitary_simd,
     .sequence_count = seqan::pairwise_aligner::detail::max_simd_size
 )
 
-BENCHMARK_TEMPLATE_F(test, score, aligner::benchmark::fixture<&global_affine_unitary_simd>)(benchmark::State & state) {
-    this->run(state);
-}
+INSTANTIATE_TYPED_BENCHMARK(aligner::benchmark::fixture<&global_affine_unitary_simd>)
 
 BENCHMARK_MAIN();
