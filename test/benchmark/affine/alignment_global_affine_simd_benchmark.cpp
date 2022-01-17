@@ -13,17 +13,21 @@
 
 #include "alignment_benchmark_fixture.hpp"
 
-DEFINE_BENCHMARK_VALUES(global_affine_unitary_simd,
-    .configurator = seqan::pairwise_aligner::cfg::gap_model_affine(
-                    seqan::pairwise_aligner::cfg::score_model_unitary_simd(static_cast<int8_t>(4),
-                                                                           static_cast<int8_t>(-5)),
+namespace aligner::benchmark::fixed_simd {
+namespace pa = seqan::pairwise_aligner;
+
+DEFINE_BENCHMARK_VALUES(standard_unitary_same_size,
+    .configurator = pa::cfg::gap_model_affine(
+                       pa::cfg::score_model_unitary_simd(static_cast<int8_t>(4), static_cast<int8_t>(-5)),
                     -10, -1),
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
     .sequence_size_mean = 150,
     .sequence_size_variance = 0,
-    .sequence_count = seqan::pairwise_aligner::detail::max_simd_size
+    .sequence_count = pa::detail::max_simd_size
 )
 
-INSTANTIATE_TYPED_BENCHMARK(aligner::benchmark::fixture<&global_affine_unitary_simd>)
+ALIGNER_BENCHMARK(fixed_simd, standard_unitary_same_size)
+
+} // namespace aligner::benchmark::fixed_simd
 
 BENCHMARK_MAIN();

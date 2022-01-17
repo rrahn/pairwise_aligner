@@ -28,8 +28,9 @@
 static auto name = [](){ return aligner::benchmark::values{__VA_ARGS__}; }();
 
 
-#define INSTANTIATE_TYPED_BENCHMARK(type)  \
-BENCHMARK_TEMPLATE_F(test, score, type)(benchmark::State & state) { this->run(state); }
+#define ALIGNER_BENCHMARK(name, type)  \
+BENCHMARK_TEMPLATE_F(test, name##_##type, aligner::benchmark::fixture<&type>)(::benchmark::State & state) \
+{ this->run(state); }
 
 namespace aligner::benchmark
 {

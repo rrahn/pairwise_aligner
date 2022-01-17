@@ -8,22 +8,44 @@
 #include <seqan3/alignment/configuration/align_config_method.hpp>
 #include <seqan3/core/configuration/configuration.hpp>
 
+#include <pairwise_aligner/configuration/method_global.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary_simd_saturated.hpp>
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
 
 #include "alignment_benchmark_fixture.hpp"
 
-DEFINE_BENCHMARK_VALUES(global_affine_unitary_simd_saturated,
-    .configurator = seqan::pairwise_aligner::cfg::gap_model_affine(
-                    seqan::pairwise_aligner::cfg::score_model_unitary_simd_saturated(static_cast<int16_t>(4),
-                                                                                     static_cast<int16_t>(-5)),
-                    -10, -1),
+namespace aligner::benchmark::saturated_simd {
+namespace pa = seqan::pairwise_aligner;
+
+DEFINE_BENCHMARK_VALUES(standard_unitary_same_size,
+    .configurator = pa::cfg::gap_model_affine(
+                        pa::cfg::score_model_unitary_simd_saturated(static_cast<int16_t>(4),
+                                                                    static_cast<int16_t>(-5)),
+                        -10, -1),
+    .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
+    .sequence_size_mean = 150,
+    .sequence_size_variance = 0,
+    .sequence_count = pa::detail::max_simd_size
+)
+
+DEFINE_BENCHMARK_VALUES(semi_first_unitary_same_size,
+    .configurator = pa::cfg::method_global(
+                        pa::cfg::gap_model_affine(
+                            pa::cfg::score_model_unitary_simd_saturated(static_cast<int16_t>(4),
+                                                                        static_cast<int16_t>(-5)),
+                            -10, -1),
+                        pa::cfg::leading_end_gap{.first_column = pa::cfg::end_gap::free },
+                        pa::cfg::trailing_end_gap{.last_column = pa::cfg::end_gap::free }),
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
     .sequence_size_mean = 150,
     .sequence_size_variance = 0,
     .sequence_count = seqan::pairwise_aligner::detail::max_simd_size
 )
 
-INSTANTIATE_TYPED_BENCHMARK(aligner::benchmark::fixture<&global_affine_unitary_simd_saturated>)
+ALIGNER_BENCHMARK(saturated_simd, standard_unitary_same_size)
+ALIGNER_BENCHMARK(saturated_simd, semi_first_unitary_same_size)
+
+} // namespace aligner::benchmark::saturated_simd
+
 
 BENCHMARK_MAIN();
