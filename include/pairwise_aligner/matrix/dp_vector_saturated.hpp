@@ -80,7 +80,7 @@ private:
             // std::cout << "_saturated_value[0] = " << (int)_saturated_value.score()[0] << "\n";
             // std::cout << "_offset[0] = " << _offset[0] << "\n";
             // std::cout << "original_cell_t{*this}.score()[0] = " << original_cell_t{*this}.score()[0] << "\n";
-            return original_cell_t{*this}.score();
+            return score_type{_saturated_value.score()} + _offset;
         }
 
         constexpr typename score_type::value_type score_at(size_t const position) const noexcept
