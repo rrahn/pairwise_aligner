@@ -112,6 +112,12 @@ public:
         return values[index][offset];
     }
 
+    constexpr simd_score & operator++() noexcept
+    {
+        apply([] (native_simd_t & value) { ++value; }, values);
+        return *this;
+    }
+
     constexpr simd_score & operator+=(simd_score const & right) noexcept
     {
         apply([] (native_simd_t & left, native_simd_t const & right) { left += right; },
