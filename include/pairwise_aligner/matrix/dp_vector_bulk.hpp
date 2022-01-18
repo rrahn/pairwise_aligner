@@ -54,6 +54,16 @@ public:
         return _dp_vector.size();
     }
 
+    dp_vector_t & base() noexcept
+    {
+        return _dp_vector;
+    }
+
+    dp_vector_t const & base() const noexcept
+    {
+        return _dp_vector;
+    }
+
     decltype(auto) range() noexcept
     {
         return _dp_vector.range();
