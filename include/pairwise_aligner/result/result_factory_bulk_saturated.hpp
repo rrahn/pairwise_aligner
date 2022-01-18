@@ -13,6 +13,7 @@
 #pragma once
 
 #include <limits>
+#include <seqan3/std/ranges>
 
 #include <pairwise_aligner/configuration/end_gap_policy.hpp>
 #include <pairwise_aligner/result/aligner_result.hpp>
@@ -45,6 +46,291 @@ struct _value<base_value_t, score_t>::type : public base_value_t
 };
 
 } // namespace _bulk_factory_saturated
+
+namespace detail
+{
+
+template <typename score_t, typename dp_column_t, typename dp_row_t>
+struct _saturated_max_score_finder
+{
+    class type;
+};
+
+template <typename score_t, typename dp_column_t, typename dp_row_t>
+using saturated_max_score_finder = typename _saturated_max_score_finder<score_t, dp_column_t, dp_row_t>::type;
+
+template <typename score_t, typename dp_column_t, typename dp_row_t>
+class _saturated_max_score_finder<score_t, dp_column_t, dp_row_t>::type
+{
+private:
+
+    using vec_int8_t = simd_score<int8_t>;
+    using vec_uint8_t = simd_score<uint8_t>;
+    using mask_uint8_t = typename vec_uint8_t::mask_type;
+    using scalar_t = typename score_t::value_type;
+    using index_t = std::make_unsigned_t<scalar_t>;
+    using vec_index_t = simd_score<index_t, score_t::size>;
+
+    inline static constexpr size_t level1_max_size_v = (1ull << 8) - 1; // maximal size of sequence usable with level1
+    inline static constexpr size_t level2_max_size_v = (1ull << 16) - 1; // maximal size of sequence usable with level2
+    inline static constexpr size_t level3_max_size_v = (1ull << 24) - 1; // maximal size of sequence usable with level3
+
+    struct level_state {
+        vec_index_t begin_position{};
+        vec_index_t end_position{};
+        mask_uint8_t reached_first{~mask_uint8_t{}};
+        mask_uint8_t reached_last{~mask_uint8_t{}};
+
+        size_t chunk_idx{};
+        size_t chunk_position{};
+        size_t chunk_end{};
+    };
+
+    // Extracted parameters
+    vec_index_t _sequence1_sizes{};
+    vec_index_t _sequence2_sizes{};
+    dp_column_t _dp_column;
+    dp_row_t _dp_row;
+    size_t _chunk_size{};
+    size_t _dp_column_size{};
+    size_t _dp_row_size{};
+
+public:
+    type() = delete;
+
+    template <typename sequence1_bulk_t, typename sequence2_bulk_t>
+    constexpr explicit type(dp_column_t dp_column,
+                            dp_row_t dp_row,
+                            sequence1_bulk_t && sequence1_bulk,
+                            sequence2_bulk_t && sequence2_bulk) :
+        _dp_column{std::forward<dp_column_t>(dp_column)},
+        _dp_row{std::forward<dp_row_t>(dp_row)}
+    {
+        _chunk_size = dp_column.base().chunk_size();
+
+        // Determine the maximal column and row size and store the sequence sizes in a simd vector.
+        auto get_size = [] (auto && sequence) { return std::ranges::distance(sequence); };
+        auto sequence1_sizes = sequence1_bulk | std::views::transform(get_size);
+        auto sequence2_sizes = sequence2_bulk | std::views::transform(get_size);
+
+        for (std::ptrdiff_t idx = 0; idx < std::ranges::distance(sequence1_sizes) ; ++idx) {
+            _sequence1_sizes[idx] = sequence1_sizes[idx];
+            _sequence2_sizes[idx] = sequence2_sizes[idx];
+            _dp_column_size = std::max<size_t>(_dp_column_size, sequence1_sizes[idx] + 1);
+            _dp_row_size = std::max<size_t>(_dp_row_size, sequence2_sizes[idx] + 1);
+        }
+
+        if (_dp_column_size > level3_max_size_v || _dp_row_size > level3_max_size_v)
+            throw std::runtime_error{"The given dynamic programming matrix exceeds the maximal allowed column and/or "
+                                     " row size of 2^24 - 1."};
+    }
+
+    constexpr auto in_column(score_t const & padding_score) const noexcept
+    {
+        auto [column_offsets, row_offsets] = get_offsets();
+        return max(run_first(_dp_column, _dp_column_size, _sequence1_sizes, column_offsets, padding_score),
+                   run_second(_dp_row, _dp_row_size, _sequence2_sizes, row_offsets, padding_score));
+    }
+
+    constexpr auto in_row(score_t const & padding_score) const noexcept
+    {
+        auto [column_offsets, row_offsets] = get_offsets();
+        return max(run_first(_dp_row, _dp_row_size, _sequence2_sizes, row_offsets, padding_score),
+                   run_second(_dp_column, _dp_column_size, _sequence1_sizes, column_offsets, padding_score));
+    }
+
+private:
+
+    constexpr auto get_offsets() const noexcept
+    {
+        return std::pair{vec_index_t{static_cast<index_t>(_dp_row_size - 1)} - _sequence2_sizes,
+                         vec_index_t{static_cast<index_t>(_dp_column_size - 1)} - _sequence1_sizes};
+    }
+
+    template <typename dp_vector_t>
+    auto run_first(dp_vector_t const & dp_vector,
+                   size_t const dp_vector_size,
+                   vec_index_t const & sequence_sizes,
+                   vec_index_t const & vector_offsets,
+                   score_t const & padding_score) const noexcept
+    {
+        // Global states
+        score_t best_score{std::numeric_limits<scalar_t>::lowest()};
+        score_t const scaling_factor = padding_score * score_t{vector_offsets};
+        score_t const mask_infinity{std::numeric_limits<int8_t>::lowest()};
+        size_t const chunk_count = dp_vector.size();
+
+        vec_int8_t local_max_score{std::numeric_limits<int8_t>::lowest()};
+        mask_uint8_t reached_first{};
+        mask_uint8_t reached_last{};
+
+        auto find = [&] (level_state & state) -> bool {
+
+            if (state.chunk_position == state.chunk_end) {
+                // Get max best score.
+                auto in_range = mask_infinity.lt(score_t{local_max_score});
+                best_score = mask_max(best_score,
+                                      in_range,
+                                      best_score,
+                                      (score_t{local_max_score} + dp_vector[state.chunk_idx].offset()) -
+                                        scaling_factor);
+
+                if (++state.chunk_idx == chunk_count) {
+                    return false;
+                }
+
+                local_max_score = vec_int8_t{std::numeric_limits<int8_t>::lowest()};
+                state.chunk_end = dp_vector[state.chunk_idx].size() - (state.chunk_idx < chunk_count - 1);
+                state.chunk_position = 0;
+            }
+
+            reached_first |= state.reached_first;
+            reached_last |= state.reached_last;
+            mask_uint8_t mask{reached_first & ~reached_last};
+
+            auto const & base_chunk = dp_vector[state.chunk_idx].base(); // TODO: No guarantee that base is what it is supposed to be!
+            local_max_score = mask_max(local_max_score, mask, local_max_score, base_chunk[state.chunk_position].score());
+            return true;
+        };
+
+        level_state state{
+            .begin_position = vector_offsets,
+            .end_position = min(vector_offsets + sequence_sizes + vec_index_t{1},
+                                vec_index_t{static_cast<index_t>(dp_vector_size)}),
+            .chunk_end = dp_vector[0].size() - (0 < chunk_count - 1)
+        };
+
+        if (dp_vector_size > level2_max_size_v) {
+            run_level3(state, find);
+        } else if (dp_vector_size > level1_max_size_v) {
+            run_level2(state, find);
+        } else {
+            run_level1(state, find);
+        }
+
+        return best_score;
+    }
+
+    template <typename dp_vector_t>
+    auto run_second(dp_vector_t const & dp_vector,
+                    size_t const dp_vector_size,
+                    vec_index_t const & sequence_sizes,
+                    vec_index_t const & vector_offsets,
+                    score_t const & padding_score) const noexcept
+    {
+        // Global state!
+        score_t best_score{std::numeric_limits<scalar_t>::lowest()};
+        score_t const scaling_factor = score_t{sequence_sizes};
+        score_t const mask_infinity{std::numeric_limits<int8_t>::lowest()};
+        size_t const chunk_count = dp_vector.size();
+
+        vec_int8_t local_max_score{std::numeric_limits<int8_t>::lowest()};
+        vec_int8_t const local_padding_score{padding_score};
+        vec_int8_t local_scaling_factor{0};
+        mask_uint8_t reached_first{};
+
+        auto find = [&] (level_state & state) -> bool {
+            if (state.chunk_position == state.chunk_end) {
+                auto in_range = mask_infinity.lt(score_t{local_max_score});
+                score_t diff = score_t{static_cast<scalar_t>(state.chunk_idx * _chunk_size)} - scaling_factor;
+                best_score = mask_max(best_score,
+                                      in_range,
+                                      best_score,
+                                      (score_t{local_max_score} - (diff * padding_score) +
+                                          dp_vector[state.chunk_idx].offset())
+                                      );
+
+                if (++state.chunk_idx == chunk_count)
+                    return false;
+
+                // Reinitialise loop variables.
+                state.chunk_end = dp_vector[state.chunk_idx].size() - 1;
+                local_max_score = vec_int8_t{std::numeric_limits<int8_t>::lowest()};
+                local_scaling_factor = vec_int8_t{0};
+                state.chunk_position = 0;
+            }
+
+            reached_first |= state.reached_first;
+            auto const & base_chunk = dp_vector[state.chunk_idx].base();
+            local_max_score = mask_max(local_max_score,
+                                       reached_first,
+                                       local_max_score,
+                                       base_chunk[state.chunk_position].score() - local_scaling_factor);
+            local_scaling_factor += local_padding_score;
+            return true;
+        };
+
+        level_state state{
+            .begin_position = min(sequence_sizes + vector_offsets, vec_index_t{static_cast<index_t>(dp_vector_size)}),
+            .chunk_end = dp_vector[0].size() - 1
+        };
+
+        if (dp_vector_size > level2_max_size_v) {
+            run_level3(state, find);
+        } else if (dp_vector_size > level1_max_size_v) {
+            run_level2(state, find);
+        } else {
+            run_level1(state, find);
+        }
+
+        return best_score;
+    }
+
+    template <typename fn_t>
+    void run_level3(level_state & state, fn_t && fn) const noexcept
+    {
+        vec_uint8_t begin_position = vec_uint8_t{state.begin_position >> 16};
+        vec_uint8_t end_position = vec_uint8_t{state.end_position >> 16};
+        vec_uint8_t vec_level3_idx{0};
+        for (vec_uint8_t vec_level3_idx{0};; ++vec_level3_idx) {
+            state.reached_first = begin_position.le(vec_level3_idx);
+            state.reached_last = end_position.le(vec_level3_idx);
+            if (!run_level2(state, std::forward<fn_t>(fn)))
+                break; // terminate.
+        }
+    }
+
+    template <typename fn_t>
+    auto run_level2(level_state & state, fn_t && fn) const noexcept
+    {
+        mask_uint8_t parent_reached_first = state.reached_first;
+        mask_uint8_t parent_reached_last = state.reached_last;
+        vec_uint8_t begin_position = vec_uint8_t{(state.begin_position >> 8) & vec_index_t{255}};
+        vec_uint8_t end_position = vec_uint8_t{(state.end_position >> 8) & vec_index_t{255}};
+        vec_uint8_t vec_level2_idx{0};
+        for (size_t idx = 0; idx < 256; ++idx, ++vec_level2_idx) {
+            state.reached_first = parent_reached_first & begin_position.le(vec_level2_idx);
+            state.reached_last = parent_reached_last & end_position.le(vec_level2_idx);
+
+            if (!run_level1(state, std::forward<fn_t>(fn)))
+                return false; // terminate.
+        }
+        return true;
+    }
+
+    template <typename fn_t>
+    auto run_level1(level_state & state, fn_t && fn) const noexcept
+    {
+        mask_uint8_t parent_reached_first = state.reached_first;
+        mask_uint8_t parent_reached_last = state.reached_last;
+        vec_uint8_t begin_position = vec_uint8_t{state.begin_position & vec_index_t{255}};
+        vec_uint8_t end_position = vec_uint8_t{state.end_position & vec_index_t{255}};
+        for (size_t level1_idx = 0; level1_idx < 256; ++level1_idx, ++state.chunk_position) {
+            vec_uint8_t vec_level1_idx{static_cast<uint8_t>(level1_idx)};
+
+            // it is a mask and we later add the mask to it.
+            state.reached_first = parent_reached_first & begin_position.le(vec_level1_idx);
+            state.reached_last = parent_reached_last & end_position.le(vec_level1_idx);
+
+            if (!fn(state))
+                return false; // terminate.
+        }
+        return true;
+    }
+
+};
+
+} // namespace detail
 
 template <typename score_t>
 struct _result_factory_bulk_saturated
@@ -110,13 +396,16 @@ private:
             return best_score;
         }
 
+        using max_score_finder_t = detail::saturated_max_score_finder<score_t, dp_column_t &, dp_row_t &>;
+        max_score_finder_t max_score_finder{dp_column, dp_row, sequence_bulk1, sequence_bulk2};
+
         score_t best_score{std::numeric_limits<typename score_t::value_type>::lowest()};
         if (last_column == cfg::end_gap::free) {
-            best_score = find_max_score_bulk(sequence_bulk1, dp_column, sequence_bulk2, dp_row);
+            best_score = max_score_finder.in_column(_padding_score);
         }
 
         if (last_row == cfg::end_gap::free) {
-            best_score = max(best_score, find_max_score_bulk(sequence_bulk2, dp_row, sequence_bulk1, dp_column));
+            best_score = max(best_score, max_score_finder.in_row(_padding_score));
         }
         return best_score;
     }
@@ -157,87 +446,16 @@ private:
         size_t const chunk_size = dp_column[0].size() - 1;
 
         if (scale == column_offset) {
-            auto [chunk_id, chunk_offset] =
+            auto [chunk_id, chunk_position] =
                 to_local_position(column_sequence_size + column_offset, chunk_size, dp_column.size());
-            best_score = score_at(dp_column[chunk_id][chunk_offset], simd_idx);
+            best_score = score_at(dp_column[chunk_id][chunk_position], simd_idx);
         } else {
-            auto [chunk_id, chunk_offset] =
+            auto [chunk_id, chunk_position] =
                 to_local_position(row_sequence_size + row_offset, chunk_size, dp_row.size());
-            best_score = score_at(dp_row[chunk_id][chunk_offset], simd_idx);
+            best_score = score_at(dp_row[chunk_id][chunk_position], simd_idx);
         }
 
         return best_score - (_padding_score[simd_idx] * scale);
-    }
-
-    template <typename first_sequence_t, typename first_vector_t, typename second_sequence_t, typename second_vector_t>
-    constexpr auto find_max_score_bulk(first_sequence_t && first_sequence,
-                                       first_vector_t && first_vector,
-                                       second_sequence_t && second_sequence,
-                                       second_vector_t && second_vector) const noexcept
-    {
-        using scalar_t = typename score_t::value_type;
-        using unsigned_scalar_t = std::make_unsigned_t<scalar_t>;
-        using offset_simd_t = simd_score<unsigned_scalar_t, score_t::size>;
-
-        offset_simd_t start_offset_first{};
-        offset_simd_t end_offset_first{};
-        score_t scale_first{};
-
-        offset_simd_t start_offset_second{};
-        offset_simd_t end_offset_second{};
-        score_t scale_second{};
-
-        // Prepare the offsets.
-        size_t first_vector_size{};
-        size_t second_vector_size{};
-
-        for (std::ptrdiff_t idx = 0; idx < std::ranges::distance(first_sequence); ++idx) {
-            auto [first_sequence_size, first_size, second_offset] = get_offsets(first_sequence[idx], first_vector);
-            auto [second_sequence_size, second_size, first_offset] = get_offsets(second_sequence[idx], second_vector);
-
-            first_vector_size = first_size;
-            second_vector_size = second_size;
-
-            start_offset_first[idx] = first_offset;
-            end_offset_first[idx] = std::min<size_t>(first_offset + first_sequence_size + 1, first_vector_size);
-            scale_first[idx] = first_offset;
-
-            start_offset_second[idx] = second_sequence_size + second_offset;
-            end_offset_second[idx] = second_vector_size;
-            scale_second[idx] = second_offset;
-        }
-
-        // Iterate over the corresponding slice in the projected dp vector (first_vector) and subtract the scaled
-        // padding score from the retrieved values of the corresponding simd index.
-
-        score_t best_score{std::numeric_limits<scalar_t>::lowest()};
-        score_t scale = _padding_score * scale_first;
-        offset_simd_t simd_idx{0};
-        for (size_t chunk_idx = 0; chunk_idx < first_vector.size(); ++chunk_idx) {
-            size_t chunk_end = first_vector[chunk_idx].size() - (chunk_idx < first_vector.size() - 1);
-            for (size_t local_idx = 0; local_idx < chunk_end; ++local_idx, ++simd_idx) {
-                auto mask = (start_offset_first.le(simd_idx) && simd_idx.lt(end_offset_first));
-                best_score = mask_max(best_score, mask, best_score, first_vector[chunk_idx][local_idx].score() - scale);
-            }
-        }
-
-        // Note if second_offset is less than first_offset, the last (first_offset - second_offset) elements of the
-        // second vector must be considered as well; these cells contain the values of the projected first vector, which
-        // breaks around the cell (n, m) of the extended simd matrix.
-        // This slice starts at the projected second vector cell.
-        scale = _padding_score * scale_second;
-        simd_idx = offset_simd_t{0};
-        for (size_t chunk_idx = 0; chunk_idx < second_vector.size(); ++chunk_idx) {
-            size_t chunk_end = second_vector[chunk_idx].size() - (chunk_idx < second_vector.size() - 1);
-            for (size_t local_idx = 0; local_idx < chunk_end; ++local_idx, ++simd_idx) {
-                auto mask = (start_offset_second.le(simd_idx) && simd_idx.lt(end_offset_second));
-                best_score = mask_max(best_score, mask, best_score, second_vector[chunk_idx][local_idx].score() -
-                                        scale);
-                scale = mask_add(scale, mask, scale, _padding_score);
-            }
-        }
-
-        return best_score;
     }
 
     template <typename cell_t>
