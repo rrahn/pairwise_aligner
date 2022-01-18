@@ -132,10 +132,11 @@ public:
         return *this;
     }
 
-    constexpr simd_score operator+(simd_score tmp) const noexcept
+    constexpr simd_score operator+(simd_score const & right) const noexcept
     {
-        apply([] (native_simd_t & left, native_simd_t const & right) { left += right; },
-              tmp.values, values);
+        simd_score tmp{};
+        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left + right; },
+              tmp.values, values, right.values);
         return tmp;
     }
 
@@ -161,10 +162,11 @@ public:
         return *this;
     }
 
-    constexpr simd_score operator-(simd_score tmp) const noexcept
+    constexpr simd_score operator-(simd_score const & right) const noexcept
     {
-        apply([] (native_simd_t & left, native_simd_t const & right) { left = right - left; },
-             tmp.values, values);
+        simd_score tmp{};
+        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left - right; },
+              tmp.values, values, right.values);
         return tmp;
     }
 
@@ -190,10 +192,11 @@ public:
         return *this;
     }
 
-    constexpr simd_score operator*(simd_score tmp) const noexcept
+    constexpr simd_score operator*(simd_score const & right) const noexcept
     {
-        apply([] (native_simd_t & left, native_simd_t const & right) { left *= right; },
-              tmp.values, values);
+        simd_score tmp{};
+        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left * right; },
+              tmp.values, values, right.values);
         return tmp;
     }
 
@@ -205,10 +208,11 @@ public:
         return tmp;
     }
 
-    constexpr simd_score operator^(simd_score tmp) const noexcept
+    constexpr simd_score operator^(simd_score const & right) const noexcept
     {
-        apply([] (native_simd_t & left, native_simd_t const & right) { left ^= right; },
-              tmp.values, values);
+        simd_score tmp{};
+        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left ^ right; },
+              tmp.values, values, right.values);
         return tmp;
     }
 
