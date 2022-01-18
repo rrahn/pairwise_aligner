@@ -216,11 +216,45 @@ public:
         return tmp;
     }
 
+    constexpr simd_score operator&(simd_score const & right) const noexcept
+    {
+        simd_score tmp{};
+        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left & right; },
+              tmp.values, values, right.values);
+        return tmp;
+    }
+
+
+    constexpr simd_score operator>>(simd_score const & right) const noexcept
+    {
+        simd_score tmp{};
+        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left >> right; },
+              tmp.values, values, right.values);
+        return tmp;
+    }
+
+    constexpr simd_score operator>>(value_type const right_constant) const noexcept
+    {
+        simd_score tmp{};
+        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left >> right; },
+              tmp.values, values, simd_score{right_constant}.values);
+        return tmp;
+    }
+
     constexpr friend simd_score max(simd_score const & left, simd_score const & right) noexcept
     {
         simd_score tmp{};
         apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) {
                 res = (left < right) ? right : left;
+        }, tmp.values, left.values, right.values);
+        return tmp;
+    }
+
+    constexpr friend simd_score min(simd_score const & left, simd_score const & right) noexcept
+    {
+        simd_score tmp{};
+        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) {
+                res = (left < right) ? left : right;
         }, tmp.values, left.values, right.values);
         return tmp;
     }
