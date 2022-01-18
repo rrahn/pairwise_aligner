@@ -54,6 +54,11 @@ public:
         return _dp_vector_chunks.size();
     }
 
+    constexpr size_t chunk_size() const noexcept
+    {
+        return _chunk_size;
+    }
+
     range_type & range() noexcept
     {
         return _dp_vector_chunks;
