@@ -72,6 +72,44 @@ public:
         return tmp;
     }
 
+    constexpr simd_mask operator&(simd_mask const & right) const noexcept
+    {
+        simd_mask tmp{};
+        apply([] (native_mask_t & res, native_mask_t const & left, native_mask_t const & right) { res = left & right; },
+              tmp.values, values, right.values);
+        return tmp;
+    }
+
+    constexpr simd_mask & operator&=(simd_mask const & right) noexcept
+    {
+        apply([] (native_mask_t & left, native_mask_t const & right) { left &= right; },
+              values, right.values);
+        return *this;
+    }
+
+    constexpr simd_mask operator|(simd_mask const & right) const noexcept
+    {
+        simd_mask tmp{};
+        apply([] (native_mask_t & res, native_mask_t const & left, native_mask_t const & right) { res = left | right; },
+              tmp.values, values, right.values);
+        return tmp;
+    }
+
+    constexpr simd_mask & operator|=(simd_mask const & right) noexcept
+    {
+        apply([] (native_mask_t & left, native_mask_t const & right) { left |= right; },
+              values, right.values);
+        return *this;
+    }
+
+    constexpr simd_mask operator~() const noexcept
+    {
+        simd_mask tmp{};
+        apply([] (native_mask_t & left, native_mask_t const & right) { left = ~right; },
+              tmp.values, values);
+        return tmp;
+    }
+
 private:
 
     constexpr auto to_local_position(size_t const position) const noexcept
