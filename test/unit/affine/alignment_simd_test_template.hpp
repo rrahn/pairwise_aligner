@@ -119,8 +119,8 @@ TYPED_TEST_P(test_suite, score)
     for (auto result : simd_results) {
         EXPECT_EQ(result.score(), (scalar_aligner.compute(result.sequence1(), result.sequence2()).score()))
             << "index: " << index << "\n"
-            << "seq1: " << result.sequence1() << "\n"
-            << "seq2: " << result.sequence2() << "\n";
+            << "s1: (" << result.sequence1().size() << ") " << result.sequence1() << "\n"
+            << "s2: (" << result.sequence2().size() << ") " << result.sequence2() << "\n";
         ++index;
     }
 }
