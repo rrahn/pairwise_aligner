@@ -55,12 +55,20 @@ DEFINE_TEST_VALUES(equal_size_8, int8_t,
     .sequence_generation_param{sequence_count, 25, 25},
 )
 
+DEFINE_TEST_VALUES(sequence_size_1000_equal_32, int32_t,
+    .base_configurator = base_config,
+    .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
+    .substitution_scores{4, -5},
+    .sequence_generation_param{sequence_count, 1000, 1000},
+)
+
 using equal_size_types =
     ::testing::Types<
         alignment::test::fixture<&equal_size_64>,
         alignment::test::fixture<&equal_size_32>,
         alignment::test::fixture<&equal_size_16>,
-        alignment::test::fixture<&equal_size_8>
+        alignment::test::fixture<&equal_size_8>,
+        alignment::test::fixture<&sequence_size_1000_equal_32>
     >;
 // ----------------------------------------------------------------------------
 // Variable size
@@ -94,12 +102,20 @@ DEFINE_TEST_VALUES(variable_size_8, int8_t,
     .sequence_generation_param{sequence_count, 10, 15},
 )
 
+DEFINE_TEST_VALUES(sequence_size_1000_variable_32, int32_t,
+    .base_configurator = base_config,
+    .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
+    .substitution_scores{4, -5},
+    .sequence_generation_param{sequence_count, 900, 1100},
+)
+
 using variable_size_types =
     ::testing::Types<
         alignment::test::fixture<&variable_size_64>,
         alignment::test::fixture<&variable_size_32>,
         alignment::test::fixture<&variable_size_16>,
-        alignment::test::fixture<&variable_size_8>
+        alignment::test::fixture<&variable_size_8>,
+        alignment::test::fixture<&sequence_size_1000_variable_32>
     >;
 } // global::affine::saturated_simd
 
