@@ -68,16 +68,19 @@ private:
     template <typename random_engine_t>
     void generate_sequences(random_engine_t & random_engine)
     {
+        constexpr std::array dna_symbol_table{'A', 'C', 'G', 'T'};
+
         auto [count, min_size, max_size] = this->GetParam().sequence_generation_param;
+
         sequence_collection1.resize(count);
         sequence_collection2.resize(count);
 
         std::uniform_int_distribution<size_t> sequence_size_distribution{min_size, max_size};
-        constexpr std::array dna_symbol_table{'A', 'C', 'G', 'T'};
+        std::uniform_int_distribution<size_t> symbol_distribution{0, dna_symbol_table.size() - 1};
 
         auto generate_sequence = [&] (auto & sequence) {
             sequence.resize(sequence_size_distribution(random_engine));
-            std::ranges::generate(sequence, [&] () { return dna_symbol_table[std::rand() % dna_symbol_table.size()]; });
+            std::ranges::generate(sequence, [&] () { return dna_symbol_table[symbol_distribution(random_engine)]; });
         };
 
         for (size_t i = 0; i < sequence_collection1.size(); ++i) {
