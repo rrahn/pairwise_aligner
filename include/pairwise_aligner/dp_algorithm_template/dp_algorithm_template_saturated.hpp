@@ -12,13 +12,11 @@
 
 #pragma once
 
-#include <array>
 #include <seqan3/std/span>
 
 #include <seqan3/utility/views/slice.hpp>
 
-#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
-#include <pairwise_aligner/matrix/dp_vector_saturated.hpp>
+#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_base.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -107,26 +105,24 @@ public:
     }
 };
 
-}
+} // namespace detail
 
-template <typename derived_t>
+template <typename algorithm_impl_t>
 struct _dp_algorithm_template_saturated
 {
     class type;
 };
 
-template <typename derived_t>
-using dp_algorithm_template_saturated = typename _dp_algorithm_template_saturated<derived_t>::type;
+template <typename algorithm_impl_t>
+using dp_algorithm_template_saturated = typename _dp_algorithm_template_saturated<algorithm_impl_t>::type;
 
-template <typename derived_t>
-class _dp_algorithm_template_saturated<derived_t>::type
-    // : dp_algorithm_template_standard<_dp_algorithm_template_saturated<derived_t>::type>
+template <typename algorithm_impl_t>
+class _dp_algorithm_template_saturated<algorithm_impl_t>::type : public dp_algorithm_template_base<algorithm_impl_t>
 {
-    // using base_t = dp_algorithm_template_standard<_dp_algorithm_template_saturated<derived_t>::type>;
-protected:
+private:
+    using base_t = dp_algorithm_template_base<algorithm_impl_t>;
 
-    // friend base_t;
-    friend derived_t;
+protected:
 
     template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t>
     auto run(sequence1_t && sequence1, sequence2_t && sequence2, dp_column_t dp_column, dp_row_t dp_row) const
@@ -135,8 +131,8 @@ protected:
         // Initialisation
         // ----------------------------------------------------------------------------
 
-        auto simd_seq1 = as_derived().initialise_column_vector(sequence1, dp_column);
-        auto simd_seq2 = as_derived().initialise_row_vector(sequence2, dp_row);
+        auto simd_seq1 = base_t::initialise_column(sequence1, dp_column);
+        auto simd_seq2 = base_t::initialise_row(sequence2, dp_row);
 
         // ----------------------------------------------------------------------------
         // Recursion
@@ -178,7 +174,7 @@ protected:
             current_row_vector.offset(current_row_vector[0].score());
             dp_column_blocks[0].offset(dp_column_blocks[0][0].score());
 
-            initialise_block(dp_column_blocks[0], current_row_vector);
+            base_t::initialise_block(dp_column_blocks[0], current_row_vector);
 
             // Iterate over blocks in current column.
             for (size_t i = 0; i < column_block_count; ++i) {
@@ -189,180 +185,21 @@ protected:
                     dp_column_blocks[i][0].score() = current_row_vector[0].score();
                 }
 
-                _run(seq1_blocked[i], transformed_seq2, dp_column_blocks[i], current_row_vector);
+                base_t::compute_block(seq1_blocked[i], transformed_seq2, dp_column_blocks[i], current_row_vector);
             }
 
             // Write back optimal score to row vector.
-            postprocess_block(dp_column_blocks.back(), current_row_vector);
+            base_t::postprocess_block(dp_column_blocks.back(), current_row_vector);
         }
 
         // ----------------------------------------------------------------------------
         // Create result
         // ----------------------------------------------------------------------------
 
-        return as_derived().make_result(std::forward<sequence1_t>(sequence1),
-                                        std::forward<sequence2_t>(sequence2),
-                                        std::move(dp_column),
-                                        std::move(dp_row));
-    }
-
-    template <typename sequence1_t,
-              typename sequence2_t,
-              typename dp_column_vector_t,
-              typename dp_row_vector_t>
-    void _run(sequence1_t sequence1,
-              sequence2_t sequence2,
-              dp_column_vector_t && dp_column_vector,
-              dp_row_vector_t && dp_row_vector) const
-    {
-        std::ptrdiff_t const seq1_size = std::ranges::ssize(sequence1);
-        std::ptrdiff_t const seq2_size = std::ranges::ssize(sequence2);
-
-        using value_t = typename std::remove_cvref_t<dp_row_vector_t>::value_type;
-
-        // Initialise bulk_cache array.
-        constexpr std::ptrdiff_t cache_size = 8;
-        std::array<value_t, cache_size> bulk_cache{};
-
-        std::ptrdiff_t j = 0;
-        for (; j < seq2_size - (cache_size - 1); j += cache_size)
-        {
-            // copy values into cache.
-            std::span seq2_slice{sequence2.begin() + j, sequence2.begin() + j + cache_size};
-            unroll_load(bulk_cache, dp_row_vector, j + 1, std::make_index_sequence<cache_size>());
-
-            // compute cache many cells in one row for one horziontal value.
-            for (std::ptrdiff_t i = 0; i < seq1_size; ++i) {
-                auto cacheH = dp_column_vector[i+1];
-
-                unroll_loop(bulk_cache, cacheH, sequence1[i], seq2_slice, std::make_index_sequence<cache_size>());
-
-                dp_column_vector[i+1] = cacheH;
-            }
-
-            // store results of cache back in vector.
-            unroll_store(dp_row_vector, bulk_cache, j + 1, std::make_index_sequence<cache_size>());
-        }
-
-        // Compute remaining cells.
-        for (; j < seq2_size; ++j) {
-            auto cache = dp_row_vector[j + 1];
-
-            for (std::ptrdiff_t i = 0; i < seq1_size; ++i) {
-                as_derived().compute_cell(cache, dp_column_vector[i+1], sequence1[i], sequence2[j]);
-            }
-
-            dp_row_vector[j + 1] = cache;
-        }
-    }
-
-    template <typename row_cells_t,
-              typename col_cell_t,
-              typename seq1_value_t,
-              typename seq2_values_t,
-              size_t ...idx>
-    constexpr void unroll_loop(row_cells_t & row_cells,
-                               col_cell_t & col_cell,
-                               seq1_value_t const & seq1_value,
-                               seq2_values_t const & seq2_values,
-                               [[maybe_unused]] std::index_sequence<idx...> const & indices) const noexcept
-    {
-        (as_derived().compute_cell(row_cells[idx], col_cell, seq1_value, seq2_values[idx]), ...);
-    }
-
-    template <typename cache_t, typename row_vector_t, size_t ...idx>
-    constexpr void unroll_load(cache_t & bulk_cache,
-                               row_vector_t const & row_vector,
-                               size_t const offset,
-                               [[maybe_unused]] std::index_sequence<idx...> const & indices) const noexcept
-    {
-        ((bulk_cache[idx] = row_vector[offset + idx]), ...);
-    }
-
-    template <typename row_vector_t, typename cache_t, size_t ...idx>
-    constexpr void unroll_store(row_vector_t & row_vector,
-                                cache_t const & bulk_cache,
-                                size_t const offset,
-                                [[maybe_unused]] std::index_sequence<idx...> const & indices) const noexcept
-    {
-        ((row_vector[offset + idx] = bulk_cache[idx]), ...);
-    }
-
-    // template <typename sequence_t, typename dp_vector_t>
-    // sequence_t initialise_row_vector(sequence_t && sequence, [[maybe_unused]] dp_vector_t & dp_vector) const
-    // {
-    //     // TODO: do what?
-    //     // dp_vector.initialise();
-    //     return std::forward<sequence_t>(sequence);
-    // }
-
-    // template <typename sequence_t, typename dp_vector_t>
-    // sequence_t initialise_column_vector(sequence_t && sequence, [[maybe_unused]] dp_vector_t & dp_vector) const
-    // {
-    //     // dp_vector.initialise();
-    //     return std::forward<sequence_t>(sequence);
-    // }
-
-    // template <typename ...args_t>
-    // auto compute_first_column(args_t && ...args) const noexcept
-    // {
-    //     return as_derived().compute_first_column(std::forward<args_t>(args)...);
-    // }
-
-    // template <typename ...args_t>
-    // auto initialise_column(args_t && ...args) const noexcept
-    // {
-    //     return as_derived().initialise_column(std::forward<args_t>(args)...);
-    // }
-
-    // template <typename ...args_t>
-    // void finalise_column(args_t && ...args) const noexcept
-    // {
-    //     as_derived().finalise_column(std::forward<args_t>(args)...);
-    // }
-
-    // template <typename ...args_t>
-    // constexpr void make_result(args_t && .../*args*/) const noexcept
-    // {
-    //     // noop
-    // }
-
-    // template <typename ...args_t>
-    // void compute_cell(args_t && ...args) const noexcept
-    // {
-    //     as_derived().compute_cell(std::forward<args_t>(args)...);
-    // }
-
-    template <typename column_vector_t, typename row_vector_t>
-    constexpr void initialise_block(column_vector_t && column_vector, row_vector_t && row_vector) const noexcept
-    {
-        // H'[0].score() = V'[m].score();
-        // V'[0].score() = H'[n].score();
-        size_t const row_vector_size = row_vector.size() - 1;
-        column_vector[0].score() = row_vector[row_vector_size].score();
-
-        for (size_t j = row_vector_size; j > 0; --j)
-            row_vector[j].score() = row_vector[j - 1].score();
-    }
-
-    template <typename column_vector_t, typename row_vector_t>
-    constexpr void postprocess_block(column_vector_t const & column_vector, row_vector_t && row_vector) const noexcept
-    {
-        size_t const row_vector_size = row_vector.size() - 1;
-        for (size_t j = 0; j < row_vector_size; ++j)
-            row_vector[j].score() = row_vector[j + 1].score();
-
-        row_vector[row_vector_size].score() = column_vector[column_vector.size() - 1].score();
-    }
-
-    constexpr derived_t const & as_derived() const noexcept
-    {
-        return static_cast<derived_t const &>(*this);
-    }
-
-    constexpr derived_t & as_derived() noexcept
-    {
-        return static_cast<derived_t &>(*this);
+        return base_t::make_result(std::forward<sequence1_t>(sequence1),
+                                   std::forward<sequence2_t>(sequence2),
+                                   std::move(dp_column),
+                                   std::move(dp_row));
     }
 };
 

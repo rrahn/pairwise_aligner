@@ -18,6 +18,7 @@
 
 #include <pairwise_aligner/affine/affine_gap_model.hpp>
 #include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
+#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_attorney.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -26,15 +27,14 @@ inline namespace v1
 
 template <template <typename> typename dp_template,
           typename ...policies_t>
-class affine_dp_algorithm : protected dp_template<affine_dp_algorithm<dp_template, policies_t...>>, // crtp-base
+class affine_dp_algorithm : public dp_template<affine_dp_algorithm<dp_template, policies_t...>>, // crtp-base
                             protected policies_t... // policies
 {
 private:
 
     using base_t = dp_template<affine_dp_algorithm<dp_template, policies_t...>>;
 
-    friend base_t;
-
+    friend class dp_algorithm_attorney<affine_dp_algorithm<dp_template, policies_t...>>;
 
 public:
     affine_dp_algorithm() = default;
