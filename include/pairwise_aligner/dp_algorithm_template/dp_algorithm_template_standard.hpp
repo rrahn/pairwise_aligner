@@ -37,28 +37,23 @@ protected:
 
     using base_t = dp_algorithm_template_base<algorithm_impl_t>;
 
-    template <typename sequence1_t, typename sequence2_t, typename dp_column_vector_t, typename dp_row_vector_t>
-    auto run(sequence1_t && sequence1,
-             sequence2_t && sequence2,
-             dp_column_vector_t dp_column_vector,
-             dp_row_vector_t dp_row_vector) const
+    template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t>
+    auto run(sequence1_t && sequence1, sequence2_t && sequence2, dp_column_t dp_column, dp_row_t dp_row) const
     {
         // ----------------------------------------------------------------------------
         // Initialisation
         // ----------------------------------------------------------------------------
 
-        auto transformed_seq1 = base_t::initialise_column(sequence1, dp_column_vector);
-        auto transformed_seq2 = base_t::initialise_row(sequence2, dp_row_vector);
+        auto transformed_seq1 = base_t::initialise_column(sequence1, dp_column);
+        auto transformed_seq2 = base_t::initialise_row(sequence2, dp_row);
 
         // ----------------------------------------------------------------------------
         // Recursion
         // ----------------------------------------------------------------------------
 
-        base_t::initialise_block(dp_column_vector, dp_row_vector);
-
-        base_t::compute_block(transformed_seq1, transformed_seq2, dp_column_vector, dp_row_vector);
-
-        base_t::postprocess_block(dp_column_vector, dp_row_vector);
+        base_t::initialise_block(dp_column, dp_row);
+        base_t::compute_block(transformed_seq1, transformed_seq2, dp_column, dp_row);
+        base_t::postprocess_block(dp_column, dp_row);
 
         // ----------------------------------------------------------------------------
         // Create result
@@ -66,8 +61,8 @@ protected:
 
         return base_t::make_result(std::forward<sequence1_t>(sequence1),
                                    std::forward<sequence2_t>(sequence2),
-                                   std::move(dp_column_vector),
-                                   std::move(dp_row_vector));
+                                   std::move(dp_column),
+                                   std::move(dp_row));
     }
 };
 
