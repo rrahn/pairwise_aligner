@@ -49,13 +49,16 @@ public:
 
     template <typename value1_t, typename value2_t>
         requires (std::equality_comparable_with<value1_t, value2_t>)
-    score_t score(value1_t const & value1, value2_t const & value2) const noexcept
+    score_t score(score_t const & last_diagonal,
+                  value1_t const & value1,
+                  value2_t const & value2) const noexcept
     {
-        return (value1 == value2) ? _match_score : _mismatch_score;
+        return last_diagonal + (value1 == value2) ? _match_score : _mismatch_score;
     }
 
     template <std::integral scalar_score_t, size_t bulk_size>
-    simd_score<scalar_score_t, bulk_size> score(simd_score<scalar_score_t, bulk_size> const & value1,
+    simd_score<scalar_score_t, bulk_size> score(simd_score<scalar_score_t, bulk_size> const & last_diagonal,
+                                                simd_score<scalar_score_t, bulk_size> const & value1,
                                                 simd_score<scalar_score_t, bulk_size> const & value2) const noexcept
     {
         static_assert(std::same_as<score_t, simd_score<scalar_score_t, bulk_size>>,
@@ -65,7 +68,9 @@ public:
 
         return blend(compare(value1, value2, [] (simd_t const & lhs, simd_t const & rhs) {
             return (lhs ^ rhs).le(simd_t{0});
-        }), _match_score, _mismatch_score);
+        return blend(compare(value1, value2, [] (simd_t const & lhs, simd_t const & rhs) {
+                     return (lhs ^ rhs).le(simd_t{0});
+                    }), _match_score, _mismatch_score) + last_diagonal;
     }
 
     constexpr score_t padding_score() const noexcept

@@ -116,7 +116,7 @@ protected:
         using score_t = typename dp_cell_t::score_type;
 
         // auto & [next_diagonal, horizontal_score] = column_cell;
-        score_t best = cache.first + this->score(seq1_val, seq2_val);
+        score_t best = this->score(cache.first, seq1_val, seq2_val);
         best = max(max(best, cache.second), get<1>(column_cell));
         cache.first = get<0>(column_cell); // cache next diagonal score!
         get<0>(column_cell) = best;
