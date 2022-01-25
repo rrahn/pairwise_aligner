@@ -38,6 +38,11 @@ private:
 
 protected:
 
+    auto initialise_tracker() const noexcept
+    {
+        return algorithm_attorney_t::initialise_tracker(as_algorithm());
+    }
+
     template <typename sequence1_t, typename dp_column_t>
     auto initialise_column(sequence1_t && sequence1, dp_column_t && dp_column) const noexcept
     {
