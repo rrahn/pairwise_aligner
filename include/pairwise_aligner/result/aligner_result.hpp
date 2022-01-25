@@ -14,32 +14,29 @@
 
 #include <seqan3/std/ranges>
 
-#include <pairwise_aligner/configuration/end_gap_policy.hpp>
-
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
 namespace _aligner_result
 {
-template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t>
+template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t, typename score_t>
 struct _value
 {
     struct type;
 };
 
-template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t>
-using value = typename _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t>::type;
+template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t, typename score_t>
+using value = typename _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t, score_t>::type;
 
-template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t>
-struct _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t>::type
+template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t, typename score_t>
+struct _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t, score_t>::type
 {
     sequence1_t _sequence1;
     sequence2_t _sequence2;
     dp_column_t _dp_column;
     dp_row_t _dp_row;
-    cfg::end_gap _column_trailing_gaps;
-    cfg::end_gap _row_trailing_gaps;
+    score_t _score;
 
     dp_column_t const & dp_column() const & noexcept
     {
@@ -71,62 +68,41 @@ struct _value<sequence1_t, sequence2_t, dp_column_t, dp_row_t>::type
         return _sequence2;
     }
 
-    auto score() const noexcept
+    score_t const & score() const noexcept
     {
-        return score_impl();
-    }
-
-private:
-
-    constexpr auto score_impl() const noexcept
-    {
-        auto best_score = dp_column()[dp_column().size() - 1].score();
-
-        if (_row_trailing_gaps == cfg::end_gap::free)
-        {
-            for (size_t cell_idx = 0; cell_idx < dp_row().size(); ++cell_idx)
-                best_score = std::max(dp_row()[cell_idx].score(), best_score);
-        }
-
-        if (_column_trailing_gaps == cfg::end_gap::free)
-        {
-            for (size_t cell_idx = 0; cell_idx < dp_column().size(); ++cell_idx)
-                best_score = std::max(dp_column()[cell_idx].score(), best_score);
-        }
-
-        return best_score;
+        return _score;
     }
 };
 
-} // namespace _aligner_result
+namespace cpo {
 
-struct result_factory_single
+struct _fn
 {
 
     template <std::ranges::viewable_range sequence1_t,
               std::ranges::viewable_range sequence2_t,
               typename dp_column_t,
-              typename dp_row_t>
+              typename dp_row_t,
+              typename score_t>
     auto operator()(sequence1_t && sequence1,
                     sequence2_t && sequence2,
                     dp_column_t dp_column,
                     dp_row_t dp_row,
-                    cfg::end_gap _column_trailing_gaps = cfg::end_gap::penalised,
-                    cfg::end_gap _row_trailing_gaps = cfg::end_gap::penalised) const noexcept
+                    score_t score) const noexcept
     {
-        using aligner_result_t = _aligner_result::value<sequence1_t, sequence2_t, dp_column_t, dp_row_t>;
+        using aligner_result_t = _aligner_result::value<sequence1_t, sequence2_t, dp_column_t, dp_row_t, score_t>;
         return aligner_result_t{std::forward<sequence1_t>(sequence1),
                                 std::forward<sequence2_t>(sequence2),
                                 std::move(dp_column),
                                 std::move(dp_row),
-                                _column_trailing_gaps,
-                                _row_trailing_gaps};
+                                std::move(score)};
     }
-
-private:
-
-
 };
 
+} // namespace cpo
+} // namespace _aligner_result
+
+inline constexpr _aligner_result::cpo::_fn aligner_result{};
+
 } // inline namespace v1
-}  // namespace seqan::pairwise_aligner
+} // namespace seqan::pairwise_aligner

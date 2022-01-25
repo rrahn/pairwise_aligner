@@ -15,6 +15,7 @@
 #include <seqan3/std/ranges>
 
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_attorney.hpp>
+#include <pairwise_aligner/result/aligner_result.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -55,8 +56,12 @@ protected:
         return algorithm_attorney_t::initialise_row_vector(as_algorithm(), sequence2, dp_row);
     }
 
-    template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t>
-    void compute_block(sequence1_t && sequence1, sequence2_t && sequence2, dp_column_t && dp_column, dp_row_t && dp_row)
+    template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t, typename tracker_t>
+    void compute_block(sequence1_t && sequence1,
+                       sequence2_t && sequence2,
+                       dp_column_t && dp_column,
+                       dp_row_t && dp_row,
+                       tracker_t && tracker)
         const noexcept
     {
         std::ptrdiff_t const sequence1_size = std::ranges::distance(sequence1);
@@ -79,7 +84,12 @@ protected:
             for (std::ptrdiff_t i = 0; i < sequence1_size; ++i) {
                 auto cacheH = dp_column[i+1];
 
-                unroll_loop(bulk_cache, cacheH, sequence1[i], seq2_slice, std::make_index_sequence<cache_size>());
+                unroll_loop(bulk_cache,
+                            cacheH,
+                            tracker,
+                            sequence1[i],
+                            seq2_slice,
+                            std::make_index_sequence<cache_size>());
 
                 dp_column[i+1] = cacheH;
             }
@@ -93,7 +103,12 @@ protected:
             auto cache = dp_row[j + 1];
 
             for (std::ptrdiff_t i = 0; i < sequence1_size; ++i) {
-                algorithm_attorney_t::compute_cell(as_algorithm(), cache, dp_column[i+1], sequence1[i], sequence2[j]);
+                algorithm_attorney_t::compute_cell(as_algorithm(),
+                                                   cache,
+                                                   dp_column[i+1],
+                                                   tracker,
+                                                   sequence1[i],
+                                                   sequence2[j]);
             }
 
             dp_row[j + 1] = cache;
@@ -122,10 +137,11 @@ protected:
         dp_row[dp_row_size].score() = dp_column[dp_column.size() - 1].score();
     }
 
-    template <typename ...args_t>
-    auto make_result(args_t && ...args) const noexcept
+    template <typename tracker_t, typename ...args_t>
+    auto make_result(tracker_t const & tracker, args_t && ...args) const noexcept
     {
-        return algorithm_attorney_t::make_result(as_algorithm(), std::forward<args_t>(args)...);
+        auto max_score = tracker.max_score(args...);
+        return aligner_result(std::forward<args_t>(args)..., std::move(max_score));
     }
 
 private:
@@ -133,14 +149,21 @@ private:
               typename col_cell_t,
               typename seq1_value_t,
               typename seq2_values_t,
+              typename tracker_t,
               size_t ...idx>
     constexpr void unroll_loop(row_cells_t & row_cells,
                                col_cell_t & col_cell,
+                               tracker_t & tracker,
                                seq1_value_t const & seq1_value,
                                seq2_values_t const & seq2_values,
                                [[maybe_unused]] std::index_sequence<idx...> const & indices) const noexcept
     {
-        (algorithm_attorney_t::compute_cell(as_algorithm(), row_cells[idx], col_cell, seq1_value, seq2_values[idx]), ...);
+        (algorithm_attorney_t::compute_cell(as_algorithm(),
+                                            row_cells[idx],
+                                            col_cell,
+                                            tracker,
+                                            seq1_value,
+                                            seq2_values[idx]), ...);
     }
 
     template <typename cache_t, typename row_vector_t, size_t ...idx>
