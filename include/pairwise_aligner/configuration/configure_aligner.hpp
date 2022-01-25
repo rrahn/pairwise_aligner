@@ -98,6 +98,20 @@ private:
 
         template <template <typename ...> typename algorithm_template_t, typename ...policies_t>
         using algorithm_type = typename gap_configuration_t::dp_kernel_type<algorithm_template_t, policies_t...>;
+
+        auto leading_gap_setting() const noexcept {
+            if constexpr (std::same_as<method_configuration_type, std::void_t<>>)
+                return leading_end_gap{};
+            else
+                return this->configure_leading_gap_policy();
+        }
+
+        auto trailing_gap_setting() const noexcept {
+            if constexpr (std::same_as<method_configuration_type, std::void_t<>>)
+                return trailing_end_gap{};
+            else
+                return this->configure_trailing_gap_policy();
+        }
     };
 
     using accessor_t = accessor<configurations_t...>;
