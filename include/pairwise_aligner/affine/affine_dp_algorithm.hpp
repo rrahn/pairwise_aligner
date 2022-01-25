@@ -101,6 +101,12 @@ protected:
     }
 
     template <typename ...args_t>
+    constexpr auto initialise_tracker(args_t && ...args) const noexcept
+    {
+        return this->make_tracker(std::forward<args_t>(args)...);
+    }
+
+    template <typename ...args_t>
     constexpr auto make_result(args_t && ...args) const noexcept
     {
         return this->operator()(std::forward<args_t>(args)..., this->last_column, this->last_row);
