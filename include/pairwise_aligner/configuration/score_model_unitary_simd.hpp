@@ -22,7 +22,7 @@
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
-#include <pairwise_aligner/result/result_factory_bulk.hpp>
+#include <pairwise_aligner/tracker/tracker_global_simd_fixed.hpp>
 #include <pairwise_aligner/score_model/score_model_unitary.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 #include <pairwise_aligner/utility/type_list.hpp>
@@ -68,9 +68,10 @@ struct traits
         return score_model_type{static_cast<score_type>(_match_score), static_cast<score_type>(_mismatch_score)};
     }
 
-    constexpr auto configure_result_factory_policy() const noexcept
+    template <typename configuration_t>
+    constexpr auto configure_result_factory_policy(configuration_t const & configuration) const noexcept
     {
-        return result_factory_type{static_cast<score_type>(_match_score)};
+        return result_factory_type{static_cast<score_type>(_match_score), configuration.trailing_gap_setting()};
     }
 
     template <typename common_configurations_t>

@@ -21,7 +21,7 @@
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
-#include <pairwise_aligner/result/aligner_result.hpp>
+#include <pairwise_aligner/tracker/tracker_global_scalar.hpp>
 #include <pairwise_aligner/score_model/score_model_unitary.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 #include <pairwise_aligner/utility/type_list.hpp>
@@ -65,9 +65,13 @@ struct traits
         return score_model_type{_match_score, _mismatch_score};
     }
 
-    constexpr auto configure_result_factory_policy() const noexcept
+    template <typename configuration_t>
+    constexpr auto configure_result_factory_policy(configuration_t const & configuration) const noexcept
     {
-        return result_factory_type{};
+        if constexpr (configuration_t::is_local)
+            return tracker::local_scalar::factory<score_type>{};
+        else
+            return tracker::global_scalar::factory{configuration.trailing_gap_setting()};
     }
 
     template <typename common_configurations_t>

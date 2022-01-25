@@ -129,7 +129,7 @@ public:
     {
         auto substitution_policy = _configurations_accessor.configure_substitution_policy();
         auto gap_policy = _configurations_accessor.configure_gap_policy();
-        auto result_factory_policy = _configurations_accessor.configure_result_factory_policy();
+        auto result_factory_policy = _configurations_accessor.configure_result_factory_policy(_configurations_accessor);
         auto dp_vector_policy = _configurations_accessor.configure_dp_vector_policy(_configurations_accessor);
 
         leading_end_gap leading_gap_policy{};
