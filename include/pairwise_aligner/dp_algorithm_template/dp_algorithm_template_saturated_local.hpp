@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides seqan::pairwise_aligner::dp_algorithm_template_saturated.
+ * \brief Provides seqan::pairwise_aligner::dp_algorithm_template_saturated_local.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
@@ -23,10 +23,10 @@ namespace seqan::pairwise_aligner
 inline namespace v1
 {
 
-namespace detail
-{
+namespace detail {
+
 template <typename dp_vector_t> // saturated vector
-class saturated_wrapper
+class saturated_wrapper_local
 {
 public:
 
@@ -43,8 +43,8 @@ private:
 
 public:
 
-    saturated_wrapper() = delete;
-    explicit saturated_wrapper(dp_vector_t & dp_vector) : _dp_vector{dp_vector}
+    saturated_wrapper_local() = delete;
+    explicit saturated_wrapper_local(dp_vector_t & dp_vector) : _dp_vector{dp_vector}
     {}
 
     reference operator[](size_t const pos) noexcept
@@ -108,16 +108,16 @@ public:
 } // namespace detail
 
 template <typename algorithm_impl_t>
-struct _dp_algorithm_template_saturated
+struct _dp_algorithm_template_saturated_local
 {
     class type;
 };
 
 template <typename algorithm_impl_t>
-using dp_algorithm_template_saturated = typename _dp_algorithm_template_saturated<algorithm_impl_t>::type;
+using dp_algorithm_template_saturated_local = typename _dp_algorithm_template_saturated_local<algorithm_impl_t>::type;
 
 template <typename algorithm_impl_t>
-class _dp_algorithm_template_saturated<algorithm_impl_t>::type : public dp_algorithm_template_base<algorithm_impl_t>
+class _dp_algorithm_template_saturated_local<algorithm_impl_t>::type : public dp_algorithm_template_base<algorithm_impl_t>
 {
 private:
     using base_t = dp_algorithm_template_base<algorithm_impl_t>;
@@ -134,7 +134,10 @@ protected:
         auto simd_seq1 = base_t::initialise_column(sequence1, dp_column);
         auto simd_seq2 = base_t::initialise_row(sequence2, dp_row);
         auto global_tracker = base_t::initialise_tracker();
-        auto scorer = base_t::initialise_substitution_scheme();
+        auto saturated_scorer = base_t::initialise_substitution_scheme();
+
+        auto local_scorer = saturated_scorer.local_scheme();
+        auto global_scorer = saturated_scorer.global_scheme();
 
         // ----------------------------------------------------------------------------
         // Recursion
@@ -152,7 +155,7 @@ protected:
         std::vector<std::span<value_t>> seq1_blocked{};
         seq1_blocked.reserve(column_block_count);
 
-        using saturated_col_t = detail::saturated_wrapper<dp_column_block_t>;
+        using saturated_col_t = detail::saturated_wrapper_local<dp_column_block_t>;
         std::vector<saturated_col_t> dp_column_blocks{};
         dp_column_blocks.reserve(column_block_count);
 
@@ -166,7 +169,7 @@ protected:
         }
 
         for (size_t j = 0; j < row_block_count; ++j) {
-            detail::saturated_wrapper<dp_row_block_t> current_row_vector{dp_row[j]};
+            detail::saturated_wrapper_local<dp_row_block_t> current_row_vector{dp_row[j]};
             std::span transformed_seq2{std::ranges::next(std::ranges::begin(simd_seq2), (j * row_block_size)),
                                        std::ranges::next(std::ranges::begin(simd_seq2),
                                                          ((j + 1) * row_block_size),
@@ -188,12 +191,21 @@ protected:
                 }
                 auto block_tracker = global_tracker.saturated_tracker(current_row_vector.base().offset());
 
-                base_t::compute_block(seq1_blocked[i],
-                                      transformed_seq2,
-                                      dp_column_blocks[i],
-                                      current_row_vector,
-                                      scorer,
-                                      block_tracker);
+                if (is_local_block) {
+                    base_t::compute_block(seq1_blocked[i],
+                                          transformed_seq2,
+                                          dp_column_blocks[i],
+                                          current_row_vector,
+                                          local_scorer,
+                                          block_tracker);
+                } else {
+                    base_t::compute_block(seq1_blocked[i],
+                                          transformed_seq2,
+                                          dp_column_blocks[i],
+                                          current_row_vector,
+                                          global_scorer,
+                                          block_tracker);
+                }
 
                 global_tracker.track(block_tracker.max_score());
             }

@@ -59,6 +59,7 @@ template <typename score_t>
 struct _result_factory_bulk<score_t>::type
 {
     score_t _padding_score;
+    mutable score_t _best_score;
 
     template <typename sequence_bulk1_t,
               typename sequence_bulk2_t,
@@ -69,7 +70,7 @@ struct _result_factory_bulk<score_t>::type
                     dp_column_t dp_column,
                     dp_row_t dp_row,
                     cfg::end_gap _column_trailing_gaps = cfg::end_gap::penalised,
-                    cfg::end_gap _row_trailing_gaps = cfg::end_gap::penalised) const noexcept
+                    cfg::end_gap _row_trailing_gaps     = cfg::end_gap::penalised) const noexcept
     {
         score_t result_score = score_bulk(sequence_bulk1,
                                           sequence_bulk2,
@@ -86,7 +87,15 @@ struct _result_factory_bulk<score_t>::type
                               _column_trailing_gaps,
                               _row_trailing_gaps};
 
-        return _bulk_factory::value<aligner_result_t, score_t>{std::move(base), result_score};
+        return _bulk_factory::value<aligner_result_t, score_t>{std::move(base), _best_score};
+    }
+
+    // NOOP!
+    template <typename _score_t>
+    constexpr _score_t const & track_best_score(_score_t const & score) const noexcept
+    {
+        _best_score = max(_best_score, score);
+        return score;
     }
 
 private:

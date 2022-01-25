@@ -1,3 +1,5 @@
 pairwise_aligner_benchmark (alignment_global_affine_benchmark.cpp)
 pairwise_aligner_benchmark (alignment_global_affine_simd_benchmark.cpp)
 pairwise_aligner_benchmark (alignment_global_affine_simd_saturated_benchmark.cpp)
+pairwise_aligner_benchmark (alignment_local_affine_simd_benchmark.cpp)
+pairwise_aligner_benchmark (alignment_local_affine_simd_saturated_benchmark.cpp)

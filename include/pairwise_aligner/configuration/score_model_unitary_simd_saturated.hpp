@@ -13,6 +13,7 @@
 #pragma once
 
 #include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
+#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_saturated_local.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
@@ -20,6 +21,7 @@
 #include <pairwise_aligner/matrix/dp_vector_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
 #include <pairwise_aligner/tracker/tracker_global_simd_saturated.hpp>
+#include <pairwise_aligner/tracker/tracker_local_simd_saturated.hpp>
 
 namespace seqan::pairwise_aligner {
 inline namespace v1
@@ -46,51 +48,66 @@ struct traits
     using original_score_type = simd_score<score_t, score_type::size>;
 
     // substitution policy configurator
-    using score_model_type = seqan::pairwise_aligner::score_model_unitary<score_type>;
+    template <bool is_local>
+    using score_model_type = score_model_unitary<score_type, is_local>;
 
     // result_factory configurator
-    using result_factory_type = result_factory_bulk_saturated<original_score_type>;
+    using result_factory_type = tracker::global_simd_saturated::factory<original_score_type>;
 
-    constexpr auto configure_substitution_policy() const noexcept
+    template <typename configuration_t>
+    constexpr auto configure_substitution_policy([[maybe_unused]] configuration_t const & configuration) const noexcept
     {
-        return score_model_type{static_cast<score_type>(_match_score), static_cast<score_type>(_mismatch_score)};
+        return score_model_type<configuration_t::is_local>{static_cast<score_type>(_match_score),
+                                                           static_cast<score_type>(_mismatch_score)};
     }
 
     template <typename configuration_t>
-    constexpr auto configure_result_factory_policy(configuration_t const & configuration) const noexcept
+    constexpr auto configure_result_factory_policy([[maybe_unused]] configuration_t const & configuration)
+        const noexcept
     {
-        return result_factory_type{static_cast<original_score_type>(_match_score),
-                                   configuration.trailing_gap_setting()};
+        if constexpr (configuration_t::is_local) {
+            return tracker::local_simd_saturated::factory<original_score_type, score_type>{};
+        } else {
+            return tracker::global_simd_saturated::factory<original_score_type>{
+                static_cast<original_score_type>(_match_score),
+                configuration.trailing_gap_setting()
+            };
+        }
     }
 
-    template <typename common_configurations_t>
-    constexpr auto configure_dp_vector_policy(common_configurations_t const & configuration) const
+    template <typename configuration_t>
+    constexpr auto configure_dp_vector_policy(configuration_t const & configuration) const
     {
         size_t max_score = std::numeric_limits<int8_t>::max();
         size_t block_size_mismatch = max_score / (_match_score - _mismatch_score);
         size_t block_size_gap = (max_score + configuration._gap_open_score) / (_match_score - configuration._gap_extension_score);
         size_t block_size = std::max(block_size_mismatch, block_size_gap);
 
-        using column_cell_t = typename common_configurations_t::dp_cell_column_type<score_type>;
-        using original_column_cell_t = typename common_configurations_t::dp_cell_column_type<original_score_type>;
+        using column_cell_t = typename configuration_t::dp_cell_column_type<score_type>;
+        using original_column_cell_t = typename configuration_t::dp_cell_column_type<original_score_type>;
+
+        constexpr int8_t padding_symbol_column = static_cast<int8_t>(1ull << 7);
+        constexpr int8_t padding_symbol_row = padding_symbol_column + configuration_t::is_local;
 
         auto column_vector =
-            dp_vector_bulk_factory<score_type>(
+            dp_vector_bulk_factory(
                 dp_vector_chunk_factory(
                     dp_vector_saturated_factory<original_column_cell_t>(dp_vector_single<column_cell_t>{}),
                     block_size
-                )
+                ),
+                score_type{padding_symbol_column}
             );
 
-        using row_cell_t = typename common_configurations_t::dp_cell_row_type<score_type>;
-        using original_row_cell_t = typename common_configurations_t::dp_cell_row_type<original_score_type>;
+        using row_cell_t = typename configuration_t::dp_cell_row_type<score_type>;
+        using original_row_cell_t = typename configuration_t::dp_cell_row_type<original_score_type>;
 
         auto row_vector =
-            dp_vector_bulk_factory<score_type>(
+            dp_vector_bulk_factory(
                 dp_vector_chunk_factory(
                     dp_vector_saturated_factory<original_row_cell_t>(dp_vector_single<row_cell_t>{}),
                     block_size
-                )
+                ),
+                score_type{padding_symbol_row}
             );
 
         return dp_vector_policy{std::move(column_vector), std::move(row_vector)};
@@ -99,8 +116,13 @@ struct traits
     template <typename configuration_t, typename ...policies_t>
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
-        using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_saturated,
-                                                                     std::remove_cvref_t<policies_t>...>;
+        using algorithm_t =
+            std::conditional_t<configuration_t::is_local,
+                               typename configuration_t::algorithm_type<dp_algorithm_template_saturated_local,
+                                                                        std::remove_cvref_t<policies_t>...>,
+                                typename configuration_t::algorithm_type<dp_algorithm_template_saturated,
+                                                                         std::remove_cvref_t<policies_t>...>
+            >;
 
         return interface_one_to_one_bulk<algorithm_t, score_type::size>{algorithm_t{std::move(policies)...}};
     }

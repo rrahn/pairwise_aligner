@@ -266,12 +266,42 @@ public:
         return fn(left, right);
     }
 
+    constexpr mask_type eq(simd_score const & rhs) const noexcept
+    {
+        mask_type masks{};
+        apply([&] <typename result_t> (result_t & mask, native_simd_t const & left, native_simd_t const & right) {
+                mask = left == right;
+        }, masks.values, values, rhs.values);
+        return masks;
+    }
+
+    constexpr mask_type ne(simd_score const & rhs) const noexcept
+    {
+        mask_type masks{};
+        apply([&] <typename result_t> (result_t & mask, native_simd_t const & left, native_simd_t const & right) {
+                mask = left != right;
+        }, masks.values, values, rhs.values);
+        return masks;
+    }
+
     constexpr mask_type lt(simd_score const & rhs) const noexcept
     {
         mask_type masks{};
         apply([&] <typename result_t> (result_t & mask, native_simd_t const & left, native_simd_t const & right) {
                 mask = left < right;
         }, masks.values, values, rhs.values);
+        return masks;
+    }
+
+    friend constexpr mask_type mask_lt(mask_type const & cmp_mask, simd_score const & lhs, simd_score const & rhs) noexcept
+    {
+        mask_type masks{};
+        apply([&] <typename result_t> (result_t & mask,
+                                       result_t const & k,
+                                       native_simd_t const & left,
+                                       native_simd_t const & right) {
+                mask = (k ? left < right : result_t{0});
+        }, masks.values, cmp_mask.values, lhs.values, rhs.values);
         return masks;
     }
 

@@ -23,6 +23,7 @@
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
 #include <pairwise_aligner/tracker/tracker_global_simd_fixed.hpp>
+#include <pairwise_aligner/tracker/tracker_local_simd_fixed.hpp>
 #include <pairwise_aligner/score_model/score_model_unitary.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 #include <pairwise_aligner/utility/type_list.hpp>
@@ -50,7 +51,8 @@ struct traits
 
     using score_type = simd_score<score_t>;
 
-    using score_model_type = seqan::pairwise_aligner::score_model_unitary<score_type>;
+    template <bool is_local>
+    using score_model_type = score_model_unitary<score_type, is_local>;
 
     template <typename dp_vector_t>
     using dp_vector_column_type = dp_vector_bulk<dp_vector_t, score_type>;
@@ -61,27 +63,38 @@ struct traits
     template <typename dp_algorithm_t>
     using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t, score_type::size>;
 
-    using result_factory_type = result_factory_bulk<score_type>;
-
-    constexpr auto configure_substitution_policy() const noexcept
+    template <typename configuration_t>
+    constexpr auto configure_substitution_policy([[maybe_unused]] configuration_t const & configuration) const noexcept
     {
-        return score_model_type{static_cast<score_type>(_match_score), static_cast<score_type>(_mismatch_score)};
+        return score_model_type<configuration_t::is_local>{static_cast<score_type>(_match_score),
+                                                           static_cast<score_type>(_mismatch_score)};
     }
 
     template <typename configuration_t>
-    constexpr auto configure_result_factory_policy(configuration_t const & configuration) const noexcept
+    constexpr auto configure_result_factory_policy([[maybe_unused]] configuration_t const & configuration)
+        const noexcept
     {
-        return result_factory_type{static_cast<score_type>(_match_score), configuration.trailing_gap_setting()};
+        if constexpr (configuration_t::is_local)
+            return tracker::local_simd_fixed::factory<score_type>{};
+        else
+            return tracker::global_simd_fixed::factory<score_type>{static_cast<score_type>(_match_score),
+                                                                   configuration.trailing_gap_setting()};
     }
 
-    template <typename common_configurations_t>
-    constexpr auto configure_dp_vector_policy([[maybe_unused]] common_configurations_t const & configuration) const noexcept
+    template <typename configuration_t>
+    constexpr auto configure_dp_vector_policy([[maybe_unused]] configuration_t const & configuration) const noexcept
     {
-        using column_cell_t = typename common_configurations_t::dp_cell_column_type<score_type>;
-        using row_cell_t = typename common_configurations_t::dp_cell_row_type<score_type>;
+        using column_cell_t = typename configuration_t::dp_cell_column_type<score_type>;
+        using row_cell_t = typename configuration_t::dp_cell_row_type<score_type>;
 
-        return dp_vector_policy{dp_vector_bulk_factory<score_type>(dp_vector_single<column_cell_t>{}),
-                                dp_vector_bulk_factory<score_type>(dp_vector_single<row_cell_t>{})};
+        constexpr size_t bit_count = sizeof(score_t) * 8;
+        constexpr score_t padding_symbol_column = static_cast<score_t>(1ull << (bit_count - 1));
+        constexpr score_t padding_symbol_row = padding_symbol_column + configuration_t::is_local;
+
+        return dp_vector_policy{
+            dp_vector_bulk_factory(dp_vector_single<column_cell_t>{}, score_type{padding_symbol_column}),
+            dp_vector_bulk_factory(dp_vector_single<row_cell_t>{}, score_type{padding_symbol_row})
+        };
     }
 
     template <typename configuration_t, typename ...policies_t>

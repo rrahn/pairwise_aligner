@@ -26,12 +26,18 @@ template <typename dp_vector_t, typename simd_t>
 class dp_vector_bulk
 {
 private:
+    using scalar_t = typename simd_t::value_type;
+    using native_simd_t = typename simd_t::simd_type::value_type;
+
     dp_vector_t _dp_vector{};
+    scalar_t _padding_symbol{};
 
 public:
 
     dp_vector_bulk() = default;
-    explicit dp_vector_bulk(dp_vector_t dp_vector) : _dp_vector{std::move(dp_vector)}
+    explicit dp_vector_bulk(dp_vector_t dp_vector, simd_t padding_vector) :
+        _dp_vector{std::move(dp_vector)},
+        _padding_symbol{padding_vector[0]}
     {}
 
     using range_type = typename dp_vector_t::range_type;
@@ -83,16 +89,10 @@ public:
             max_sequence_size = std::max<size_t>(max_sequence_size, std::ranges::distance(sequence));
         });
 
-        using score_t = typename simd_t::value_type;
-        using simd_score_t = typename simd_t::simd_type::value_type;
-
-        constexpr size_t bit_count = sizeof(score_t) * 8;
-        constexpr score_t padding_mask = static_cast<score_t>(1ull << (bit_count - 1));
-
         std::vector<simd_t, seqan3::aligned_allocator<simd_t, alignof(simd_t)>> simd_sequence{};
         simd_sequence.reserve(max_sequence_size);
 
-        auto simd_view = sequence_collection | seqan3::views::to_simd<simd_score_t>(padding_mask);
+        auto simd_view = sequence_collection | seqan3::views::to_simd<native_simd_t>(_padding_symbol);
 
         for (auto && simd_vector_chunk : simd_view) {
             for (auto && simd_vector : simd_vector_chunk) {
@@ -106,20 +106,21 @@ public:
 namespace detail
 {
 
-template <typename simd_t>
 struct dp_vector_bulk_factory_fn
 {
-    template <typename dp_vector_t>
-    auto operator()(dp_vector_t && dp_vector) const noexcept
+    template <typename dp_vector_t, typename simd_t>
+    auto operator()(dp_vector_t && dp_vector, simd_t padding_vector) const noexcept
     {
-        return dp_vector_bulk<std::remove_cvref_t<dp_vector_t>, simd_t>{std::forward<dp_vector_t>(dp_vector)};
+        return dp_vector_bulk<std::remove_cvref_t<dp_vector_t>, simd_t>{
+            std::forward<dp_vector_t>(dp_vector),
+            std::move(padding_vector)
+        };
     }
 };
 
 } // namespace detail
 
-template <typename simd_t>
-inline constexpr detail::dp_vector_bulk_factory_fn<simd_t> dp_vector_bulk_factory{};
+inline constexpr detail::dp_vector_bulk_factory_fn dp_vector_bulk_factory{};
 
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner

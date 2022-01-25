@@ -319,9 +319,28 @@ using tracker = typename _tracker<score_t>::type;
 template <typename score_t>
 class _tracker<score_t>::type
 {
+private:
+    class _saturated_tracker
+    {
+    public:
+
+        template <typename saturated_score_t>
+        saturated_score_t const & track(saturated_score_t const & score) noexcept {
+            return score; // no-op
+        }
+
+        template <typename ...args_t>
+        auto max_score([[maybe_unused]] args_t && ...args) const noexcept {
+            return score_t{}; // no-op
+        }
+    };
 public:
     score_t _padding_score;
     cfg::trailing_end_gap _end_gap;
+
+    auto saturated_tracker(score_t const &) noexcept {
+        return _saturated_tracker{};
+    }
 
     template <typename saturated_score_t>
     constexpr saturated_score_t const & track(saturated_score_t const & score) const noexcept {

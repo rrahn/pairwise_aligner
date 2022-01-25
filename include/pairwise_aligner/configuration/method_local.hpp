@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides seqan::pairwise_aligner::cfg::method_global.
+ * \brief Provides seqan::pairwise_aligner::cfg::method_local.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
@@ -25,7 +25,7 @@ inline namespace v1
 {
 namespace cfg
 {
-namespace _method_global
+namespace _method_local
 {
 
 // ----------------------------------------------------------------------------
@@ -36,19 +36,16 @@ struct traits
 {
     static constexpr cfg::detail::rule_category category = cfg::detail::rule_category::method;
 
-    using is_local_type = std::false_type;
-
-    leading_end_gap _leading_param;
-    trailing_end_gap _trailing_param;
+    using is_local_type = std::true_type;
 
     constexpr auto configure_leading_gap_policy() const noexcept
     {
-        return _leading_param;
+        return leading_end_gap{end_gap::free, end_gap::free};
     }
 
     constexpr auto configure_trailing_gap_policy() const noexcept
     {
-        return _trailing_param;
+        return trailing_end_gap{end_gap::free, end_gap::free};
     }
 };
 
@@ -124,25 +121,20 @@ struct _fn
 {
     // implementation of function style connection
     template <typename predecessor_t>
-    constexpr auto operator()(predecessor_t && predecessor,
-                              leading_end_gap init_rule,
-                              trailing_end_gap final_rule) const
+    constexpr auto operator()(predecessor_t && predecessor) const
     {
-        return _method_global::rule<predecessor_t, traits>{{},
-                                                           std::forward<predecessor_t>(predecessor),
-                                                           traits{init_rule, final_rule}};
+        return _method_local::rule<predecessor_t, traits>{{}, std::forward<predecessor_t>(predecessor), traits{}};
     }
 
-    template <typename score_t>
-    constexpr auto operator()(leading_end_gap init_rule, trailing_end_gap final_rule) const
+    constexpr auto operator()() const
     {
-        return this->operator()(cfg::initial, std::move(init_rule), std::move(final_rule));
+        return this->operator()(cfg::initial);
     }
 };
 } // namespace _cpo
-} // namespace _method_global
+} // namespace _method_local
 
-inline constexpr _method_global::_cpo::_fn method_global{};
+inline constexpr _method_local::_cpo::_fn method_local{};
 
 } // namespace cfg
 } // inline namespace v1

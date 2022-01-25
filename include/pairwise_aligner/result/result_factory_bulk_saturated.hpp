@@ -375,6 +375,13 @@ struct _result_factory_bulk_saturated<score_t>::type
         return _bulk_factory_saturated::value<aligner_result_t, score_t>{std::move(base), result_score};
     }
 
+    // NOOP!
+    template <typename _score_t>
+    constexpr _score_t const & track_best_score(_score_t const & score) const noexcept
+    {
+        return score;
+    }
+
 private:
 
     template <typename sequence_bulk1_t,

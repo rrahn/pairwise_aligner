@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides seqan::pairwise_aligner::tracker_local_scalar.
+ * \brief Provides seqan::pairwise_aligner::tracker_local_simd_fixed.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
@@ -17,7 +17,7 @@ namespace seqan::pairwise_aligner
 inline namespace v1
 {
 
-namespace tracker::local_scalar {
+namespace tracker::local_simd_fixed {
 
 template <typename score_t>
 struct _tracker
@@ -33,7 +33,7 @@ class _tracker<score_t>::type
 {
 public:
 
-    score_t _max_score{std::numeric_limits<score_t>::lowest()};
+    score_t _max_score{std::numeric_limits<typename score_t::value_type>::lowest()};
 
     score_t const & track(score_t const & score) noexcept {
         using std::max;
@@ -69,7 +69,7 @@ struct _factory<score_t>::type
     }
 };
 
-} // namespace tracker::local_scalar
+} // namespace tracker::local_simd_fixed
 
 } // inline namespace v1
 } // namespace seqan::pairwise_aligner
