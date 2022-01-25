@@ -133,6 +133,7 @@ protected:
 
         auto simd_seq1 = base_t::initialise_column(sequence1, dp_column);
         auto simd_seq2 = base_t::initialise_row(sequence2, dp_row);
+        auto tracker = base_t::initialise_tracker();
 
         // ----------------------------------------------------------------------------
         // Recursion
@@ -185,7 +186,11 @@ protected:
                     dp_column_blocks[i][0].score() = current_row_vector[0].score();
                 }
 
-                base_t::compute_block(seq1_blocked[i], transformed_seq2, dp_column_blocks[i], current_row_vector);
+                base_t::compute_block(seq1_blocked[i],
+                                      transformed_seq2,
+                                      dp_column_blocks[i],
+                                      current_row_vector,
+                                      tracker);
             }
 
             // Write back optimal score to row vector.
@@ -196,7 +201,8 @@ protected:
         // Create result
         // ----------------------------------------------------------------------------
 
-        return base_t::make_result(std::forward<sequence1_t>(sequence1),
+        return base_t::make_result(std::move(tracker),
+                                   std::forward<sequence1_t>(sequence1),
                                    std::forward<sequence2_t>(sequence2),
                                    std::move(dp_column),
                                    std::move(dp_row));

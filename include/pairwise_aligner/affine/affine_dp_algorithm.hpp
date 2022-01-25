@@ -112,9 +112,10 @@ protected:
         return this->operator()(std::forward<args_t>(args)..., this->last_column, this->last_row);
     }
 
-    template <typename cache_t, typename seq1_val_t, typename seq2_val_t, typename dp_cell_t>
+    template <typename cache_t, typename dp_cell_t, typename tracker_t, typename seq1_val_t, typename seq2_val_t>
     constexpr auto compute_cell(cache_t & cache,
                                 dp_cell_t & column_cell,
+                                tracker_t & tracker,
                                 [[maybe_unused]] seq1_val_t const & seq1_val,
                                 [[maybe_unused]] seq2_val_t const & seq2_val) const noexcept
     {
@@ -125,7 +126,7 @@ protected:
         score_t best = this->score(cache.first, seq1_val, seq2_val);
         best = max(max(best, cache.second), get<1>(column_cell));
         cache.first = get<0>(column_cell); // cache next diagonal score!
-        get<0>(column_cell) = best;
+        get<0>(column_cell) = tracker.track(best); // get<0>(column_cell) = best;
         best += (this->gap_open_score + this->gap_extension_score);
         cache.second = max(cache.second + this->gap_extension_score, best);
         get<1>(column_cell) = max(get<1>(column_cell) + this->gap_extension_score, best);

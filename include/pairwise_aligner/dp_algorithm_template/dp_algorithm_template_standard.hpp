@@ -51,15 +51,17 @@ protected:
         // Recursion
         // ----------------------------------------------------------------------------
 
+        auto tracker = base_t::initialise_tracker();
         base_t::initialise_block(dp_column, dp_row);
-        base_t::compute_block(transformed_seq1, transformed_seq2, dp_column, dp_row);
+        base_t::compute_block(transformed_seq1, transformed_seq2, dp_column, dp_row, tracker);
         base_t::postprocess_block(dp_column, dp_row);
 
         // ----------------------------------------------------------------------------
         // Create result
         // ----------------------------------------------------------------------------
 
-        return base_t::make_result(std::forward<sequence1_t>(sequence1),
+        return base_t::make_result(std::move(tracker),
+                                   std::forward<sequence1_t>(sequence1),
                                    std::forward<sequence2_t>(sequence2),
                                    std::move(dp_column),
                                    std::move(dp_row));
