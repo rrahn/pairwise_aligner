@@ -101,6 +101,12 @@ protected:
     }
 
     template <typename ...args_t>
+    constexpr auto initialise_substitution_scheme(args_t && ...args) const noexcept
+    {
+        return this->make_substitution_scheme(std::forward<args_t>(args)...);
+    }
+
+    template <typename ...args_t>
     constexpr auto initialise_tracker(args_t && ...args) const noexcept
     {
         return this->make_tracker(std::forward<args_t>(args)...);
@@ -112,9 +118,15 @@ protected:
         return this->operator()(std::forward<args_t>(args)..., this->last_column, this->last_row);
     }
 
-    template <typename cache_t, typename dp_cell_t, typename tracker_t, typename seq1_val_t, typename seq2_val_t>
+    template <typename cache_t,
+              typename dp_cell_t,
+              typename scorer_t,
+              typename tracker_t,
+              typename seq1_val_t,
+              typename seq2_val_t>
     constexpr auto compute_cell(cache_t & cache,
                                 dp_cell_t & column_cell,
+                                scorer_t & scorer,
                                 tracker_t & tracker,
                                 [[maybe_unused]] seq1_val_t const & seq1_val,
                                 [[maybe_unused]] seq2_val_t const & seq2_val) const noexcept
@@ -123,7 +135,7 @@ protected:
         using score_t = typename dp_cell_t::score_type;
 
         // auto & [next_diagonal, horizontal_score] = column_cell;
-        score_t best = this->score(cache.first, seq1_val, seq2_val);
+        score_t best = scorer.score(cache.first, seq1_val, seq2_val);
         best = max(max(best, cache.second), get<1>(column_cell));
         cache.first = get<0>(column_cell); // cache next diagonal score!
         get<0>(column_cell) = tracker.track(best); // get<0>(column_cell) = best;

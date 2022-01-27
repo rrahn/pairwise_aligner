@@ -16,6 +16,7 @@
 
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_attorney.hpp>
 #include <pairwise_aligner/result/aligner_result.hpp>
+#include <pairwise_aligner/simd/simd_base.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -39,6 +40,11 @@ private:
 
 protected:
 
+    auto initialise_substitution_scheme() const noexcept
+    {
+        return algorithm_attorney_t::initialise_substitution_scheme(as_algorithm());
+    }
+
     auto initialise_tracker() const noexcept
     {
         return algorithm_attorney_t::initialise_tracker(as_algorithm());
@@ -56,11 +62,17 @@ protected:
         return algorithm_attorney_t::initialise_row_vector(as_algorithm(), sequence2, dp_row);
     }
 
-    template <typename sequence1_t, typename sequence2_t, typename dp_column_t, typename dp_row_t, typename tracker_t>
+    template <typename sequence1_t,
+              typename sequence2_t,
+              typename dp_column_t,
+              typename dp_row_t,
+              typename scorer_t,
+              typename tracker_t>
     void compute_block(sequence1_t && sequence1,
                        sequence2_t && sequence2,
                        dp_column_t && dp_column,
                        dp_row_t && dp_row,
+                       scorer_t && scorer,
                        tracker_t && tracker)
         const noexcept
     {
@@ -70,7 +82,7 @@ protected:
         using value_t = typename std::remove_cvref_t<dp_row_t>::value_type;
 
         // Initialise bulk_cache array.
-        constexpr std::ptrdiff_t cache_size = 8;
+        constexpr std::ptrdiff_t cache_size = (detail::max_simd_size == 64) ? 8 : 4;
         std::array<value_t, cache_size> bulk_cache{};
 
         std::ptrdiff_t j = 0;
@@ -86,6 +98,7 @@ protected:
 
                 unroll_loop(bulk_cache,
                             cacheH,
+                            scorer,
                             tracker,
                             sequence1[i],
                             seq2_slice,
@@ -106,6 +119,7 @@ protected:
                 algorithm_attorney_t::compute_cell(as_algorithm(),
                                                    cache,
                                                    dp_column[i+1],
+                                                   scorer,
                                                    tracker,
                                                    sequence1[i],
                                                    sequence2[j]);
@@ -149,10 +163,12 @@ private:
               typename col_cell_t,
               typename seq1_value_t,
               typename seq2_values_t,
+              typename scorer_t,
               typename tracker_t,
               size_t ...idx>
     constexpr void unroll_loop(row_cells_t & row_cells,
                                col_cell_t & col_cell,
+                               scorer_t & scorer,
                                tracker_t & tracker,
                                seq1_value_t const & seq1_value,
                                seq2_values_t const & seq2_values,
@@ -161,6 +177,7 @@ private:
         (algorithm_attorney_t::compute_cell(as_algorithm(),
                                             row_cells[idx],
                                             col_cell,
+                                            scorer,
                                             tracker,
                                             seq1_value,
                                             seq2_values[idx]), ...);
