@@ -134,6 +134,7 @@ protected:
         auto simd_seq1 = base_t::initialise_column(sequence1, dp_column);
         auto simd_seq2 = base_t::initialise_row(sequence2, dp_row);
         auto tracker = base_t::initialise_tracker();
+        auto scorer = base_t::initialise_substitution_scheme();
 
         // ----------------------------------------------------------------------------
         // Recursion
@@ -190,6 +191,7 @@ protected:
                                       transformed_seq2,
                                       dp_column_blocks[i],
                                       current_row_vector,
+                                      scorer,
                                       tracker);
             }
 

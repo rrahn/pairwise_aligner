@@ -75,6 +75,12 @@ public:
     {
         return _match_score;
     }
+
+    // TODO: Refactor into separate factory CPO.
+    constexpr type make_substitution_scheme() const noexcept
+    {
+        return *this;
+    }
 };
 
 } // inline namespace v1

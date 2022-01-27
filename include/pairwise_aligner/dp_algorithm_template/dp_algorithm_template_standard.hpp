@@ -46,14 +46,15 @@ protected:
 
         auto transformed_seq1 = base_t::initialise_column(sequence1, dp_column);
         auto transformed_seq2 = base_t::initialise_row(sequence2, dp_row);
+        auto tracker = base_t::initialise_tracker();
+        auto scorer = base_t::initialise_substitution_scheme();
 
         // ----------------------------------------------------------------------------
         // Recursion
         // ----------------------------------------------------------------------------
 
-        auto tracker = base_t::initialise_tracker();
         base_t::initialise_block(dp_column, dp_row);
-        base_t::compute_block(transformed_seq1, transformed_seq2, dp_column, dp_row, tracker);
+        base_t::compute_block(transformed_seq1, transformed_seq2, dp_column, dp_row, scorer, tracker);
         base_t::postprocess_block(dp_column, dp_row);
 
         // ----------------------------------------------------------------------------

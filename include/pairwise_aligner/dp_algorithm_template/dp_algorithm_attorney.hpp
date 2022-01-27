@@ -51,6 +51,13 @@ private:
     }
 
     template <typename ...args_t>
+    constexpr static auto initialise_substitution_scheme(algorithm_client_t const & client, args_t && ...args)
+        noexcept(noexcept(client.initialise_substitution_scheme(std::forward<args_t>(args)...)))
+    {
+        return client.initialise_substitution_scheme(std::forward<args_t>(args)...);
+    }
+
+    template <typename ...args_t>
     constexpr static auto initialise_tracker(algorithm_client_t const & client, args_t && ...args)
         noexcept(noexcept(client.initialise_tracker(std::forward<args_t>(args)...)))
     {
