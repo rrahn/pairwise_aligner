@@ -43,16 +43,14 @@ private:
     using vec_uint8_t = simd_score<uint8_t>;
     using mask_uint8_t = typename vec_uint8_t::mask_type;
     using scalar_t = typename score_t::value_type;
-    using index_t = std::make_unsigned_t<scalar_t>;
-    using vec_index_t = simd_score<index_t, score_t::size>;
 
     inline static constexpr size_t level1_max_size_v = (1ull << 8) - 1; // maximal size of sequence usable with level1
     inline static constexpr size_t level2_max_size_v = (1ull << 16) - 1; // maximal size of sequence usable with level2
     inline static constexpr size_t level3_max_size_v = (1ull << 24) - 1; // maximal size of sequence usable with level3
 
     struct level_state {
-        vec_index_t begin_position{};
-        vec_index_t end_position{};
+        score_t begin_position{};
+        score_t end_position{};
         mask_uint8_t reached_first{~mask_uint8_t{}};
         mask_uint8_t reached_last{~mask_uint8_t{}};
 
@@ -62,8 +60,8 @@ private:
     };
 
     // Extracted parameters
-    vec_index_t _sequence1_sizes{};
-    vec_index_t _sequence2_sizes{};
+    score_t _sequence1_sizes{};
+    score_t _sequence2_sizes{};
     dp_column_t _dp_column;
     dp_row_t _dp_row;
     size_t _chunk_size{};
@@ -118,20 +116,20 @@ private:
 
     constexpr auto get_offsets() const noexcept
     {
-        return std::pair{vec_index_t{static_cast<index_t>(_dp_row_size - 1)} - _sequence2_sizes,
-                         vec_index_t{static_cast<index_t>(_dp_column_size - 1)} - _sequence1_sizes};
+        return std::pair{score_t{static_cast<scalar_t>(_dp_row_size - 1)} - _sequence2_sizes,
+                         score_t{static_cast<scalar_t>(_dp_column_size - 1)} - _sequence1_sizes};
     }
 
     template <typename dp_vector_t>
     auto run_first(dp_vector_t const & dp_vector,
                    size_t const dp_vector_size,
-                   vec_index_t const & sequence_sizes,
-                   vec_index_t const & vector_offsets,
+                   score_t const & sequence_sizes,
+                   score_t const & vector_offsets,
                    score_t const & padding_score) const noexcept
     {
         // Global states
         score_t best_score{std::numeric_limits<scalar_t>::lowest()};
-        score_t const scaling_factor = padding_score * score_t{vector_offsets};
+        score_t const score_correction = padding_score * vector_offsets;
         score_t const mask_infinity{std::numeric_limits<int8_t>::lowest()};
         size_t const chunk_count = dp_vector.size();
 
@@ -148,7 +146,7 @@ private:
                                       in_range,
                                       best_score,
                                       (score_t{local_max_score} + dp_vector[state.chunk_idx].offset()) -
-                                        scaling_factor);
+                                        score_correction);
 
                 if (++state.chunk_idx == chunk_count) {
                     return false;
@@ -170,8 +168,8 @@ private:
 
         level_state state{
             .begin_position = vector_offsets,
-            .end_position = min(vector_offsets + sequence_sizes + vec_index_t{1},
-                                vec_index_t{static_cast<index_t>(dp_vector_size)}),
+            .end_position = min(vector_offsets + sequence_sizes + score_t{1},
+                                score_t{static_cast<scalar_t>(dp_vector_size)}),
             .chunk_end = dp_vector[0].size() - (0 < chunk_count - 1)
         };
 
@@ -189,25 +187,24 @@ private:
     template <typename dp_vector_t>
     auto run_second(dp_vector_t const & dp_vector,
                     size_t const dp_vector_size,
-                    vec_index_t const & sequence_sizes,
-                    vec_index_t const & vector_offsets,
+                    score_t const & sequence_sizes,
+                    score_t const & vector_offsets,
                     score_t const & padding_score) const noexcept
     {
         // Global state!
         score_t best_score{std::numeric_limits<scalar_t>::lowest()};
-        score_t const scaling_factor = score_t{sequence_sizes};
         score_t const mask_infinity{std::numeric_limits<int8_t>::lowest()};
         size_t const chunk_count = dp_vector.size();
 
         vec_int8_t local_max_score{std::numeric_limits<int8_t>::lowest()};
         vec_int8_t const local_padding_score{padding_score};
-        vec_int8_t local_scaling_factor{0};
+        vec_int8_t local_score_correction{0};
         mask_uint8_t reached_first{};
 
         auto find = [&] (level_state & state) -> bool {
             if (state.chunk_position == state.chunk_end) {
                 auto in_range = mask_infinity.lt(score_t{local_max_score});
-                score_t diff = score_t{static_cast<scalar_t>(state.chunk_idx * _chunk_size)} - scaling_factor;
+                score_t diff = score_t{static_cast<scalar_t>(state.chunk_idx * _chunk_size)} - sequence_sizes;
                 best_score = mask_max(best_score,
                                       in_range,
                                       best_score,
@@ -221,7 +218,7 @@ private:
                 // Reinitialise loop variables.
                 state.chunk_end = dp_vector[state.chunk_idx].size() - 1;
                 local_max_score = vec_int8_t{std::numeric_limits<int8_t>::lowest()};
-                local_scaling_factor = vec_int8_t{0};
+                local_score_correction = vec_int8_t{0};
                 state.chunk_position = 0;
             }
 
@@ -230,13 +227,13 @@ private:
             local_max_score = mask_max(local_max_score,
                                        reached_first,
                                        local_max_score,
-                                       base_chunk[state.chunk_position].score() - local_scaling_factor);
-            local_scaling_factor += local_padding_score;
+                                       base_chunk[state.chunk_position].score() - local_score_correction);
+            local_score_correction += local_padding_score;
             return true;
         };
 
         level_state state{
-            .begin_position = min(sequence_sizes + vector_offsets, vec_index_t{static_cast<index_t>(dp_vector_size)}),
+            .begin_position = min(sequence_sizes + vector_offsets, score_t{static_cast<scalar_t>(dp_vector_size)}),
             .chunk_end = dp_vector[0].size() - 1
         };
 
@@ -270,8 +267,8 @@ private:
     {
         mask_uint8_t parent_reached_first = state.reached_first;
         mask_uint8_t parent_reached_last = state.reached_last;
-        vec_uint8_t begin_position = vec_uint8_t{(state.begin_position >> 8) & vec_index_t{255}};
-        vec_uint8_t end_position = vec_uint8_t{(state.end_position >> 8) & vec_index_t{255}};
+        vec_uint8_t begin_position = vec_uint8_t{(state.begin_position >> 8) & score_t{static_cast<scalar_t>(255)}};
+        vec_uint8_t end_position = vec_uint8_t{(state.end_position >> 8) & score_t{static_cast<scalar_t>(255)}};
         vec_uint8_t vec_level2_idx{0};
         for (size_t idx = 0; idx < 256; ++idx, ++vec_level2_idx) {
             state.reached_first = parent_reached_first & begin_position.le(vec_level2_idx);
@@ -288,8 +285,8 @@ private:
     {
         mask_uint8_t parent_reached_first = state.reached_first;
         mask_uint8_t parent_reached_last = state.reached_last;
-        vec_uint8_t begin_position = vec_uint8_t{state.begin_position & vec_index_t{255}};
-        vec_uint8_t end_position = vec_uint8_t{state.end_position & vec_index_t{255}};
+        vec_uint8_t begin_position = vec_uint8_t{state.begin_position & score_t{static_cast<scalar_t>(255)}};
+        vec_uint8_t end_position = vec_uint8_t{state.end_position & score_t{static_cast<scalar_t>(255)}};
         for (size_t level1_idx = 0; level1_idx < 256; ++level1_idx, ++state.chunk_position) {
             vec_uint8_t vec_level1_idx{static_cast<uint8_t>(level1_idx)};
 
