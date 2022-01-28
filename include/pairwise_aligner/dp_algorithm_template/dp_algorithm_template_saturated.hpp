@@ -84,6 +84,8 @@ public:
 
     constexpr void offset(score_t new_offset) noexcept
     {
+        assert(check_saturated_arithmetic(new_offset));
+
         reset(new_offset);
         _dp_vector.update_offset(new_offset);
     }
@@ -95,6 +97,56 @@ public:
                 ((values -= new_offset), ...);
                 ((values += _dp_vector.saturated_zero_offset()), ...);
             }, range()[i]);
+    }
+
+    constexpr bool check_saturated_arithmetic(score_t const & new_offset) const noexcept
+    {
+        bool test = true;
+        try {
+            for (size_t i = 0; i < size(); ++i) {
+                using large_score_t = simd_score<int32_t, simd_score<int8_t>::size>;
+                large_score_t expected_score = large_score_t{get<0>(range()[i])} - large_score_t{new_offset};
+                expected_score += large_score_t{_dp_vector.saturated_zero_offset()};
+
+                auto real_score = get<0>(range()[i]) - new_offset;
+                real_score += _dp_vector.saturated_zero_offset();
+
+                auto throw_error = [&] (size_t k) {
+                    throw std::runtime_error{" i: " + std::to_string(i) +
+                                             ", k: " + std::to_string(k) +
+                                             ", real_score: " + std::to_string(real_score[k]) +
+                                             ", expected_score: " + std::to_string(expected_score[k]) +
+                                             ", cell: <" + std::to_string(get<0>(range()[i])[k]) + ", " +
+                                                         std::to_string(get<1>(range()[i])[k]) + ">" +
+                                             ", offset: " + std::to_string(new_offset[k]) +
+                                             ", zero_offset: " + std::to_string(_dp_vector.saturated_zero_offset()[k])};
+                };
+
+                for (size_t k = 0; k < score_t::size; ++k) {
+                    if (expected_score[k] != real_score[k])
+                        throw_error(k);
+                }
+
+                // TODO: Make generic for different alignment cell types.
+                if (i > 0) { // Check also the gap costs for all i > 0.
+                    expected_score = large_score_t{get<1>(range()[i])} - large_score_t{new_offset};
+                    expected_score += large_score_t{_dp_vector.saturated_zero_offset()};
+
+                    real_score = get<1>(range()[i]) - new_offset;
+                    real_score += _dp_vector.saturated_zero_offset();
+
+                    for (size_t k = 0; k < score_t::size; ++k) {
+                        if (expected_score[k] != real_score[k])
+                            throw_error(k);
+                    }
+                }
+            }
+        } catch (std::exception const & ex) {
+            std::cerr << "Updating the offset caused an arithmetic over- or underflow! " << ex.what() << "\n";
+            test = false;
+        }
+
+        return test;
     }
 };
 
