@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <cmath>
+
 #include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
@@ -66,10 +68,7 @@ struct traits
     template <typename common_configurations_t>
     constexpr auto configure_dp_vector_policy(common_configurations_t const & configuration) const
     {
-        size_t max_score = std::numeric_limits<int8_t>::max();
-        size_t block_size_mismatch = max_score / (_match_score - _mismatch_score);
-        size_t block_size_gap = (max_score + configuration._gap_open_score) / (_match_score - configuration._gap_extension_score);
-        size_t block_size = std::max(block_size_mismatch, block_size_gap);
+        auto [zero_offset, max_block_size] = compute_max_block_size(configuration);
 
         using column_cell_t = typename common_configurations_t::dp_cell_column_type<score_type>;
         using original_column_cell_t = typename common_configurations_t::dp_cell_column_type<original_score_type>;
@@ -77,8 +76,8 @@ struct traits
         auto column_vector =
             dp_vector_bulk_factory<score_type>(
                 dp_vector_chunk_factory(
-                    dp_vector_saturated_factory<original_column_cell_t>(dp_vector_single<column_cell_t>{}),
-                    block_size
+                    dp_vector_saturated_factory<original_column_cell_t>(dp_vector_single<column_cell_t>{}, zero_offset),
+                    max_block_size
                 )
             );
 
@@ -88,8 +87,8 @@ struct traits
         auto row_vector =
             dp_vector_bulk_factory<score_type>(
                 dp_vector_chunk_factory(
-                    dp_vector_saturated_factory<original_row_cell_t>(dp_vector_single<row_cell_t>{}),
-                    block_size
+                    dp_vector_saturated_factory<original_row_cell_t>(dp_vector_single<row_cell_t>{}, zero_offset),
+                    max_block_size
                 )
             );
 
@@ -103,6 +102,74 @@ struct traits
                                                                      std::remove_cvref_t<policies_t>...>;
 
         return interface_one_to_one_bulk<algorithm_t, score_type::size>{algorithm_t{std::move(policies)...}};
+    }
+
+private:
+    template <typename configuration_t>
+    constexpr auto compute_max_block_size(configuration_t const & configuration) const noexcept
+    {
+        auto [block_size_gap, zero_offset_gap] = max_block_size_with_gaps(std::abs(configuration._gap_open_score),
+                                                                          std::abs(configuration._gap_extension_score));
+        auto [block_size_mismatch, zero_offset_mismatch] = max_block_size_with_mismatch();
+
+        // Choose the max of both block sizes since due to the recursion the largest negative distance is affected
+        // by the lowest negative score with the given block size.
+        // Also set the corresponding zero offset accordingly.
+        int8_t zero_offset{};
+        size_t max_block_size = (block_size_gap < block_size_mismatch)
+                              ? (zero_offset = zero_offset_mismatch, block_size_mismatch)
+                              : (zero_offset = zero_offset_gap, block_size_gap);
+        return std::pair{zero_offset, max_block_size};
+    }
+
+    constexpr auto max_block_size_with_gaps(float const gap_open, float const gap_extension) const noexcept
+    {
+        // Assume positive gap scores for the following formula.
+        assert(gap_open >= 0);
+        assert(gap_extension >= 0);
+
+        // This formula computes the maximal block size and the respective zero offset for which the scores during
+        // the computation of the alignment blocks in saturated mode are guaranteed to not exceed the value range
+        // of the machines int8_t type, under the condition of having only gaps in a single block.
+        // It is derived from solving the following equations:
+        //  I: 127 >= x + match * block_size + gap_open + gap_extension * block_size
+        // II: -128 <= x - 2 * (gap_open + gap_extension * block_size)
+        // Here x represents the zero offset for which the block size is maximised.
+
+        float const max_score = std::numeric_limits<int8_t>::max();
+        float const min_score = std::numeric_limits<int8_t>::lowest();
+        float const upper_score_limit = max_score - gap_open;
+        float const block_divisor = _match_score + gap_extension;
+        float const block_scale = 2 * gap_extension / block_divisor;
+
+        int8_t const zero_offset = std::ceil((min_score + 2 * gap_open + (block_scale * upper_score_limit)) /
+                                             (1 + block_scale));
+        size_t const block_size = std::floor((upper_score_limit - zero_offset) / block_divisor);
+
+        return std::pair{block_size, zero_offset};
+    }
+
+    constexpr auto max_block_size_with_mismatch() const noexcept
+    {
+        // Assume positive mismatch score for the following equation
+        float const mismatch = std::abs(_mismatch_score);
+
+        // This formula computes the maximal block size and the respective zero offset for which the scores during
+        // the computation of the alignment blocks in saturated mode are guaranteed to not exceed the value range
+        // of the machines int8_t type, under the condition of having only mismatches in a single block.
+        // It is derived from solving the following equations:
+        //  I: 127 >= x + match * block_size + mismatch * block_size
+        // II: -128 <= x - mismatch * block_size
+        // Here x represents the zero offset for which the block size is maximised.
+
+        float const max_score = std::numeric_limits<int8_t>::max();
+        float const min_score = std::numeric_limits<int8_t>::lowest();
+        float const block_scale = mismatch / (_match_score + mismatch);
+
+        int8_t const zero_offset = std::ceil((min_score + max_score * block_scale) / (1 + block_scale));
+        size_t const block_size = std::floor((max_score - zero_offset) / (_match_score + mismatch));
+
+        return std::pair{block_size, zero_offset};
     }
 };
 

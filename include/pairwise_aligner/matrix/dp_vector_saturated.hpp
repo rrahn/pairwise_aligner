@@ -16,6 +16,8 @@
 #include <seqan3/std/ranges>
 #include <seqan3/std/type_traits>
 
+#include <pairwise_aligner/simd/simd_base.hpp>
+
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
@@ -26,6 +28,7 @@ class dp_vector_saturated
 {
 private:
     using regular_score_t = typename regular_cell_t::score_type;
+    using saturated_score_t = simd_score<int8_t, regular_score_t::size>;
 
     template <bool is_const>
     struct _proxy
@@ -85,6 +88,9 @@ private:
 
     dp_vector_t _dp_vector{}; // int8_t
     regular_score_t _regular_offset{}; // int32_t
+    regular_score_t _regular_zero_offset{}; // the zero offset in regular score.
+    saturated_score_t _saturated_zero_offset{}; // the zero offset in saturated score.
+
 public:
 
     using range_type = typename dp_vector_t::range_type;
@@ -93,7 +99,10 @@ public:
     using const_reference = _proxy<true>;
 
     dp_vector_saturated() = default;
-    explicit dp_vector_saturated(dp_vector_t dp_vector) : _dp_vector{std::move(dp_vector)}
+    explicit dp_vector_saturated(dp_vector_t dp_vector, int8_t zero_offset) :
+        _dp_vector{std::move(dp_vector)},
+        _regular_zero_offset{static_cast<typename regular_score_t::value_type>(zero_offset)},
+        _saturated_zero_offset{zero_offset}
     {}
 
     // return a proxy!
@@ -136,14 +145,19 @@ public:
         });
     }
 
-    constexpr regular_score_t & offset() noexcept
+    constexpr saturated_score_t const & saturated_zero_offset() const noexcept
     {
-        return _regular_offset;
+        return _saturated_zero_offset;
     }
 
     constexpr regular_score_t const & offset() const noexcept
     {
         return _regular_offset;
+    }
+
+    constexpr void update_offset(saturated_score_t const & offset) noexcept
+    {
+        _regular_offset += regular_score_t{offset} - _regular_zero_offset;
     }
 
     // initialisation interface
@@ -200,11 +214,14 @@ template <typename regular_cell_t>
 struct dp_vector_saturated_factory_fn
 {
 
-    template <typename dp_vector_t>
-    auto operator()(dp_vector_t && dp_vector) const noexcept
+    template <typename dp_vector_t, typename offset_t>
+    auto operator()(dp_vector_t && dp_vector, offset_t zero_offset) const noexcept
     {
         using pure_dp_vector_t = std::remove_cvref_t<dp_vector_t>;
-        return dp_vector_saturated<pure_dp_vector_t, regular_cell_t>{std::forward<dp_vector_t>(dp_vector)};
+        return dp_vector_saturated<pure_dp_vector_t, regular_cell_t>{
+                std::forward<dp_vector_t>(dp_vector),
+                std::move(zero_offset)
+        };
     }
 };
 

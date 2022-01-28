@@ -82,26 +82,19 @@ public:
         return _dp_vector;
     }
 
-    // constexpr score_t offset() const noexcept
-    // {
-    //     return _offset;
-    // }
-
-    // template <typename offset_score_t>
     constexpr void offset(score_t new_offset) noexcept
     {
-        initialise(new_offset);
-        // upcast the local offset to the large offset value
-        // add the converted offset to the global offset of the current vector type.
-        using large_offset_t = std::remove_cvref_t<decltype(_dp_vector.offset())>;
-        _dp_vector.offset() += large_offset_t{new_offset}; // int32_t
+        reset(new_offset);
+        _dp_vector.update_offset(new_offset);
     }
 
-    // template <typename offset_score_t>
-    void initialise(score_t const & new_offset) noexcept
+    void reset(score_t const & new_offset) noexcept
     {
         for (size_t i = 0; i < size(); ++i)
-            std::apply([&] (auto & ...values) { ((values -= new_offset), ...); }, range()[i]);
+            std::apply([&] (auto & ...values) {
+                ((values -= new_offset), ...);
+                ((values += _dp_vector.saturated_zero_offset()), ...);
+            }, range()[i]);
     }
 };
 
