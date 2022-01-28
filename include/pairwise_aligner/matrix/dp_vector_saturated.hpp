@@ -21,14 +21,11 @@ namespace seqan::pairwise_aligner
 inline namespace v1
 {
 
-template <typename dp_vector_t, typename original_cell_t> // int32_t
+template <typename dp_vector_t, typename regular_cell_t> // int32_t
 class dp_vector_saturated
 {
 private:
-    using offset_score_t = typename original_cell_t::score_type;
-
-    dp_vector_t _dp_vector{}; // int8_t
-    offset_score_t _offset{}; // int32_t
+    using regular_score_t = typename regular_cell_t::score_type;
 
     template <bool is_const>
     struct _proxy
@@ -37,19 +34,19 @@ private:
         using reference = std::conditional_t<is_const,
                                              typename dp_vector_t::const_reference,
                                              typename dp_vector_t::reference>;
-        using score_type = offset_score_t;
+        using score_type = regular_score_t;
 
     private:
 
         reference _saturated_value;
-        offset_score_t const & _offset;
+        regular_score_t const & _regular_offset;
 
     public:
 
         _proxy() = delete;
-        explicit _proxy(reference saturated_value, offset_score_t const & offset) :
+        explicit _proxy(reference saturated_value, regular_score_t const & offset) :
             _saturated_value{saturated_value},
-            _offset{offset}
+            _regular_offset{offset}
         {}
 
         // assignable from actual type.
@@ -68,31 +65,30 @@ private:
         }
 
         // TODO: cast into original cell type
-        constexpr operator original_cell_t() const noexcept
+        constexpr operator regular_cell_t() const noexcept
         {
-            original_cell_t cell{_saturated_value};
-            std::apply([this] (auto & ...values) { ((values += _offset), ...); }, cell);
+            regular_cell_t cell{_saturated_value};
+            std::apply([this] (auto & ...values) { ((values += _regular_offset), ...); }, cell);
             return cell;
         }
 
         constexpr score_type score() const noexcept
         {
-            // std::cout << "_saturated_value[0] = " << (int)_saturated_value.score()[0] << "\n";
-            // std::cout << "_offset[0] = " << _offset[0] << "\n";
-            // std::cout << "original_cell_t{*this}.score()[0] = " << original_cell_t{*this}.score()[0] << "\n";
-            return score_type{_saturated_value.score()} + _offset;
+            return score_type{_saturated_value.score()} + _regular_offset;
         }
 
         constexpr typename score_type::value_type score_at(size_t const position) const noexcept
         {
-            return _saturated_value.score()[position] + _offset[position];
+            return _saturated_value.score()[position] + _regular_offset[position];
         }
     };
 
+    dp_vector_t _dp_vector{}; // int8_t
+    regular_score_t _regular_offset{}; // int32_t
 public:
 
     using range_type = typename dp_vector_t::range_type;
-    using value_type = original_cell_t;
+    using value_type = regular_cell_t;
     using reference = _proxy<false>;
     using const_reference = _proxy<true>;
 
@@ -103,12 +99,12 @@ public:
     // return a proxy!
     reference operator[](size_t const pos) noexcept
     {
-        return reference{_dp_vector[pos], _offset};
+        return reference{_dp_vector[pos], _regular_offset};
     }
 
     const_reference operator[](size_t const pos) const noexcept
     {
-        return const_reference{_dp_vector[pos], _offset};
+        return const_reference{_dp_vector[pos], _regular_offset};
     }
 
     constexpr size_t size() const noexcept
@@ -129,30 +125,25 @@ public:
     decltype(auto) range() noexcept
     {
         return _dp_vector.range() | std::views::transform([this] (auto & cell) {
-            return reference{cell, _offset};
+            return reference{cell, _regular_offset};
         });
     }
 
     decltype(auto) range() const noexcept
     {
         return _dp_vector.range() | std::views::transform([this] (auto const & cell) {
-            return const_reference{cell, _offset};
+            return const_reference{cell, _regular_offset};
         });
     }
 
-    constexpr offset_score_t & offset() noexcept
+    constexpr regular_score_t & offset() noexcept
     {
-        return _offset;
+        return _regular_offset;
     }
 
-    constexpr offset_score_t const & offset() const noexcept
+    constexpr regular_score_t const & offset() const noexcept
     {
-        return _offset;
-    }
-
-    constexpr offset_score_t & offset(offset_score_t new_offset) noexcept
-    {
-        return _offset = std::move(new_offset);
+        return _regular_offset;
     }
 
     // initialisation interface
@@ -160,14 +151,14 @@ public:
     struct _factory
     {
         predecessor_t _predecessor;
-        offset_score_t & _offset;
+        regular_score_t & _regular_offset;
 
         template <typename op_t>
         struct _op
         {
             using small_cell_t = typename dp_vector_t::value_type;
             op_t _op;
-            offset_score_t & _offset;
+            regular_score_t & _regular_offset;
             bool _first_call{true};
 
             constexpr small_cell_t operator()(size_t const index) noexcept
@@ -175,11 +166,11 @@ public:
                 auto scalar_cell = _op(index);
                 if (_first_call)
                 {
-                    _offset = offset_score_t{scalar_cell.score()};
+                    _regular_offset = regular_score_t{scalar_cell.score()};
                     _first_call = false;
                 }
 
-                std::apply([this] (auto & ...values) { ((values -= _offset[0]), ...); }, scalar_cell);
+                std::apply([this] (auto & ...values) { ((values -= _regular_offset[0]), ...); }, scalar_cell);
                 return small_cell_t{scalar_cell}; // construct simd type with relative scores.
             }
         };
@@ -187,10 +178,10 @@ public:
         template <typename score_t>
         constexpr auto create() const noexcept
         {
-            using score_value_t = typename offset_score_t::value_type;
+            using score_value_t = typename regular_score_t::value_type;
             using op_t = std::remove_reference_t<decltype(std::declval<predecessor_t>().template
                 create<score_value_t>())>;
-            return _op<op_t>{_predecessor.template create<score_value_t>(), _offset};
+            return _op<op_t>{_predecessor.template create<score_value_t>(), _regular_offset};
         }
     };
 
@@ -198,28 +189,29 @@ public:
     auto initialise(sequence_t && sequence, factory_t && init_factory)
     {
         return _dp_vector.initialise(std::forward<sequence_t>(sequence),
-                                     _factory<factory_t>{std::forward<factory_t>(init_factory), _offset});
+                                     _factory<factory_t>{std::forward<factory_t>(init_factory), _regular_offset});
     }
 };
 
 namespace detail
 {
 
-template <typename original_cell_t>
+template <typename regular_cell_t>
 struct dp_vector_saturated_factory_fn
 {
 
     template <typename dp_vector_t>
     auto operator()(dp_vector_t && dp_vector) const noexcept
     {
-        return dp_vector_saturated<std::remove_cvref_t<dp_vector_t>, original_cell_t>{std::forward<dp_vector_t>(dp_vector)};
+        using pure_dp_vector_t = std::remove_cvref_t<dp_vector_t>;
+        return dp_vector_saturated<pure_dp_vector_t, regular_cell_t>{std::forward<dp_vector_t>(dp_vector)};
     }
 };
 
 } // namespace detail
 
-template <typename original_cell_t>
-inline constexpr detail::dp_vector_saturated_factory_fn<original_cell_t> dp_vector_saturated_factory{};
+template <typename regular_cell_t>
+inline constexpr detail::dp_vector_saturated_factory_fn<regular_cell_t> dp_vector_saturated_factory{};
 
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner
