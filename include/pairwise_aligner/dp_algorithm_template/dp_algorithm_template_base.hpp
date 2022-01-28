@@ -81,6 +81,10 @@ protected:
 
         using value_t = typename std::remove_cvref_t<dp_row_t>::value_type;
 
+        // Store score of first row cell in first column cell.
+        // Note the first column/row is not computed again, as they were already initialised.
+        dp_column[0].score() = dp_row[0].score();
+
         // Initialise bulk_cache array.
         constexpr std::ptrdiff_t cache_size = (detail::max_simd_size == 64) ? 8 : 4;
         std::array<value_t, cache_size> bulk_cache{};
@@ -127,28 +131,39 @@ protected:
 
             dp_row[j + 1] = cache;
         }
+
+        // Store score of last column in first cell of row.
+        dp_row[0].score() = dp_column[dp_column.size() - 1].score();
     }
 
-    template <typename dp_column_t, typename dp_row_t>
-    constexpr void initialise_block(dp_column_t && dp_column, dp_row_t && dp_row) const noexcept
+    template <typename dp_row_t>
+    constexpr void rotate_row_scores_right(dp_row_t && dp_row) const noexcept
     {
-        // H'[0].score() = V'[m].score();
-        // V'[0].score() = H'[n].score();
         size_t const dp_row_size = dp_row.size() - 1;
-        dp_column[0].score() = dp_row[dp_row_size].score();
+        // cache score of last cell.
+        auto tmp = std::move(dp_row[dp_row_size].score());
 
+        // rotate scores right.
         for (size_t j = dp_row_size; j > 0; --j)
             dp_row[j].score() = dp_row[j - 1].score();
+
+        // store last value in first cell.
+        dp_row[0].score() = std::move(tmp);
     }
 
-    template <typename dp_column_t, typename dp_row_t>
-    constexpr void postprocess_block(dp_column_t const & dp_column, dp_row_t && dp_row) const noexcept
+    template <typename dp_row_t>
+    constexpr void rotate_row_scores_left(dp_row_t && dp_row) const noexcept
     {
         size_t const dp_row_size = dp_row.size() - 1;
+        // cache score of first cell.
+        auto tmp = std::move(dp_row[0].score());
+
+        // rotate scores left.
         for (size_t j = 0; j < dp_row_size; ++j)
             dp_row[j].score() = dp_row[j + 1].score();
 
-        dp_row[dp_row_size].score() = dp_column[dp_column.size() - 1].score();
+        // store cached score in last cell.
+        dp_row[dp_row_size].score() = std::move(tmp);
     }
 
     template <typename tracker_t, typename ...args_t>

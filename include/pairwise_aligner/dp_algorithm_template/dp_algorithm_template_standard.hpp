@@ -53,9 +53,9 @@ protected:
         // Recursion
         // ----------------------------------------------------------------------------
 
-        base_t::initialise_block(dp_column, dp_row);
+        base_t::rotate_row_scores_right(dp_row);
         base_t::compute_block(transformed_seq1, transformed_seq2, dp_column, dp_row, scorer, tracker);
-        base_t::postprocess_block(dp_column, dp_row);
+        base_t::rotate_row_scores_left(dp_row);
 
         // ----------------------------------------------------------------------------
         // Create result
