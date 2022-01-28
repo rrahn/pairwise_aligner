@@ -173,19 +173,12 @@ protected:
                                                          std::ranges::end(simd_seq2))};
 
             // Initialise first block of current column.
-            current_row_vector.offset(current_row_vector[0].score());
-            dp_column_blocks[0].offset(dp_column_blocks[0][0].score());
-
-            base_t::initialise_block(dp_column_blocks[0], current_row_vector);
+            base_t::rotate_row_scores_right(current_row_vector);
 
             // Iterate over blocks in current column.
             for (size_t i = 0; i < column_block_count; ++i) {
-                if (i > 0) {
-                    current_row_vector[0].score() = dp_column_blocks[i - 1][dp_column_blocks[i - 1].size() - 1].score();
-                    current_row_vector.offset(current_row_vector[1].score());
-                    dp_column_blocks[i].offset(dp_column_blocks[i][0].score());
-                    dp_column_blocks[i][0].score() = current_row_vector[0].score();
-                }
+                current_row_vector.offset(current_row_vector[1].score());
+                dp_column_blocks[i].offset(dp_column_blocks[i][0].score());
 
                 base_t::compute_block(seq1_blocked[i],
                                       transformed_seq2,
@@ -196,7 +189,7 @@ protected:
             }
 
             // Write back optimal score to row vector.
-            base_t::postprocess_block(dp_column_blocks.back(), current_row_vector);
+            base_t::rotate_row_scores_left(current_row_vector);
         }
 
         // ----------------------------------------------------------------------------
