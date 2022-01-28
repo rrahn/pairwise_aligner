@@ -204,13 +204,14 @@ private:
         auto find = [&] (level_state & state) -> bool {
             if (state.chunk_position == state.chunk_end) {
                 auto in_range = mask_infinity.lt(score_t{local_max_score});
-                score_t diff = score_t{static_cast<scalar_t>(state.chunk_idx * _chunk_size)} - sequence_sizes;
+                score_t score_correction =
+                    max(score_t{static_cast<scalar_t>(state.chunk_idx * _chunk_size)} - sequence_sizes, vector_offsets) *
+                        padding_score;
                 best_score = mask_max(best_score,
                                       in_range,
                                       best_score,
-                                      (score_t{local_max_score} - (diff * padding_score) +
-                                          dp_vector[state.chunk_idx].offset())
-                                      );
+                                      (score_t{local_max_score} + dp_vector[state.chunk_idx].offset() -
+                                        score_correction));
 
                 if (++state.chunk_idx == chunk_count)
                     return false;
@@ -228,7 +229,10 @@ private:
                                        reached_first,
                                        local_max_score,
                                        base_chunk[state.chunk_position].score() - local_score_correction);
-            local_score_correction += local_padding_score;
+            local_score_correction = mask_add(local_score_correction,
+                                              reached_first,
+                                              local_score_correction,
+                                              local_padding_score);
             return true;
         };
 
