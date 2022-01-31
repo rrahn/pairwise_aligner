@@ -53,7 +53,8 @@ struct traits
     // result_factory configurator
     using result_factory_type = tracker::global_simd_saturated::factory<original_score_type>;
 
-    constexpr auto configure_substitution_policy() const noexcept
+    template <typename configuration_t>
+    constexpr auto configure_substitution_policy([[maybe_unused]] configuration_t const & configuration) const noexcept
     {
         return score_model_type{static_cast<score_type>(_match_score), static_cast<score_type>(_mismatch_score)};
     }

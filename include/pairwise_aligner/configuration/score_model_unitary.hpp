@@ -21,8 +21,10 @@
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
-#include <pairwise_aligner/tracker/tracker_global_scalar.hpp>
+#include <pairwise_aligner/score_model/score_model_unitary_local.hpp>
 #include <pairwise_aligner/score_model/score_model_unitary.hpp>
+#include <pairwise_aligner/tracker/tracker_global_scalar.hpp>
+#include <pairwise_aligner/tracker/tracker_local_scalar.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 #include <pairwise_aligner/utility/type_list.hpp>
 
@@ -48,7 +50,10 @@ struct traits
 
     using score_type = score_t;
 
-    using score_model_type = score_model_unitary<score_type>;
+    template <bool is_local>
+    using score_model_type = std::conditional_t<is_local,
+                                                score_model_unitary_local<score_type>,
+                                                score_model_unitary<score_type>>;
 
     template <typename dp_vector_t>
     using dp_vector_column_type = dp_vector_t;
@@ -58,17 +63,21 @@ struct traits
     template <typename dp_algorithm_t>
     using dp_interface_type = interface_one_to_one_single<dp_algorithm_t>;
 
-    using result_factory_type = tracker::global_scalar::factory;
-
-    constexpr auto configure_substitution_policy() const noexcept
+    // TODO: Remove dependency to local scoring scheme version.
+    template <typename configuration_t>
+    constexpr auto configure_substitution_policy([[maybe_unused]] configuration_t const & configuration) const noexcept
     {
-        return score_model_type{_match_score, _mismatch_score};
+        return score_model_type<configuration_t::is_local>{_match_score, _mismatch_score};
     }
 
     template <typename configuration_t>
-    constexpr auto configure_result_factory_policy(configuration_t const & configuration) const noexcept
+    constexpr auto configure_result_factory_policy([[maybe_unused]] configuration_t const & configuration)
+        const noexcept
     {
-        return result_factory_type{configuration.trailing_gap_setting()};
+        if constexpr (configuration_t::is_local)
+            return tracker::local_scalar::factory<score_type>{};
+        else
+            return tracker::global_scalar::factory{configuration.trailing_gap_setting()};
     }
 
     template <typename common_configurations_t>

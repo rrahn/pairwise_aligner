@@ -88,6 +88,14 @@ private:
                 seqan3::detail::lazy<at_wrapper, std::integral_constant<std::ptrdiff_t, method_configuration_index>>,
                 std::void_t<>>;
 
+        template <typename configuration_t>
+        using is_local_type = typename configuration_t::is_local_type;
+
+        static constexpr bool is_local =
+            seqan3::detail::lazy_conditional_t<method_configuration_index != -1,
+                                               seqan3::detail::lazy<is_local_type, method_configuration_type>,
+                                               std::false_type>::value;
+
         using score_type = typename substitution_configuration_t::score_type;
 
         template <typename score_t>
@@ -127,7 +135,7 @@ public:
 
     auto configure() const
     {
-        auto substitution_policy = _configurations_accessor.configure_substitution_policy();
+        auto substitution_policy = _configurations_accessor.configure_substitution_policy(_configurations_accessor);
         auto gap_policy = _configurations_accessor.configure_gap_policy();
         auto result_factory_policy = _configurations_accessor.configure_result_factory_policy(_configurations_accessor);
         auto dp_vector_policy = _configurations_accessor.configure_dp_vector_policy(_configurations_accessor);
