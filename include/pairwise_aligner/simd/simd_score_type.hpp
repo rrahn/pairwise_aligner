@@ -266,6 +266,15 @@ public:
         return fn(left, right);
     }
 
+    constexpr mask_type eq(simd_score const & rhs) const noexcept
+    {
+        mask_type masks{};
+        apply([&] <typename result_t> (result_t & mask, native_simd_t const & left, native_simd_t const & right) {
+                mask = left == right;
+        }, masks.values, values, rhs.values);
+        return masks;
+    }
+
     constexpr mask_type lt(simd_score const & rhs) const noexcept
     {
         mask_type masks{};
