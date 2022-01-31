@@ -74,23 +74,26 @@ struct traits
         using column_cell_t = typename common_configurations_t::dp_cell_column_type<score_type>;
         using original_column_cell_t = typename common_configurations_t::dp_cell_column_type<original_score_type>;
 
+        constexpr int8_t padding_symbol_column = static_cast<int8_t>(1ull << 7);
+        constexpr int8_t padding_symbol_row = padding_symbol_column;
+
         auto column_vector =
-            dp_vector_bulk_factory<score_type>(
+            dp_vector_bulk_factory(
                 dp_vector_chunk_factory(
                     dp_vector_saturated_factory<original_column_cell_t>(dp_vector_single<column_cell_t>{}, zero_offset),
-                    max_block_size
-                )
+                    max_block_size),
+                score_type{padding_symbol_column}
             );
 
         using row_cell_t = typename common_configurations_t::dp_cell_row_type<score_type>;
         using original_row_cell_t = typename common_configurations_t::dp_cell_row_type<original_score_type>;
 
         auto row_vector =
-            dp_vector_bulk_factory<score_type>(
+            dp_vector_bulk_factory(
                 dp_vector_chunk_factory(
                     dp_vector_saturated_factory<original_row_cell_t>(dp_vector_single<row_cell_t>{}, zero_offset),
-                    max_block_size
-                )
+                    max_block_size),
+                score_type{padding_symbol_row}
             );
 
         return dp_vector_policy{std::move(column_vector), std::move(row_vector)};

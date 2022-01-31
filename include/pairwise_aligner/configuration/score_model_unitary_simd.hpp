@@ -81,8 +81,14 @@ struct traits
         using column_cell_t = typename common_configurations_t::dp_cell_column_type<score_type>;
         using row_cell_t = typename common_configurations_t::dp_cell_row_type<score_type>;
 
-        return dp_vector_policy{dp_vector_bulk_factory<score_type>(dp_vector_single<column_cell_t>{}),
-                                dp_vector_bulk_factory<score_type>(dp_vector_single<row_cell_t>{})};
+        constexpr size_t bit_count = sizeof(score_t) * 8;
+        constexpr score_t padding_symbol_column = static_cast<score_t>(1ull << (bit_count - 1));
+        constexpr score_t padding_symbol_row = padding_symbol_column;
+
+        return dp_vector_policy{
+            dp_vector_bulk_factory(dp_vector_single<column_cell_t>{}, score_type{padding_symbol_column}),
+            dp_vector_bulk_factory(dp_vector_single<row_cell_t>{}, score_type{padding_symbol_row})
+        };
     }
 
     template <typename configuration_t, typename ...policies_t>
