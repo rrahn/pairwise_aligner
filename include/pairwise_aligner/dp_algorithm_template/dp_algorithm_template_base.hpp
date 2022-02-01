@@ -183,7 +183,7 @@ private:
               size_t ...idx>
     constexpr void unroll_loop(row_cells_t & row_cells,
                                col_cell_t & col_cell,
-                               scorer_t & scorer,
+                               scorer_t const & scorer,
                                tracker_t & tracker,
                                seq1_value_t const & seq1_value,
                                seq2_values_t const & seq2_values,
