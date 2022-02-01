@@ -97,18 +97,20 @@ public:
     {
         assert(check_saturated_arithmetic(new_offset));
 
-        // 1. get absolute values!
-        auto absolute_values = _dp_vector.to_regular_score(new_offset) - _dp_vector.local_zero_offset();
+        // 1. get absolute values
+        using regular_score_t = std::remove_cvref_t<decltype(_dp_vector.local_zero_offset())>;
+
+        regular_score_t new_offset_regular{new_offset};
+        auto absolute_values = _dp_vector.offset() + new_offset_regular - _dp_vector.local_zero_offset();
         // 2. compare with threshold
         auto is_local = absolute_values.lt(_dp_vector.threshold());
         _is_local = saturated_mask_t{is_local};
+
         // 3. set global_offsets and local offsets
-        new_offset = blend(_is_local, _dp_vector.saturated_zero_offset(), new_offset);
-        reset(new_offset);
+        reset(blend(_is_local, _dp_vector.saturated_zero_offset(), new_offset));
 
         // 4. update global offset
-        // set global offset to local zero offset!
-        _dp_vector.update_offset(new_offset, is_local);
+        _dp_vector.update_offset(new_offset_regular, is_local);
     }
 
     void reset(score_t const & new_offset) noexcept

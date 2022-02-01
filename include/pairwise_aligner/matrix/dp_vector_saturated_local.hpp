@@ -185,13 +185,11 @@ public:
     }
 
     template <typename mask_t>
-    constexpr void update_offset(saturated_score_t const & offset, mask_t const & is_local) noexcept
+    constexpr void update_offset(regular_score_t const & offset, mask_t const & is_local) noexcept
     {
-        // TODO: On AVX512 might be more efficient?
-        _regular_offset = mask_add(local_zero_offset(),
-                                   ~is_local,
-                                   _regular_offset,
-                                   regular_score_t{offset} - _regular_zero_offset);
+        _regular_offset = blend(is_local,
+                                local_zero_offset(),
+                                _regular_offset + (offset - _regular_zero_offset));
     }
 
     // initialisation interface
