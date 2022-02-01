@@ -23,9 +23,11 @@
 #include <pairwise_aligner/configuration/score_model_unitary.hpp>
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
 
+#include "alignment_benchmark_fixture.hpp"
+
 void alignment_global_affine(benchmark::State & state)
 {
-    size_t sequence_length = 500;
+    size_t sequence_length = aligner::benchmark::sequence_size;
     auto seq1_tmp = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0) | seqan3::views::to_char;
     auto seq2_tmp = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 1) | seqan3::views::to_char;
 

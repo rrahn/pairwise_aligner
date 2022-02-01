@@ -17,6 +17,8 @@
 namespace aligner::benchmark::fixed_simd {
 namespace pa = seqan::pairwise_aligner;
 
+inline constexpr size_t sequence_size = 1000;
+
 using score_t = int16_t;
 
 inline constexpr size_t max_sequence_count = pa::simd_score<score_t>::size;
@@ -27,7 +29,7 @@ inline constexpr auto base_configurator =
 DEFINE_BENCHMARK_VALUES(standard_unitary_same_size,
     .configurator = base_configurator,
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
-    .sequence_size_mean = 150,
+    .sequence_size_mean = aligner::benchmark::sequence_size,
     .sequence_size_variance = 0,
     .sequence_count = max_sequence_count
 )
@@ -37,7 +39,7 @@ DEFINE_BENCHMARK_VALUES(semi_first_unitary_same_size,
                         pa::cfg::leading_end_gap{.first_column = pa::cfg::end_gap::free },
                         pa::cfg::trailing_end_gap{.last_column = pa::cfg::end_gap::free }),
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
-    .sequence_size_mean = 150,
+    .sequence_size_mean = aligner::benchmark::sequence_size,
     .sequence_size_variance = 0,
     .sequence_count = max_sequence_count
 )
@@ -47,7 +49,7 @@ DEFINE_BENCHMARK_VALUES(semi_second_unitary_same_size,
                         pa::cfg::leading_end_gap{.first_row = pa::cfg::end_gap::free },
                         pa::cfg::trailing_end_gap{.last_row = pa::cfg::end_gap::free }),
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
-    .sequence_size_mean = 150,
+    .sequence_size_mean = aligner::benchmark::sequence_size,
     .sequence_size_variance = 0,
     .sequence_count = max_sequence_count
 )
@@ -57,7 +59,7 @@ DEFINE_BENCHMARK_VALUES(overlap_unitary_same_size,
                         pa::cfg::leading_end_gap{pa::cfg::end_gap::free, pa::cfg::end_gap::free},
                         pa::cfg::trailing_end_gap{pa::cfg::end_gap::free, pa::cfg::end_gap::free}),
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
-    .sequence_size_mean = 150,
+    .sequence_size_mean = aligner::benchmark::sequence_size,
     .sequence_size_variance = 0,
     .sequence_count = max_sequence_count
 )

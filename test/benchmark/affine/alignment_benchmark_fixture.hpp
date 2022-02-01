@@ -35,6 +35,8 @@ BENCHMARK_TEMPLATE_F(test, name##_##type, aligner::benchmark::fixture<&type>)(::
 namespace aligner::benchmark
 {
 
+inline constexpr size_t sequence_size = 150;
+
 // ----------------------------------------------------------------------------
 // Templatized fixture values.
 // ----------------------------------------------------------------------------

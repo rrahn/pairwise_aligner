@@ -27,7 +27,7 @@ inline constexpr auto base_configurator =
 DEFINE_BENCHMARK_VALUES(standard_unitary_same_size,
     .configurator = pa::cfg::method_local(base_configurator),
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_local{},
-    .sequence_size_mean = 150,
+    .sequence_size_mean = aligner::benchmark::sequence_size,
     .sequence_size_variance = 0,
     .sequence_count = pa::detail::max_simd_size
 )
