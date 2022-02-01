@@ -59,6 +59,23 @@ public:
     simd_mask & operator=(simd_mask &&) = default;
     ~simd_mask() = default;
 
+    constexpr explicit simd_mask(value_type const initial_value) noexcept
+    {
+        apply([&] (native_mask_t & native_mask_chunk) {
+                native_mask_chunk = (initial_value ? ~native_mask_t{} : native_mask_t{});
+        }, values);
+    }
+
+    // cast the other vector in this element
+    template <typename other_score_t>
+        requires (!std::same_as<other_score_t, score_t> && std::assignable_from<score_t &, other_score_t>)
+    constexpr explicit simd_mask(simd_mask<other_score_t, simd_size> const & other) noexcept
+    {
+        for (size_t j = 0; j < native_simd_count; ++j)
+            for (size_t i = 0; i < native_simd_size; ++i)
+                values[j][i] = (other[i + (j * native_simd_size)] ? ~native_mask_t{} : native_mask_t{})[0];
+    }
+
     constexpr const_reference operator[](size_t const pos) const noexcept
     {
         auto [index, offset] = to_local_position(pos);
