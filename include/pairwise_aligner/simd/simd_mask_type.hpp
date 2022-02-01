@@ -20,6 +20,7 @@
 #include <seqan3/utility/simd/simd.hpp>
 
 #include <pairwise_aligner/simd/simd_base.hpp>
+#include <pairwise_aligner/simd/simd_convert.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -27,9 +28,10 @@ inline namespace v1
 {
 
 template <std::unsigned_integral score_t, size_t simd_size>
-class alignas(detail::max_simd_size) simd_mask
+class alignas(detail::max_simd_size) simd_mask : protected detail::simd_convert_base
 {
 private:
+    using base_t = detail::simd_convert_base;
     using native_simd_t = seqan3::simd::simd_type_t<score_t>;
     using native_mask_t = typename seqan3::simd_traits<native_simd_t>::mask_type;
 
@@ -74,19 +76,11 @@ public:
         requires (!std::same_as<other_score_t, score_t> && std::assignable_from<score_t &, other_score_t>)
     constexpr explicit simd_mask(simd_mask<other_score_t, simd_size> const & other) noexcept
     {
-      if constexpr (native_simd_count < other.native_simd_count) {
-        if constexpr ((sizeof(other_score_t) / sizeof(score_t) == 2) && (detail::max_simd_size == 64)) {
-            values[0] = reinterpret_cast<native_mask_t>(
-                    _mm512_inserti64x4(
-                        _mm512_castsi256_si512(_mm512_cvtepi16_epi8(reinterpret_cast<__m512i const &>(other.values[0]))),
-                        _mm512_cvtepi16_epi8(reinterpret_cast<__m512i const &>(other.values[1])),
-                        1));
-        } else {
-            downcast(values, other, std::make_index_sequence<other.native_simd_count>());
+        if constexpr (native_simd_count < other.native_simd_count) { // downcast: merge
+            base_t::merge_into(values[0], other.values);
+        } else {  // upcast: expand
+            base_t::expand_into(values, other.values[0]);
         }
-      } else {
-        upcast(values, other, std::make_index_sequence<other.native_simd_count>());
-      }
     }
 
     constexpr const_reference operator[](size_t const pos) const noexcept

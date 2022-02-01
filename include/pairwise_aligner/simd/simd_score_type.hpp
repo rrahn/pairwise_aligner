@@ -20,6 +20,7 @@
 #include <seqan3/utility/simd/simd.hpp>
 
 #include <pairwise_aligner/simd/simd_base.hpp>
+#include <pairwise_aligner/simd/simd_convert.hpp>
 #include <pairwise_aligner/simd/simd_mask_type.hpp>
 
 namespace seqan::pairwise_aligner
@@ -27,9 +28,10 @@ namespace seqan::pairwise_aligner
 inline namespace v1
 {
 template <std::integral score_t, size_t simd_size>
-class alignas(detail::max_simd_size) simd_score
+class alignas(detail::max_simd_size) simd_score : protected detail::simd_convert_base
 {
 private:
+    using base_t = detail::simd_convert_base;
     using native_simd_t = seqan3::simd::simd_type_t<score_t>;
 
     static constexpr size_t native_simd_size = seqan3::simd_traits<native_simd_t>::length;
@@ -85,18 +87,10 @@ public:
         requires (!std::same_as<other_score_t, score_t> && std::assignable_from<score_t &, other_score_t>)
     constexpr explicit simd_score(simd_score<other_score_t, simd_size> const & other) noexcept
     {
-        if constexpr (sizeof(score_t) / sizeof(other_score_t) == 2) { // upcast to next larger integral type
-            values[0] = seqan3::simd::upcast<native_simd_t>(seqan3::detail::extract_half<0>(*other.values.data()));
-            values[1] = seqan3::simd::upcast<native_simd_t>(seqan3::detail::extract_half<1>(*other.values.data()));
-        } else if constexpr (sizeof(score_t) / sizeof(other_score_t) == 4) { // upcast to twice as large integral type
-            values[0] = seqan3::simd::upcast<native_simd_t>(seqan3::detail::extract_quarter<0>(*other.values.data()));
-            values[1] = seqan3::simd::upcast<native_simd_t>(seqan3::detail::extract_quarter<1>(*other.values.data()));
-            values[2] = seqan3::simd::upcast<native_simd_t>(seqan3::detail::extract_quarter<2>(*other.values.data()));
-            values[3] = seqan3::simd::upcast<native_simd_t>(seqan3::detail::extract_quarter<3>(*other.values.data()));
-        } else { // use auto vectorisation for larger differences and downcasts.
-            for (size_t j = 0; j < native_simd_count; ++j)
-                for (size_t i = 0; i < native_simd_size; ++i)
-                    values[j][i] = static_cast<score_t>(other[i + (j * native_simd_size)]);
+        if constexpr (native_simd_count > other.native_simd_count) { // upcast
+            base_t::expand_into(values, other.values[0]);
+        } else { // downcast
+            base_t::merge_into(values[0], other.values);
         }
     }
 
@@ -352,6 +346,49 @@ private:
     {
         for (size_t i = 0; i < native_simd_count; ++i)
             fn(first[i], remaining[i]...);
+    }
+
+    template <typename target_masks_t, typename source_simd_t, size_t ...idx>
+    constexpr void downcast(target_masks_t & target,
+                            source_simd_t const & source,
+                            std::index_sequence<idx...> const &) const noexcept
+    {
+      constexpr size_t source_mask_size_v = source.native_simd_size;
+      constexpr size_t split_factor = source.native_simd_count / native_simd_count;
+      constexpr auto index_seq = std::make_index_sequence<source_mask_size_v>();
+
+      ((downcast_impl<(idx * source_mask_size_v) % native_simd_size>(target[idx / split_factor],
+                                                                     source.values[idx],
+                                                                     index_seq)), ...);
+    }
+
+    template <size_t first_idx, typename other_mask_t, size_t ...idx>
+    constexpr void downcast_impl(native_simd_t & target,
+                                 other_mask_t const & source,
+                                 std::index_sequence<idx...> const &) const noexcept
+    {
+      ((target[first_idx + idx] = static_cast<score_t>(source[idx])), ...);
+    }
+
+    template <typename target_masks_t, typename source_simd_t, size_t ...idx>
+    constexpr void upcast(target_masks_t & target,
+                          source_simd_t const & source,
+                          std::index_sequence<idx...> const &) const noexcept
+    {
+      constexpr size_t split_factor = native_simd_count / source.native_simd_count;
+      constexpr auto index_seq = std::make_index_sequence<native_simd_size>();
+
+      ((upcast_impl<(idx * native_simd_size) % source.native_simd_size>(target[idx],
+                                                                        source.values[idx / split_factor],
+                                                                        index_seq)), ...);
+    }
+
+    template <size_t first_idx, typename other_mask_t, size_t ...idx>
+    constexpr  void upcast_impl(native_simd_t & target,
+                                other_mask_t const & source,
+                                std::index_sequence<idx...> const &) const noexcept
+    {
+      ((target[idx] = static_cast<score_t>(source[first_idx + idx])), ...);
     }
 };
 
