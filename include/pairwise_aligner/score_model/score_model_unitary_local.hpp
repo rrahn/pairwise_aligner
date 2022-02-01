@@ -33,22 +33,16 @@ private:
     score_t _match_score{};
     score_t _mismatch_score{};
     score_t _zero{};
-    score_t _mismatch_threshold{};
 
     struct _block_scheme
     {
         score_t _match_score{};
         score_t _mismatch_score{};
         score_t _zero{};
-        score_t _mismatch_threshold{};
 
         score_t score(score_t const & last_diagonal, score_t const & value1, score_t const & value2) const noexcept
         {
-            auto is_match = value1.eq(value2);
-            return mask_add(_zero,
-                            is_match | _mismatch_threshold.lt(last_diagonal),
-                            blend(is_match, _match_score, _mismatch_score),
-                            last_diagonal);
+            return max(blend(value1.eq(value2), _match_score, _mismatch_score) + last_diagonal, _zero);
         }
     };
 
@@ -60,8 +54,7 @@ public:
     explicit type(score_t match_score, score_t mismatch_score, score_t zero = {}) :
         _match_score{std::move(match_score)},
         _mismatch_score{std::move(mismatch_score)},
-        _zero{std::move(zero)},
-        _mismatch_threshold{_zero - _mismatch_score}
+        _zero{std::move(zero)}
     {}
 
     template <typename mask_t>
@@ -70,8 +63,7 @@ public:
         constexpr score_t global_zero{std::numeric_limits<typename score_t::value_type>::lowest()};
         return _block_scheme{_match_score,
                              _mismatch_score,
-                             blend(is_local, _zero, global_zero),
-                             blend(is_local, _mismatch_threshold, global_zero)};
+                             blend(is_local, _zero, global_zero)};
     }
 
     template <typename value1_t, typename value2_t>
@@ -91,24 +83,7 @@ public:
     {
         static_assert(std::same_as<score_t, simd_score<scalar_score_t, bulk_size>>,
                       "The simd score type does not match the score type of this score class.");
-
-
-        // TODO: Alternative for non mask add support?
-        // auto mismatch_mask =
-        //     compare(value1, value2, [] (simd_t const & lhs, simd_t const & rhs) {
-        //         return (lhs ^ rhs).ne(simd_t{});
-        //     });
-
-        // auto zero_mask = mask_lt(mismatch_mask, last_diagonal, _absolute_mismatch_score);
-        // return blend(zero_mask, simd_t{}, blend(mismatch_mask, _mismatch_score, _match_score) + last_diagonal);
-
-        // in global blocks we don't care about zero/ we don't want to cut there.
-        //
-        auto is_match = value1.eq(value2);
-        return mask_add(_zero,
-                        is_match | _mismatch_threshold.lt(last_diagonal),
-                        blend(is_match, _match_score, _mismatch_score),
-                        last_diagonal);
+        return max(blend(value1.eq(value2), _match_score, _mismatch_score) + last_diagonal, _zero);
     }
 
     // TODO: Refactor into separate factory CPO.
