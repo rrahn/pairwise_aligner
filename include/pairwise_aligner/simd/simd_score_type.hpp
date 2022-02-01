@@ -61,29 +61,29 @@ public:
     simd_score & operator=(simd_score const &) = default;
     simd_score & operator=(simd_score &&) = default;
 
-    explicit simd_score(score_t const initial_score) noexcept
+    constexpr explicit simd_score(score_t const initial_score) noexcept
     {
         apply([&] (native_simd_t & native_simd_chunk) {
             native_simd_chunk = seqan3::simd::fill<native_simd_t>(initial_score);
         }, values);
     }
 
-    explicit simd_score(native_simd_t simd_score) noexcept
+    constexpr explicit simd_score(native_simd_t simd_score) noexcept
         requires (is_native)
     : values{std::move(simd_score)}
     {}
 
     template <typename ..._score_t>
         requires ((sizeof...(_score_t) == simd_size - 2) && (std::same_as<_score_t, score_t> && ...))
-    explicit simd_score(score_t const first_score, score_t const second_score, _score_t const ...remaining_scores)
+    constexpr explicit simd_score(score_t const first_score, score_t const second_score, _score_t const ...remaining_scores)
         noexcept :
         values{{first_score, second_score, remaining_scores...}}
     {}
 
     // cast the other vector in this element
     template <typename other_score_t>
-        requires std::assignable_from<score_t &, other_score_t>
-    explicit simd_score(simd_score<other_score_t, simd_size> const & other) noexcept
+        requires (!std::same_as<other_score_t, score_t> && std::assignable_from<score_t &, other_score_t>)
+    constexpr explicit simd_score(simd_score<other_score_t, simd_size> const & other) noexcept
     {
         if constexpr (sizeof(score_t) / sizeof(other_score_t) == 2) { // upcast to next larger integral type
             values[0] = seqan3::simd::upcast<native_simd_t>(seqan3::detail::extract_half<0>(*other.values.data()));
