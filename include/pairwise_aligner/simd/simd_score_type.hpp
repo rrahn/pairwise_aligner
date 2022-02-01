@@ -224,7 +224,6 @@ public:
         return tmp;
     }
 
-
     constexpr simd_score operator>>(simd_score const & right) const noexcept
     {
         simd_score tmp{};
@@ -324,6 +323,19 @@ public:
         apply([] <typename mask_t> (native_simd_t & res, native_simd_t const & src, mask_t const & k,
                                     native_simd_t const & a, native_simd_t const & b) {
                 res = k ? a + b : src;
+        }, tmp.values, source.values, mask.values, left.values, right.values);
+        return tmp;
+    }
+
+    constexpr friend simd_score mask_subtract(simd_score const & source,
+                                              mask_type const & mask,
+                                              simd_score const & left,
+                                              simd_score const & right) noexcept
+    {
+        simd_score tmp{};
+        apply([] <typename mask_t> (native_simd_t & res, native_simd_t const & src, mask_t const & k,
+                                    native_simd_t const & a, native_simd_t const & b) {
+                res = k ? a - b : src;
         }, tmp.values, source.values, mask.values, left.values, right.values);
         return tmp;
     }
