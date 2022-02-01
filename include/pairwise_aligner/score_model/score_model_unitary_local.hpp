@@ -32,18 +32,47 @@ class _score_model_unitary_local<score_t>::type
 private:
     score_t _match_score{};
     score_t _mismatch_score{};
-    score_t _absolute_mismatch_score{};
+    score_t _zero{};
+    score_t _mismatch_threshold{};
+
+    struct _block_scheme
+    {
+        score_t _match_score{};
+        score_t _mismatch_score{};
+        score_t _zero{};
+        score_t _mismatch_threshold{};
+
+        score_t score(score_t const & last_diagonal, score_t const & value1, score_t const & value2) const noexcept
+        {
+            auto is_match = value1.eq(value2);
+            return mask_add(_zero,
+                            is_match | _mismatch_threshold.lt(last_diagonal),
+                            blend(is_match, _match_score, _mismatch_score),
+                            last_diagonal);
+        }
+    };
 
 public:
 
     using score_type = score_t;
 
     type() = default;
-    explicit type(score_t match_score, score_t mismatch_score) :
+    explicit type(score_t match_score, score_t mismatch_score, score_t zero = {}) :
         _match_score{std::move(match_score)},
         _mismatch_score{std::move(mismatch_score)},
-        _absolute_mismatch_score{_mismatch_score * -1}
+        _zero{std::move(zero)},
+        _mismatch_threshold{_zero - _mismatch_score}
     {}
+
+    template <typename mask_t>
+    constexpr _block_scheme block_scheme(mask_t const & is_local) const noexcept
+    {
+        constexpr score_t global_zero{std::numeric_limits<typename score_t::value_type>::lowest()};
+        return _block_scheme{_match_score,
+                             _mismatch_score,
+                             blend(is_local, _zero, global_zero),
+                             blend(is_local, _mismatch_threshold, global_zero)};
+    }
 
     template <typename value1_t, typename value2_t>
         requires (std::equality_comparable_with<value1_t, value2_t>)
@@ -63,7 +92,6 @@ public:
         static_assert(std::same_as<score_t, simd_score<scalar_score_t, bulk_size>>,
                       "The simd score type does not match the score type of this score class.");
 
-        using simd_t = simd_score<scalar_score_t, bulk_size>;
 
         // TODO: Alternative for non mask add support?
         // auto mismatch_mask =
@@ -74,10 +102,12 @@ public:
         // auto zero_mask = mask_lt(mismatch_mask, last_diagonal, _absolute_mismatch_score);
         // return blend(zero_mask, simd_t{}, blend(mismatch_mask, _mismatch_score, _match_score) + last_diagonal);
 
-        auto k1 = value1.eq(value2);
-        return mask_add(simd_t{},
-                        k1 | _absolute_mismatch_score.lt(last_diagonal),
-                        blend(k1, _match_score, _mismatch_score),
+        // in global blocks we don't care about zero/ we don't want to cut there.
+        //
+        auto is_match = value1.eq(value2);
+        return mask_add(_zero,
+                        is_match | _mismatch_threshold.lt(last_diagonal),
+                        blend(is_match, _match_score, _mismatch_score),
                         last_diagonal);
     }
 

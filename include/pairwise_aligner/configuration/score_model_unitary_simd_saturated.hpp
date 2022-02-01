@@ -15,13 +15,16 @@
 #include <cmath>
 
 #include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
+#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_saturated_local.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
+#include <pairwise_aligner/matrix/dp_vector_saturated_local.hpp>
 #include <pairwise_aligner/matrix/dp_vector_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
 #include <pairwise_aligner/tracker/tracker_global_simd_saturated.hpp>
+#include <pairwise_aligner/tracker/tracker_local_simd_saturated.hpp>
 
 namespace seqan::pairwise_aligner {
 inline namespace v1
@@ -47,54 +50,54 @@ struct traits
     using score_type = simd_score<int8_t>;
     using original_score_type = simd_score<score_t, score_type::size>;
 
-    // substitution policy configurator
-    using score_model_type = seqan::pairwise_aligner::score_model_unitary<score_type>;
-
     // result_factory configurator
     using result_factory_type = tracker::global_simd_saturated::factory<original_score_type>;
 
     template <typename configuration_t>
     constexpr auto configure_substitution_policy([[maybe_unused]] configuration_t const & configuration) const noexcept
     {
-        return score_model_type{static_cast<score_type>(_match_score), static_cast<score_type>(_mismatch_score)};
+        if constexpr (configuration_t::is_local) {
+            int8_t local_zero = lowest_viable_local_score(configuration);
+            return score_model_unitary_local<score_type>{static_cast<score_type>(_match_score),
+                                                         static_cast<score_type>(_mismatch_score),
+                                                         static_cast<score_type>(local_zero)};
+        } else {
+            return score_model_unitary<score_type>{static_cast<score_type>(_match_score),
+                                                   static_cast<score_type>(_mismatch_score)};
+        }
     }
 
     template <typename configuration_t>
-    constexpr auto configure_result_factory_policy(configuration_t const & configuration) const noexcept
+    constexpr auto configure_result_factory_policy([[maybe_unused]] configuration_t const & configuration)
+        const noexcept
     {
-        return result_factory_type{static_cast<original_score_type>(_match_score),
-                                   configuration.trailing_gap_setting()};
+        if constexpr (configuration_t::is_local) {
+            return tracker::local_simd_saturated::factory<score_type, original_score_type>{};
+        } else {
+            return tracker::global_simd_saturated::factory<original_score_type>{
+                static_cast<original_score_type>(_match_score),
+                configuration.trailing_gap_setting()
+            };
+        }
     }
 
-    template <typename common_configurations_t>
-    constexpr auto configure_dp_vector_policy(common_configurations_t const & configuration) const
+    template <typename configuration_t>
+    constexpr auto configure_dp_vector_policy(configuration_t const & configuration) const
     {
-        auto [zero_offset, max_block_size] = compute_max_block_size(configuration);
+        // auto [zero_offset, max_block_size] = compute_max_block_size(configuration);
 
-        using column_cell_t = typename common_configurations_t::dp_cell_column_type<score_type>;
-        using original_column_cell_t = typename common_configurations_t::dp_cell_column_type<original_score_type>;
+        using column_cell_t = typename configuration_t::dp_cell_column_type<score_type>;
+        using original_column_cell_t = typename configuration_t::dp_cell_column_type<original_score_type>;
 
-        constexpr int8_t padding_symbol_column = static_cast<int8_t>(1ull << 7);
-        constexpr int8_t padding_symbol_row = padding_symbol_column;
+        constexpr score_type padding_symbol_column{static_cast<int8_t>(1ull << 7)};
+        constexpr score_type padding_symbol_row{padding_symbol_column + configuration_t::is_local};
 
-        auto column_vector =
-            dp_vector_bulk_factory(
-                dp_vector_chunk_factory(
-                    dp_vector_saturated_factory<original_column_cell_t>(dp_vector_single<column_cell_t>{}, zero_offset),
-                    max_block_size),
-                score_type{padding_symbol_column}
-            );
+        auto column_vector = configure_dp_vector<column_cell_t, original_column_cell_t>(configuration, padding_symbol_column);
 
-        using row_cell_t = typename common_configurations_t::dp_cell_row_type<score_type>;
-        using original_row_cell_t = typename common_configurations_t::dp_cell_row_type<original_score_type>;
+        using row_cell_t = typename configuration_t::dp_cell_row_type<score_type>;
+        using original_row_cell_t = typename configuration_t::dp_cell_row_type<original_score_type>;
 
-        auto row_vector =
-            dp_vector_bulk_factory(
-                dp_vector_chunk_factory(
-                    dp_vector_saturated_factory<original_row_cell_t>(dp_vector_single<row_cell_t>{}, zero_offset),
-                    max_block_size),
-                score_type{padding_symbol_row}
-            );
+        auto row_vector = configure_dp_vector<row_cell_t, original_row_cell_t>(configuration, padding_symbol_row);
 
         return dp_vector_policy{std::move(column_vector), std::move(row_vector)};
     }
@@ -102,13 +105,49 @@ struct traits
     template <typename configuration_t, typename ...policies_t>
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
-        using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_saturated,
-                                                                     std::remove_cvref_t<policies_t>...>;
+        using algorithm_t =
+            std::conditional_t<configuration_t::is_local,
+                                typename configuration_t::algorithm_type<dp_algorithm_template_saturated_local,
+                                                                         std::remove_cvref_t<policies_t>...>,
+                                typename configuration_t::algorithm_type<dp_algorithm_template_saturated,
+                                                                         std::remove_cvref_t<policies_t>...>
+            >;
 
         return interface_one_to_one_bulk<algorithm_t, score_type::size>{algorithm_t{std::move(policies)...}};
     }
 
 private:
+
+    template <typename configuration_t>
+    auto lowest_viable_local_score(configuration_t const & configuration) const noexcept
+    {
+        static_assert(configuration_t::is_local);
+
+        return std::numeric_limits<int8_t>::lowest() - configuration._gap_open_score -
+                    (2 * configuration._gap_extension_score);
+    }
+
+    template <typename saturated_cell_t, typename regular_cell_t, typename configuration_t>
+    auto configure_dp_vector(configuration_t const & configuration, score_type padding_symbol) const noexcept
+    {
+        auto [global_zero, max_block_size] = compute_max_block_size(configuration);
+
+        auto saturated_dp_vector = [&] () {
+            if constexpr (configuration_t::is_local) {
+                int8_t local_zero = lowest_viable_local_score(configuration);
+                int8_t threshold = std::numeric_limits<int8_t>::max() - (max_block_size * _match_score);
+                return dp_vector_saturated_local_factory<regular_cell_t>(dp_vector_single<saturated_cell_t>{},
+                                                                         local_zero,
+                                                                         global_zero,
+                                                                         threshold);
+            } else {
+                return dp_vector_saturated_factory<regular_cell_t>(dp_vector_single<saturated_cell_t>{}, global_zero);
+            }
+        };
+
+        return  dp_vector_bulk_factory(dp_vector_chunk_factory(saturated_dp_vector(), max_block_size), padding_symbol);
+    }
+
     template <typename configuration_t>
     constexpr auto compute_max_block_size(configuration_t const & configuration) const noexcept
     {
