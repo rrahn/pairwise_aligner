@@ -39,6 +39,9 @@ private:
     template <std::integral, size_t>
     friend class simd_score;
 
+    template <std::unsigned_integral, size_t>
+    friend class simd_mask;
+
 public:
 
     inline static constexpr size_t size = simd_size;
@@ -71,9 +74,19 @@ public:
         requires (!std::same_as<other_score_t, score_t> && std::assignable_from<score_t &, other_score_t>)
     constexpr explicit simd_mask(simd_mask<other_score_t, simd_size> const & other) noexcept
     {
-        for (size_t j = 0; j < native_simd_count; ++j)
-            for (size_t i = 0; i < native_simd_size; ++i)
-                values[j][i] = (other[i + (j * native_simd_size)] ? ~native_mask_t{} : native_mask_t{})[0];
+      if constexpr (native_simd_count < other.native_simd_count) {
+        if constexpr ((sizeof(other_score_t) / sizeof(score_t) == 2) && (detail::max_simd_size == 64)) {
+            values[0] = reinterpret_cast<native_mask_t>(
+                    _mm512_inserti64x4(
+                        _mm512_castsi256_si512(_mm512_cvtepi16_epi8(reinterpret_cast<__m512i const &>(other.values[0]))),
+                        _mm512_cvtepi16_epi8(reinterpret_cast<__m512i const &>(other.values[1])),
+                        1));
+        } else {
+            downcast(values, other, std::make_index_sequence<other.native_simd_count>());
+        }
+      } else {
+        upcast(values, other, std::make_index_sequence<other.native_simd_count>());
+      }
     }
 
     constexpr const_reference operator[](size_t const pos) const noexcept
@@ -140,22 +153,50 @@ private:
         for (size_t i = 0; i < native_simd_count; ++i)
             fn(first[i], remaining[i]...);
     }
+
+    template <typename target_masks_t, typename source_simd_t, size_t ...idx>
+    constexpr void downcast(target_masks_t & target,
+                            source_simd_t const & source,
+                            std::index_sequence<idx...> const &) const noexcept
+    {
+      constexpr size_t source_mask_size_v = source.native_simd_size; // [0]
+      constexpr size_t split_factor = source.native_simd_count / native_simd_count;
+      constexpr auto index_seq = std::make_index_sequence<source_mask_size_v>();
+
+      ((downcast_impl<(idx * source_mask_size_v) % native_simd_size>(target[idx / split_factor],
+                                                                     source.values[idx],
+                                                                     index_seq)), ...);
+    }
+
+    template <size_t first_idx, typename other_mask_t, size_t ...idx>
+    constexpr void downcast_impl(native_mask_t & target,
+                                 other_mask_t const & source,
+                                 std::index_sequence<idx...> const &) const noexcept
+    {
+      ((target[first_idx + idx] = static_cast<score_t>(source[idx])), ...);
+    }
+
+    template <typename target_masks_t, typename source_simd_t, size_t ...idx>
+    constexpr void upcast(target_masks_t & target,
+                          source_simd_t const & source,
+                          std::index_sequence<idx...> const &) const noexcept
+    {
+      constexpr size_t split_factor = native_simd_count / source.native_simd_count;
+      constexpr auto index_seq = std::make_index_sequence<native_simd_size>();
+
+      ((upcast_impl<(idx * native_simd_size) % source.native_simd_size>(target[idx],
+                                                                        source.values[idx / split_factor],
+                                                                        index_seq)), ...);
+    }
+
+    template <size_t first_idx, typename other_mask_t, size_t ...idx>
+    constexpr  void upcast_impl(native_mask_t & target,
+                                other_mask_t const & source,
+                                std::index_sequence<idx...> const &) const noexcept
+    {
+      ((target[idx] = static_cast<score_t>(source[first_idx + idx])), ...);
+    }
 };
-
-// template <typename stream_t, typename simd_mask_t>
-//     requires requires {
-//         std::remove_cvref_t<simd_mask_t>::size;
-//         typename std::remove_cvref_t<simd_mask_t>::simd_type;
-//     }
-// inline stream_t & operator<<(stream_t & ostream, simd_mask_t && simd_mask)
-// {
-//     ostream << "<";
-//     for (size_t i = 0; i < simd_mask.size - 1; ++i)
-//         ostream << (int32_t) simd_mask[i] << ", ";
-
-//     ostream << (int32_t) simd_mask[simd_mask.size - 1] << ">";
-//     return ostream;
-// }
 
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner
