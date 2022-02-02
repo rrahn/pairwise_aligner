@@ -44,8 +44,7 @@ public:
     constexpr void merge_into(target_simd_t & target,
                               std::array<source_simd_t, source_count> const & source_array) const noexcept
     {
-        if constexpr (seqan3::simd_traits<target_simd_t>::max_length >= 32 &&
-                      has_8_bit_packing<target_simd_t> &&
+        if constexpr (has_8_bit_packing<target_simd_t> &&
                       (has_32_bit_packing<source_simd_t> || has_32_bit_packing<source_simd_t>)) {
             merge_into_intrinsics(target, source_array);
         } else { // try auto-vectorisation.
@@ -260,6 +259,106 @@ private:
                 _mm256_cvtepi16_epi32(_mm256_castsi256_si128(hi_16x16v)));
         target_array[3] = reinterpret_cast<target_simd_t>(
                 _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hi_16x16v, 1)));
+    }
+
+    // ----------------------------------------------------------------------------
+    // SSE4 intrinsics
+    // ----------------------------------------------------------------------------
+
+    // From 16 bit to 8 bit
+    template <typename target_simd_t, typename source_simd_t, size_t source_count>
+        requires (seqan3::simd_traits<target_simd_t>::max_length == 16 && has_16_bit_packing<source_simd_t>)
+    constexpr void merge_into_intrinsics(target_simd_t & target,
+                                         std::array<source_simd_t, source_count> const & source_array) const noexcept
+    {
+        constexpr auto lo_8_mask{[]() -> std::array<int16_t, 8> {
+            std::array<int16_t, 8> tmp{};
+            tmp.fill(0xFF); // := 255
+            return tmp;
+        }()};
+
+        // Zero out the upper 8 bits.
+        __m128i lo_16x4 = _mm_and_si128(reinterpret_cast<__m128i const &>(source_array[0]),
+                                           reinterpret_cast<__m128i const &>(lo_8_mask));
+        __m128i hi_16x4 = _mm_and_si128(reinterpret_cast<__m128i const &>(source_array[1]),
+                                           reinterpret_cast<__m128i const &>(lo_8_mask));
+        // Pack and convert 16 bits (the lower 8 bits) into 8 bits of the target register using unsigned saturation.
+        target = reinterpret_cast<target_simd_t>(_mm_packus_epi16(lo_16x4, hi_16x4));
+    }
+
+    // From 32 bit to 8 bit
+    template <typename target_simd_t, typename source_simd_t, size_t source_count>
+        requires (seqan3::simd_traits<target_simd_t>::max_length == 16 && has_32_bit_packing<source_simd_t>)
+    constexpr void merge_into_intrinsics(target_simd_t & target,
+                                         std::array<source_simd_t, source_count> const & source_array) const noexcept
+    {
+        constexpr auto lo_16_mask{[]() -> std::array<int32_t, 4> {
+            std::array<int32_t, 4> tmp{};
+            tmp.fill(0xFFFF); // := 65535
+            return tmp;
+        }()};
+
+        constexpr auto lo_8_mask{[]() -> std::array<int16_t, 8> {
+            std::array<int16_t, 8> tmp{};
+            tmp.fill(0xFF); // := 255
+            return tmp;
+        }()};
+
+        // Zero out the upper 16 bits.
+        __m128i lo_32x2 = _mm_and_si128(reinterpret_cast<__m128i const &>(source_array[0]),
+                                           reinterpret_cast<__m128i const &>(lo_16_mask));
+        __m128i hi_32x2 = _mm_and_si128(reinterpret_cast<__m128i const &>(source_array[1]),
+                                           reinterpret_cast<__m128i const &>(lo_16_mask));
+
+        // Extract lower 16 bit from lo_32x2 and hi_32x2 forming the values of the lower half of the target vector.
+        __m128i lo_16x4 = _mm_packus_epi32(lo_32x2, hi_32x2);
+
+        // Zero out the upper 16 bits.
+        lo_32x2 = _mm_and_si128(reinterpret_cast<__m128i const &>(source_array[2]),
+                                   reinterpret_cast<__m128i const &>(lo_16_mask));
+        hi_32x2 = _mm_and_si128(reinterpret_cast<__m128i const &>(source_array[3]),
+                                   reinterpret_cast<__m128i const &>(lo_16_mask));
+
+        // Extract lower 16 bit from lo_32x4 and hi_32x4 forming the values of the higher half of the target vector.
+        __m128i hi_16x4 = _mm_packus_epi32(lo_32x2, hi_32x2);
+
+        // Zero out the upper 8 bits.
+        lo_16x4 = _mm_and_si128(reinterpret_cast<__m128i const &>(lo_16x4),
+                                   reinterpret_cast<__m128i const &>(lo_8_mask));
+        hi_16x4 = _mm_and_si128(reinterpret_cast<__m128i const &>(hi_16x4),
+                                   reinterpret_cast<__m128i const &>(lo_8_mask));
+
+        // Pack and convert 16 bits (the lower 8 bits) into 8 bits of the target register using unsigned saturation.
+        // The pack operation interleaves 4 elements of a with 4 elements of b, so the final result is permuted
+        // back into the correct order: imm8 := 3, 1, 2, 0 := 11 01 10 00
+        target = reinterpret_cast<target_simd_t>(_mm_packus_epi16(lo_16x4, hi_16x4));
+    }
+
+    // From 8 bit to 16 bit
+    template <typename target_simd_t, size_t target_count, typename source_simd_t>
+        requires (seqan3::simd_traits<target_simd_t>::max_length == 16 && has_16_bit_packing<target_simd_t>)
+    constexpr void expand_into_intrinsics(std::array<target_simd_t, target_count> & target_array,
+                                          source_simd_t const & source) const noexcept
+    {
+        target_array[0] = reinterpret_cast<target_simd_t>(
+                            _mm_cvtepi8_epi16(reinterpret_cast<__m128i const &>(source)));
+        target_array[1] = reinterpret_cast<target_simd_t>(
+                _mm_cvtepi8_epi16(_mm_bsrli_si128(reinterpret_cast<__m128i const &>(source), 8)));
+    }
+
+    // From 8 bit to 32 bit
+    template <typename target_simd_t, size_t target_count, typename source_simd_t>
+        requires (seqan3::simd_traits<target_simd_t>::max_length == 16 && has_32_bit_packing<target_simd_t>)
+    constexpr void expand_into_intrinsics(std::array<target_simd_t, target_count> & target_array,
+                                          source_simd_t const & source) const noexcept
+    {
+        __m128i lo_16x8v = _mm_cvtepi8_epi16(reinterpret_cast<__m128i const &>(source));
+        __m128i hi_16x8v = _mm_cvtepi8_epi16(_mm_bsrli_si128(reinterpret_cast<__m128i const &>(source), 8));
+
+        target_array[0] = reinterpret_cast<target_simd_t>(_mm_cvtepi16_epi32(lo_16x8v));
+        target_array[1] = reinterpret_cast<target_simd_t>(_mm_cvtepi16_epi32(_mm_bsrli_si128(lo_16x8v, 8)));
+        target_array[2] = reinterpret_cast<target_simd_t>(_mm_cvtepi16_epi32(hi_16x8v));
+        target_array[3] = reinterpret_cast<target_simd_t>(_mm_cvtepi16_epi32(_mm_bsrli_si128(hi_16x8v, 8)));
     }
 
     // ----------------------------------------------------------------------------
