@@ -11,7 +11,9 @@
 
 #include <pairwise_aligner/configuration/method_local.hpp>
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
+#include <pairwise_aligner/configuration/score_model_matrix.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary.hpp>
+#include <pairwise_aligner/score_model/substitution_matrix.hpp>
 
 #include "alignment_scalar_test_template.hpp"
 
@@ -88,6 +90,20 @@ DEFINE_TEST_VALUES(infix_starting_in_first_row,
     .expected_score = 9
 )
 
+DEFINE_TEST_VALUES(matrix_infix,
+    .configurator = aligner::cfg::score_model_matrix(base_config, aligner::blosum62_extended),
+    .sequence1 = "ALIGATOR"sv,
+    .sequence2 = "GALORA"sv,
+    .expected_score = 13
+)
+
+DEFINE_TEST_VALUES(matrix_empty_sequence,
+    .configurator = aligner::cfg::score_model_matrix(base_config, aligner::blosum62_extended),
+    .sequence1 = "ALIGATOR"sv,
+    .sequence2 = ""sv,
+    .expected_score = std::numeric_limits<int32_t>::lowest()
+)
+
 using test_types =
     ::testing::Types<
         alignment::test::fixture<&same_sequence>,
@@ -96,7 +112,9 @@ using test_types =
         alignment::test::fixture<&single_match>,
         alignment::test::fixture<&infix_with_one_mismatch>,
         alignment::test::fixture<&prefix_with_suffix>,
-        alignment::test::fixture<&infix_starting_in_first_row>
+        alignment::test::fixture<&infix_starting_in_first_row>,
+        alignment::test::fixture<&matrix_infix>,
+        alignment::test::fixture<&matrix_empty_sequence>
     >;
 
 } // namespace local::affine::scalar

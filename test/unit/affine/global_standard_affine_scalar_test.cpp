@@ -11,7 +11,10 @@
 
 #include <pairwise_aligner/configuration/method_global.hpp>
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
+#include <pairwise_aligner/configuration/score_model_matrix.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary.hpp>
+
+#include <pairwise_aligner/score_model/substitution_matrix.hpp>
 
 #include "alignment_scalar_test_template.hpp"
 
@@ -28,39 +31,83 @@ inline constexpr auto base_config =
     );
 
 // ----------------------------------------------------------------------------
-// Equal size
+// Unitary substitution model
 // ----------------------------------------------------------------------------
 
-DEFINE_TEST_VALUES(same_sequence,
+DEFINE_TEST_VALUES(unitary_same_sequence,
     .configurator = aligner::cfg::score_model_unitary(base_config, 4, -5),
     .sequence1 = "ACGTGACTGACACTACGACT"sv,
     .sequence2 = "ACGTGACTGACACTACGACT"sv,
     .expected_score = 80
 )
 
-DEFINE_TEST_VALUES(unequal_sequence,
+DEFINE_TEST_VALUES(unitary_unequal_sequence,
     .configurator = aligner::cfg::score_model_unitary(base_config, 4, -5),
     .sequence1 = "AAAAAAAAAA"sv,
     .sequence2 = "TTTTTTTTTT"sv,
     .expected_score = -40
 )
 
-DEFINE_TEST_VALUES(related_sequence,
+DEFINE_TEST_VALUES(unitary_related_sequence,
     .configurator = aligner::cfg::score_model_unitary(base_config, 4, -5),
     .sequence1 = "AGATCGACTAGCGAGCTACGAGCTAGC"sv,
     .sequence2 = "AGACGATCGACGAGCGACTACGTACGA"sv,
     .expected_score = 26
 )
 
-using test_types =
+using unitary_test_types =
     ::testing::Types<
-        alignment::test::fixture<&same_sequence>,
-        alignment::test::fixture<&unequal_sequence>,
-        alignment::test::fixture<&related_sequence>
+        alignment::test::fixture<&unitary_same_sequence>,
+        alignment::test::fixture<&unitary_unequal_sequence>,
+        alignment::test::fixture<&unitary_related_sequence>
+    >;
+
+// ----------------------------------------------------------------------------
+// Matrix substitution model
+// ----------------------------------------------------------------------------
+
+DEFINE_TEST_VALUES(matrix_same_sequence,
+    .configurator = aligner::cfg::score_model_matrix(base_config, aligner::blosum62_standard),
+    .sequence1 = "ACKLMNPQRRTVWYNMPQHIK"sv,
+    .sequence2 = "ACKLMNPQRRTVWYNMPQHIK"sv,
+    .expected_score = 122
+)
+
+DEFINE_TEST_VALUES(matrix_unequal_sequence,
+    .configurator = aligner::cfg::score_model_matrix(base_config, aligner::blosum62_standard),
+    .sequence1 = "AAAAAAAAAAAAAAAAAAAA"sv,
+    .sequence2 = "CDEFGHIKLMNPQRSTVWLY"sv,
+    .expected_score = -21
+)
+
+DEFINE_TEST_VALUES(matrix_sequence_different_size,
+    .configurator = aligner::cfg::score_model_matrix(base_config, aligner::blosum62_standard),
+    .sequence1 = "FNQSAEYPDISHCGVMQLKWRATLGT"sv,
+    .sequence2 = "EIKSDVLLHRWSMKNPGNILMIDVGMQVAESYFAT"sv,
+    .expected_score = -26
+)
+
+DEFINE_TEST_VALUES(matrix_short_sequence_different_size,
+    .configurator = aligner::cfg::score_model_matrix(base_config, aligner::blosum62_standard),
+    .sequence1 = "RKFCYMD"sv,
+    .sequence2 = "GAYQW"sv,
+    .expected_score = -11
+)
+
+using matrix_test_types =
+    ::testing::Types<
+        alignment::test::fixture<&matrix_same_sequence>,
+        alignment::test::fixture<&matrix_unequal_sequence>,
+        alignment::test::fixture<&matrix_sequence_different_size>,
+        alignment::test::fixture<&matrix_short_sequence_different_size>
     >;
 
 } // namespace global::standard::affine::scalar
 
-INSTANTIATE_TYPED_TEST_SUITE_P(test,
+INSTANTIATE_TYPED_TEST_SUITE_P(unitary_test,
                                test_suite,
-                               global::standard::affine::scalar::test_types,);
+                               global::standard::affine::scalar::unitary_test_types,);
+
+INSTANTIATE_TYPED_TEST_SUITE_P(matrix_test,
+                               test_suite,
+                               global::standard::affine::scalar::matrix_test_types,);
