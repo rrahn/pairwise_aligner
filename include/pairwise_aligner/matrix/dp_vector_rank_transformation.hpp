@@ -25,15 +25,13 @@ class dp_vector_rank_transformation
 private:
     dp_vector_t _dp_vector{};
     rank_map_t _rank_map{};
-    int32_t _dimension_scale{};
 
 public:
 
     dp_vector_rank_transformation() = default;
-    explicit dp_vector_rank_transformation(dp_vector_t dp_vector, rank_map_t rank_map, int32_t dimension_scale) :
+    explicit dp_vector_rank_transformation(dp_vector_t dp_vector, rank_map_t rank_map) :
         _dp_vector{std::move(dp_vector)},
-        _rank_map{std::move(rank_map)},
-        _dimension_scale(dimension_scale)
+        _rank_map{std::move(rank_map)}
     {}
 
     using range_type = typename dp_vector_t::range_type;
@@ -81,8 +79,8 @@ public:
     {
         std::vector<uint32_t> rank_sequence{};
         rank_sequence.resize(std::ranges::distance(sequence));
-        std::ranges::copy(sequence | std::views::transform([&] (auto symbol) -> uint32_t {
-            return _rank_map[static_cast<uint8_t>(symbol)] * _dimension_scale;
+        std::ranges::copy(sequence | std::views::transform([&] (auto const & symbol) -> uint32_t {
+            return _rank_map[symbol];
         }), rank_sequence.begin());
 
         return _dp_vector.initialise(std::move(rank_sequence), std::forward<initialisation_strategy_t>(init_strategy));
@@ -95,12 +93,11 @@ namespace detail
 struct dp_vector_rank_transformation_factory_fn
 {
     template <typename dp_vector_t, typename rank_map_t>
-    auto operator()(dp_vector_t && dp_vector, rank_map_t rank_map, int32_t dimension_scale = 1) const noexcept
+    auto operator()(dp_vector_t && dp_vector, rank_map_t rank_map) const noexcept
     {
         return dp_vector_rank_transformation<std::remove_cvref_t<dp_vector_t>, rank_map_t>{
             std::forward<dp_vector_t>(dp_vector),
-            std::move(rank_map),
-            dimension_scale
+            std::move(rank_map)
         };
     }
 };

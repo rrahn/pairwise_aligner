@@ -16,6 +16,7 @@
 #include <seqan3/std/type_traits>
 #include <utility>
 
+#include <pairwise_aligner/alphabet_conversion/alphabet_rank_map_scalar.hpp>
 #include <pairwise_aligner/configuration/initial.hpp>
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
@@ -88,8 +89,11 @@ struct traits
         using column_cell_t = typename common_configurations_t::dp_cell_column_type<score_type>;
         using row_cell_t = typename common_configurations_t::dp_cell_row_type<score_type>;
 
+        // Initialise the scale for the column sequence map.
+        rank_map_t _column_rank_map{_rank_map};
+        _column_rank_map.set_scale(dimension_v);
         return dp_vector_policy{
-                dp_vector_rank_transformation_factory(dp_vector_single<column_cell_t>{}, _rank_map, dimension_v),
+                dp_vector_rank_transformation_factory(dp_vector_single<column_cell_t>{}, std::move(_column_rank_map)),
                 dp_vector_rank_transformation_factory(dp_vector_single<row_cell_t>{}, _rank_map)
             };
     }
@@ -180,24 +184,26 @@ struct _fn
                                     substitution_matrix) const
     {
         using substitution_matrix_t = std::array<score_t, dimension * dimension>;
-        using symbol_rank_map_t = std::array<uint8_t, 256>;
 
         substitution_matrix_t linear_matrix{};
-        symbol_rank_map_t symbol_to_rank_map{};
-        symbol_to_rank_map.fill(255);
+
+        auto symbol_list = substitution_matrix | std::views::transform([] (auto const & value) -> alphabet_t const & {
+            return value.first;
+        });
+
+        alphabet_rank_map_scalar rank_map{symbol_list};
 
         for (uint8_t rank = 0; rank < dimension; ++rank) {
-            symbol_to_rank_map[static_cast<uint8_t>(substitution_matrix[rank].first)] = rank;
             std::ranges::copy_n(substitution_matrix[rank].second.data(),
                                 dimension,
                                 linear_matrix.data() + (rank * dimension));
         };
 
-        using traits_t = traits<substitution_matrix_t, symbol_rank_map_t, dimension>;
+        using traits_t = traits<substitution_matrix_t, alphabet_rank_map_scalar, dimension>;
         return _score_model_matrix::rule<predecessor_t, traits_t>{{},
                                                                    std::forward<predecessor_t>(predecessor),
                                                                    traits_t{std::move(linear_matrix),
-                                                                            std::move(symbol_to_rank_map)}};
+                                                                            std::move(rank_map)}};
     }
 
     template <typename alphabet_t, typename score_t, size_t dimension>
