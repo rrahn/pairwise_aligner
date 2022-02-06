@@ -19,7 +19,7 @@ inline constexpr size_t sequence_count = aligner::simd_score<int8_t>::size;
 
 inline constexpr auto base_config =
     aligner::cfg::method_global(
-        aligner::cfg::gap_model_affine(-10, -1),
+        aligner::cfg::gap_model_affine(-6, -2),
         aligner::cfg::leading_end_gap{}, aligner::cfg::trailing_end_gap{}
     );
 
@@ -27,85 +27,85 @@ inline constexpr auto base_config =
 // Equal size
 // ----------------------------------------------------------------------------
 
-DEFINE_TEST_VALUES(equal_size_64, int64_t,
+DEFINE_TEST_VALUES(equal_size_64,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
-    .substitution_scores{4, -5},
+    .substitution_scores = alignment::test::simd::unitary_model<int64_t>{4, -5},
     .sequence_generation_param{sequence_count, 93, 93}
 )
 
-DEFINE_TEST_VALUES(equal_size_32, int32_t,
+DEFINE_TEST_VALUES(equal_size_32,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
-    .substitution_scores{4, -5},
+    .substitution_scores = alignment::test::simd::unitary_model<int32_t>{0, -5},
     .sequence_generation_param{sequence_count, 210, 210},
 )
 
-DEFINE_TEST_VALUES(equal_size_16, int16_t,
+DEFINE_TEST_VALUES(equal_size_16,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
-    .substitution_scores{4, -5},
+    .substitution_scores = alignment::test::simd::unitary_model<int16_t>{4, -5},
     .sequence_generation_param{sequence_count, 150, 150}
 )
 
-DEFINE_TEST_VALUES(equal_size_8, int8_t,
+DEFINE_TEST_VALUES(equal_size_8,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
-    .substitution_scores{4, -5},
+    .substitution_scores = alignment::test::simd::unitary_model<int8_t>{4, -5},
     .sequence_generation_param{sequence_count, 25, 25},
 )
 
-DEFINE_TEST_VALUES(sequence_size_1000_equal_32, int32_t,
+DEFINE_TEST_VALUES(sequence_size_1000_equal_32,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
-    .substitution_scores{4, -5},
+    .substitution_scores = alignment::test::simd::unitary_model<int32_t>{4, -5},
     .sequence_generation_param{sequence_count, 1000, 1000},
 )
 
 using equal_size_types =
     ::testing::Types<
-        pairwise_aligner::test::fixture<&equal_size_64>,
-        pairwise_aligner::test::fixture<&equal_size_32>,
-        pairwise_aligner::test::fixture<&equal_size_16>,
-        pairwise_aligner::test::fixture<&equal_size_8>,
-        pairwise_aligner::test::fixture<&sequence_size_1000_equal_32>
+        // pairwise_aligner::test::fixture<&equal_size_64>,
+        pairwise_aligner::test::fixture<&equal_size_32>//,
+        // pairwise_aligner::test::fixture<&equal_size_16>,
+        // pairwise_aligner::test::fixture<&equal_size_8>,
+        // pairwise_aligner::test::fixture<&sequence_size_1000_equal_32>
     >;
 // ----------------------------------------------------------------------------
 // Variable size
 // ----------------------------------------------------------------------------
 
-DEFINE_TEST_VALUES(variable_size_64, int64_t,
+DEFINE_TEST_VALUES(variable_size_64,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
-    .substitution_scores{4, -5},
+    .substitution_scores = alignment::test::simd::unitary_model<int64_t>{4, -5},
     .sequence_generation_param{sequence_count, 75, 93}
 )
 
-DEFINE_TEST_VALUES(variable_size_32, int32_t,
+DEFINE_TEST_VALUES(variable_size_32,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
-    .substitution_scores{4, -5},
+    .substitution_scores = alignment::test::simd::unitary_model<int32_t>{4, -5},
     .sequence_generation_param{sequence_count, 11, 200},
 )
 
-DEFINE_TEST_VALUES(variable_size_16, int16_t,
+DEFINE_TEST_VALUES(variable_size_16,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
-    .substitution_scores{4, -5},
+    .substitution_scores = alignment::test::simd::unitary_model<int16_t>{4, -5},
     .sequence_generation_param{sequence_count, 133, 136}
 )
 
-DEFINE_TEST_VALUES(variable_size_8, int8_t,
+DEFINE_TEST_VALUES(variable_size_8,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
-    .substitution_scores{4, -5},
+    .substitution_scores = alignment::test::simd::unitary_model<int8_t>{4, -5},
     .sequence_generation_param{sequence_count, 10, 15},
 )
 
-DEFINE_TEST_VALUES(sequence_size_1000_variable_32, int32_t,
+DEFINE_TEST_VALUES(sequence_size_1000_variable_32,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
-    .substitution_scores{4, -5},
+    .substitution_scores = alignment::test::simd::unitary_model<int32_t>{4, -5},
     .sequence_generation_param{sequence_count, 900, 1100},
 )
 
@@ -123,6 +123,6 @@ INSTANTIATE_TYPED_TEST_SUITE_P(equal_size_test,
                                test_suite,
                                global::standard::affine::saturated_simd::equal_size_types,);
 
-INSTANTIATE_TYPED_TEST_SUITE_P(variable_size_test,
-                               test_suite,
-                               global::standard::affine::saturated_simd::variable_size_types,);
+// INSTANTIATE_TYPED_TEST_SUITE_P(variable_size_test,
+//                                test_suite,
+//                                global::standard::affine::saturated_simd::variable_size_types,);

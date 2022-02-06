@@ -13,8 +13,6 @@
 #include <pairwise_aligner/configuration/configure_aligner.hpp>
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
 #include <pairwise_aligner/configuration/method_global.hpp>
-#include <pairwise_aligner/configuration/score_model_unitary.hpp>
-#include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary_simd_saturated.hpp>
 
 TEST(configuration_test, prototype)

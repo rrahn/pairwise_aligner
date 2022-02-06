@@ -5,6 +5,7 @@
 // shipped with this file and also available at: https://github.com/rrahn/pairwise_aligner/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
 
+#include <seqan3/alphabet/nucleotide/dna4.hpp>
 #include <seqan3/alignment/configuration/align_config_method.hpp>
 #include <seqan3/core/configuration/configuration.hpp>
 
@@ -29,6 +30,7 @@ inline constexpr auto base_configurator =
 DEFINE_BENCHMARK_VALUES(standard_unitary_same_size,
     .configurator = base_configurator,
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
+    .alphabet = seqan3::dna4{},
     .sequence_size_mean = aligner::benchmark::sequence_size,
     .sequence_size_variance = 0,
     .sequence_count = max_sequence_count
@@ -39,6 +41,7 @@ DEFINE_BENCHMARK_VALUES(semi_first_unitary_same_size,
                         pa::cfg::leading_end_gap{.first_column = pa::cfg::end_gap::free },
                         pa::cfg::trailing_end_gap{.last_column = pa::cfg::end_gap::free }),
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
+    .alphabet = seqan3::dna4{},
     .sequence_size_mean = aligner::benchmark::sequence_size,
     .sequence_size_variance = 0,
     .sequence_count = max_sequence_count
@@ -49,6 +52,7 @@ DEFINE_BENCHMARK_VALUES(semi_second_unitary_same_size,
                         pa::cfg::leading_end_gap{.first_row = pa::cfg::end_gap::free },
                         pa::cfg::trailing_end_gap{.last_row = pa::cfg::end_gap::free }),
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
+    .alphabet = seqan3::dna4{},
     .sequence_size_mean = aligner::benchmark::sequence_size,
     .sequence_size_variance = 0,
     .sequence_count = max_sequence_count
@@ -59,6 +63,7 @@ DEFINE_BENCHMARK_VALUES(overlap_unitary_same_size,
                         pa::cfg::leading_end_gap{pa::cfg::end_gap::free, pa::cfg::end_gap::free},
                         pa::cfg::trailing_end_gap{pa::cfg::end_gap::free, pa::cfg::end_gap::free}),
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_global{},
+    .alphabet = seqan3::dna4{},
     .sequence_size_mean = aligner::benchmark::sequence_size,
     .sequence_size_variance = 0,
     .sequence_count = max_sequence_count

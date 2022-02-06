@@ -140,8 +140,8 @@ protected:
         cache.first = get<0>(column_cell); // cache next diagonal score!
         get<0>(column_cell) = tracker.track(best); // get<0>(column_cell) = best;
         best += (this->gap_open_score + this->gap_extension_score);
-        cache.second = max(cache.second + this->gap_extension_score, best);
-        get<1>(column_cell) = max(get<1>(column_cell) + this->gap_extension_score, best);
+        cache.second = max(static_cast<score_t>(cache.second + this->gap_extension_score), best);
+        get<1>(column_cell) = max(static_cast<score_t>(get<1>(column_cell) + this->gap_extension_score), best);
     }
 };
 

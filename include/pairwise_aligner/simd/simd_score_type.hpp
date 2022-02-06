@@ -47,6 +47,7 @@ public:
 
     using simd_type = std::array<native_simd_t, native_simd_count>;
     using mask_type = simd_mask<std::make_unsigned_t<score_t>, simd_size>;
+    using native_simd_type = native_simd_t;
     using value_type = score_t;
     using reference = score_t &;
     using const_reference = score_t const &;
@@ -206,6 +207,14 @@ public:
     {
         simd_score tmp{};
         apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left ^ right; },
+              tmp.values, values, right.values);
+        return tmp;
+    }
+
+    constexpr simd_score operator|(simd_score const & right) const noexcept
+    {
+        simd_score tmp{};
+        apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left | right; },
               tmp.values, values, right.values);
         return tmp;
     }

@@ -364,6 +364,7 @@ private:
     template <typename sequence_t, typename dp_vector_t>
     constexpr auto get_offsets(sequence_t && sequence, dp_vector_t && dp_vector) const noexcept
     {
+        assert(dp_vector.size() != 0);
         size_t sequence_size = std::ranges::distance(sequence);
 
         size_t chunk_size = dp_vector[0].size() - 1;

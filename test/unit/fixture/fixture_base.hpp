@@ -20,7 +20,7 @@ struct fixture : public ::testing::Test
     using test_values_type = std::remove_cvref_t<decltype(*_fixture)>;
 
     // Method in same naming scheme as used by Google Test
-    auto GetParam() -> test_values_type const &
+    auto GetParam() const -> test_values_type const &
     {
         return *_fixture;
     }

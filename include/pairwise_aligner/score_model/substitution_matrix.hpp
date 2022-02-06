@@ -25,7 +25,8 @@ inline namespace v1
 
 // TODO: Move to some central test folder.
 // Later this module shall not implement specific scoring schemes.
-static constexpr std::array<std::pair<char, std::array<int32_t, 20>>, 20> blosum62_standard
+template <typename score_t = int32_t>
+static constexpr std::array<std::pair<char, std::array<score_t, 20>>, 20> blosum62_standard
 {{
     //      A   C   D   E   F   G   H   I   K   L   M   N   P   Q   R   S   T   V   W   Y
     {'A', { 4,  0, -2, -1, -2,  0, -2, -1, -1, -1, -1, -2, -1, -1, -1,  1,  0,  0, -3, -2}},//A Alanine        Ala
@@ -50,7 +51,8 @@ static constexpr std::array<std::pair<char, std::array<int32_t, 20>>, 20> blosum
     {'Y', {-2, -2, -3, -2,  3, -3,  2, -1, -2, -1, -1, -2, -3, -1, -2, -2, -2, -1,  2,  7}},//Y Tyrosine       Tyr
 }};
 
-static constexpr std::array<std::pair<char, std::array<int32_t, 27>>, 27> blosum62_extended
+template <typename score_t = int32_t>
+static constexpr std::array<std::pair<char, std::array<score_t, 27>>, 27> blosum62_extended
 {{
           //A   B   C   D   E   F   G   H   I   J   K   L   M   N   O   P   Q   R   S   T   U   V   W   X   Y   Z   *
     {'A', { 4, -2,  0, -2, -1, -2,  0, -2, -1, -1, -1, -1, -1, -2,  0, -1, -1, -1,  1,  0,  0,  0, -3,  0, -2, -1, -4}},//A
