@@ -5,23 +5,22 @@
 // shipped with this file and also available at: https://github.com/rrahn/pairwise_aligner/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
 
-#include <iostream>
-
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
 #include <pairwise_aligner/configuration/method_global.hpp>
-#include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
+#include <pairwise_aligner/configuration/score_model_matrix_simd.hpp>
+
+#include <pairwise_aligner/score_model/substitution_matrix.hpp>
 
 #include "alignment_simd_test_template.hpp"
 
-namespace global::overlap::affine::fixed_simd {
+namespace global::standard::affine::fixed_simd::matrix {
 
 namespace aligner = seqan::pairwise_aligner;
 
 inline constexpr auto base_config =
     aligner::cfg::method_global(
         aligner::cfg::gap_model_affine(-10, -1),
-        aligner::cfg::leading_end_gap{aligner::cfg::end_gap::free, aligner::cfg::end_gap::free},
-        aligner::cfg::trailing_end_gap{aligner::cfg::end_gap::free, aligner::cfg::end_gap::free}
+        aligner::cfg::leading_end_gap{}, aligner::cfg::trailing_end_gap{}
     );
 
 // ----------------------------------------------------------------------------
@@ -30,29 +29,29 @@ inline constexpr auto base_config =
 
 DEFINE_TEST_VALUES(equal_size_64,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_unitary_simd,
-    .substitution_scores = alignment::test::simd::unitary_model<int64_t>{4, -5},
+    .score_configurator = aligner::cfg::score_model_matrix_simd,
+    .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int64_t>},
     .sequence_generation_param{aligner::simd_score<int64_t>::size, 93, 93}
 )
 
 DEFINE_TEST_VALUES(equal_size_32,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_unitary_simd,
-    .substitution_scores = alignment::test::simd::unitary_model<int32_t>{4, -5},
+    .score_configurator = aligner::cfg::score_model_matrix_simd,
+    .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int32_t>},
     .sequence_generation_param{aligner::simd_score<int32_t>::size, 210, 210},
 )
 
 DEFINE_TEST_VALUES(equal_size_16,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_unitary_simd,
-    .substitution_scores = alignment::test::simd::unitary_model<int16_t>{4, -5},
+    .score_configurator = aligner::cfg::score_model_matrix_simd,
+    .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int16_t>},
     .sequence_generation_param{aligner::simd_score<int16_t>::size, 150, 150}
 )
 
 DEFINE_TEST_VALUES(equal_size_8,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_unitary_simd,
-    .substitution_scores = alignment::test::simd::unitary_model<int8_t>{4, -5},
+    .score_configurator = aligner::cfg::score_model_matrix_simd,
+    .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int8_t>},
     .sequence_generation_param{aligner::simd_score<int8_t>::size, 25, 25},
 )
 
@@ -69,29 +68,29 @@ using equal_size_types =
 
 DEFINE_TEST_VALUES(variable_size_64,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_unitary_simd,
-    .substitution_scores = alignment::test::simd::unitary_model<int64_t>{4, -5},
+    .score_configurator = aligner::cfg::score_model_matrix_simd,
+    .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int64_t>},
     .sequence_generation_param{aligner::simd_score<int64_t>::size, 75, 93}
 )
 
 DEFINE_TEST_VALUES(variable_size_32,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_unitary_simd,
-    .substitution_scores = alignment::test::simd::unitary_model<int32_t>{4, -5},
+    .score_configurator = aligner::cfg::score_model_matrix_simd,
+    .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int32_t>},
     .sequence_generation_param{aligner::simd_score<int32_t>::size, 11, 200},
 )
 
 DEFINE_TEST_VALUES(variable_size_16,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_unitary_simd,
-    .substitution_scores = alignment::test::simd::unitary_model<int16_t>{4, -5},
+    .score_configurator = aligner::cfg::score_model_matrix_simd,
+    .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int16_t>},
     .sequence_generation_param{aligner::simd_score<int16_t>::size, 133, 136}
 )
 
 DEFINE_TEST_VALUES(variable_size_8,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_unitary_simd,
-    .substitution_scores = alignment::test::simd::unitary_model<int8_t>{4, -5},
+    .score_configurator = aligner::cfg::score_model_matrix_simd,
+    .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int8_t>},
     .sequence_generation_param{aligner::simd_score<int8_t>::size, 10, 15},
 )
 
@@ -106,8 +105,8 @@ using variable_size_types =
 
 INSTANTIATE_TYPED_TEST_SUITE_P(equal_size_test,
                                test_suite,
-                               global::overlap::affine::fixed_simd::equal_size_types,);
+                               global::standard::affine::fixed_simd::matrix::equal_size_types,);
 
 INSTANTIATE_TYPED_TEST_SUITE_P(variable_size_test,
                                test_suite,
-                               global::overlap::affine::fixed_simd::variable_size_types,);
+                               global::standard::affine::fixed_simd::matrix::variable_size_types,);

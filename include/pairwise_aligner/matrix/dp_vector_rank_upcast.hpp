@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides seqan::pairwise_aligner::dp_vector_rank_transformation.
+ * \brief Provides seqan::pairwise_aligner::dp_vector_rank_upcast.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
@@ -21,21 +21,16 @@ namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
-template <typename dp_vector_t, typename rank_map_t>
-class dp_vector_rank_transformation
+template <typename dp_vector_t, typename target_simd_t>
+class dp_vector_rank_upcast
 {
 private:
     dp_vector_t _dp_vector{};
-    rank_map_t _rank_map{};
-
-    using rank_t = typename rank_map_t::value_type;
 
 public:
 
-    dp_vector_rank_transformation() = default;
-    explicit dp_vector_rank_transformation(dp_vector_t dp_vector, rank_map_t rank_map) :
-        _dp_vector{std::move(dp_vector)},
-        _rank_map{std::move(rank_map)}
+    dp_vector_rank_upcast() = default;
+    explicit dp_vector_rank_upcast(dp_vector_t dp_vector) : _dp_vector{std::move(dp_vector)}
     {}
 
     using range_type = typename dp_vector_t::range_type;
@@ -81,34 +76,35 @@ public:
     template <std::ranges::forward_range sequence_t, typename initialisation_strategy_t>
     auto initialise(sequence_t && sequence, initialisation_strategy_t && init_strategy)
     {
-        std::vector<rank_t, seqan3::aligned_allocator<rank_t, alignof(rank_t)>> rank_sequence{};
-        rank_sequence.resize(std::ranges::distance(sequence));
-        std::ranges::copy(sequence | std::views::transform([&] (auto const & symbol) -> rank_t {
-            return _rank_map[symbol];
-        }), rank_sequence.begin());
+        std::vector<target_simd_t, seqan3::aligned_allocator<target_simd_t, alignof(target_simd_t)>> tmp_sequence{};
+        tmp_sequence.resize(std::ranges::distance(sequence));
+        std::ranges::copy(sequence | std::views::transform([&] (auto const & symbol) -> target_simd_t {
+            return static_cast<target_simd_t>(symbol);
+        }), tmp_sequence.begin());
 
-        return _dp_vector.initialise(std::move(rank_sequence), std::forward<initialisation_strategy_t>(init_strategy));
+        return _dp_vector.initialise(std::move(tmp_sequence), std::forward<initialisation_strategy_t>(init_strategy));
     }
 };
 
 namespace detail
 {
 
-struct dp_vector_rank_transformation_factory_fn
+template <typename simd_t>
+struct dp_vector_rank_upcast_factory_fn
 {
-    template <typename dp_vector_t, typename rank_map_t>
-    auto operator()(dp_vector_t && dp_vector, rank_map_t rank_map) const noexcept
+    template <typename dp_vector_t>
+    auto operator()(dp_vector_t && dp_vector) const noexcept
     {
-        return dp_vector_rank_transformation<std::remove_cvref_t<dp_vector_t>, rank_map_t>{
-            std::forward<dp_vector_t>(dp_vector),
-            std::move(rank_map)
+        return dp_vector_rank_upcast<std::remove_cvref_t<dp_vector_t>, simd_t>{
+            std::forward<dp_vector_t>(dp_vector)
         };
     }
 };
 
 } // namespace detail
 
-inline constexpr detail::dp_vector_rank_transformation_factory_fn dp_vector_rank_transformation_factory{};
+template <typename simd_t>
+inline constexpr detail::dp_vector_rank_upcast_factory_fn dp_vector_rank_upcast_factory<simd_t>{};
 
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner

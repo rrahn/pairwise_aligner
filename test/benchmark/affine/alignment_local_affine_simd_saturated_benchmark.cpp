@@ -5,6 +5,7 @@
 // shipped with this file and also available at: https://github.com/rrahn/pairwise_aligner/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
 
+#include <seqan3/alphabet/nucleotide/dna4.hpp>
 #include <seqan3/alignment/configuration/align_config_method.hpp>
 #include <seqan3/core/configuration/configuration.hpp>
 
@@ -27,6 +28,7 @@ inline constexpr auto base_configurator =
 DEFINE_BENCHMARK_VALUES(standard_unitary_same_size,
     .configurator = pa::cfg::method_local(base_configurator),
     .seqan_configurator = seqan3::configuration{} | seqan3::align_cfg::method_local{},
+    .alphabet = seqan3::dna4{},
     .sequence_size_mean = aligner::benchmark::sequence_size,
     .sequence_size_variance = 0,
     .sequence_count = pa::detail::max_simd_size

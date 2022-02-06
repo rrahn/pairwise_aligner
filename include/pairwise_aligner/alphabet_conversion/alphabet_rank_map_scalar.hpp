@@ -26,6 +26,7 @@ class alphabet_rank_map_scalar
 {
 public:
     using rank_type = int32_t;
+    using value_type = rank_type;
 
 private:
     std::vector<rank_type> _map{};

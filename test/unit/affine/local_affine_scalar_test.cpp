@@ -91,14 +91,14 @@ DEFINE_TEST_VALUES(infix_starting_in_first_row,
 )
 
 DEFINE_TEST_VALUES(matrix_infix,
-    .configurator = aligner::cfg::score_model_matrix(base_config, aligner::blosum62_extended),
+    .configurator = aligner::cfg::score_model_matrix(base_config, aligner::blosum62_extended<>),
     .sequence1 = "ALIGATOR"sv,
     .sequence2 = "GALORA"sv,
     .expected_score = 13
 )
 
 DEFINE_TEST_VALUES(matrix_empty_sequence,
-    .configurator = aligner::cfg::score_model_matrix(base_config, aligner::blosum62_extended),
+    .configurator = aligner::cfg::score_model_matrix(base_config, aligner::blosum62_extended<>),
     .sequence1 = "ALIGATOR"sv,
     .sequence2 = ""sv,
     .expected_score = std::numeric_limits<int32_t>::lowest()

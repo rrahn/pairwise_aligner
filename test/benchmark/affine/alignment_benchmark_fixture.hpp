@@ -11,7 +11,6 @@
 #include <string>
 #include <vector>
 
-#include <seqan3/alphabet/nucleotide/dna4.hpp>
 #include <seqan3/alphabet/adaptation/char.hpp>
 #include <seqan3/alphabet/views/to_char.hpp>
 #include <seqan3/test/performance/sequence_generator.hpp>
@@ -35,17 +34,20 @@ BENCHMARK_TEMPLATE_F(test, name##_##type, aligner::benchmark::fixture<&type>)(::
 namespace aligner::benchmark
 {
 
-inline constexpr size_t sequence_size = 150;
+inline constexpr size_t sequence_size = 1000;
 
 // ----------------------------------------------------------------------------
 // Templatized fixture values.
 // ----------------------------------------------------------------------------
 
-template <typename configurator_t, typename seqan_configurator_t>
+template <typename configurator_t, typename seqan_configurator_t, typename alphabet_t>
 struct values
 {
+    using alphabet_type = alphabet_t;
+
     configurator_t configurator;
     seqan_configurator_t seqan_configurator;
+    alphabet_t alphabet;
 
     size_t sequence_size_mean;
     size_t sequence_size_variance;
@@ -59,6 +61,8 @@ struct values
 template <auto _fixture>
 struct fixture : public ::benchmark::Fixture
 {
+    using alphabet_type = typename std::remove_cvref_t<decltype(*_fixture)>::alphabet_type;
+
     auto GetParam() const noexcept
         -> decltype(*_fixture) const &
     {
@@ -79,6 +83,7 @@ public:
     std::unique_ptr<collection_t> _seq1_collection{};
     std::unique_ptr<collection_t> _seq2_collection{};
 
+    using typename fixture_t::alphabet_type;
     using fixture_t::GetParam;
 
     void SetUp([[maybe_unused]] ::benchmark::State & state) override {
@@ -86,9 +91,9 @@ public:
         if (!_seq1_collection) {
 
             auto seq_collection_tmp =
-                seqan3::test::generate_sequence_pairs<seqan3::dna4>(GetParam().sequence_size_mean,
-                                                                    GetParam().sequence_count,
-                                                                    GetParam().sequence_size_variance);
+                seqan3::test::generate_sequence_pairs<alphabet_type>(GetParam().sequence_size_mean,
+                                                                     GetParam().sequence_count,
+                                                                     GetParam().sequence_size_variance);
 
             collection_t seq1_collection{};
             collection_t seq2_collection{};
