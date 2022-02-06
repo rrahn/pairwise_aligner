@@ -9,7 +9,7 @@
 
 #include <pairwise_aligner/configuration/configure_aligner.hpp>
 
-#include "fixture_base.hpp"
+#include "../fixture/fixture_base.hpp"
 
 // ----------------------------------------------------------------------------
 // Helper macro to define test values

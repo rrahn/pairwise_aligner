@@ -57,9 +57,9 @@ DEFINE_TEST_VALUES(unitary_related_sequence,
 
 using unitary_test_types =
     ::testing::Types<
-        alignment::test::fixture<&unitary_same_sequence>,
-        alignment::test::fixture<&unitary_unequal_sequence>,
-        alignment::test::fixture<&unitary_related_sequence>
+        pairwise_aligner::test::fixture<&unitary_same_sequence>,
+        pairwise_aligner::test::fixture<&unitary_unequal_sequence>,
+        pairwise_aligner::test::fixture<&unitary_related_sequence>
     >;
 
 // ----------------------------------------------------------------------------
@@ -96,10 +96,10 @@ DEFINE_TEST_VALUES(matrix_short_sequence_different_size,
 
 using matrix_test_types =
     ::testing::Types<
-        alignment::test::fixture<&matrix_same_sequence>,
-        alignment::test::fixture<&matrix_unequal_sequence>,
-        alignment::test::fixture<&matrix_sequence_different_size>,
-        alignment::test::fixture<&matrix_short_sequence_different_size>
+        pairwise_aligner::test::fixture<&matrix_same_sequence>,
+        pairwise_aligner::test::fixture<&matrix_unequal_sequence>,
+        pairwise_aligner::test::fixture<&matrix_sequence_different_size>,
+        pairwise_aligner::test::fixture<&matrix_short_sequence_different_size>
     >;
 
 } // namespace global::standard::affine::scalar

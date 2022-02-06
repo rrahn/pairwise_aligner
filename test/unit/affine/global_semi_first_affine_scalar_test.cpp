@@ -55,9 +55,9 @@ DEFINE_TEST_VALUES(suffix_match,
 
 using test_types =
     ::testing::Types<
-        alignment::test::fixture<&infix_match>,
-        alignment::test::fixture<&prefix_match>,
-        alignment::test::fixture<&suffix_match>
+        pairwise_aligner::test::fixture<&infix_match>,
+        pairwise_aligner::test::fixture<&prefix_match>,
+        pairwise_aligner::test::fixture<&suffix_match>
     >;
 
 } // namespace global::semi_first::affine::scalar

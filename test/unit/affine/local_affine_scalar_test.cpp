@@ -106,15 +106,15 @@ DEFINE_TEST_VALUES(matrix_empty_sequence,
 
 using test_types =
     ::testing::Types<
-        alignment::test::fixture<&same_sequence>,
-        alignment::test::fixture<&local_infix_sequence>,
-        alignment::test::fixture<&unequal_sequence>,
-        alignment::test::fixture<&single_match>,
-        alignment::test::fixture<&infix_with_one_mismatch>,
-        alignment::test::fixture<&prefix_with_suffix>,
-        alignment::test::fixture<&infix_starting_in_first_row>,
-        alignment::test::fixture<&matrix_infix>,
-        alignment::test::fixture<&matrix_empty_sequence>
+        pairwise_aligner::test::fixture<&same_sequence>,
+        pairwise_aligner::test::fixture<&local_infix_sequence>,
+        pairwise_aligner::test::fixture<&unequal_sequence>,
+        pairwise_aligner::test::fixture<&single_match>,
+        pairwise_aligner::test::fixture<&infix_with_one_mismatch>,
+        pairwise_aligner::test::fixture<&prefix_with_suffix>,
+        pairwise_aligner::test::fixture<&infix_starting_in_first_row>,
+        pairwise_aligner::test::fixture<&matrix_infix>,
+        pairwise_aligner::test::fixture<&matrix_empty_sequence>
     >;
 
 } // namespace local::affine::scalar

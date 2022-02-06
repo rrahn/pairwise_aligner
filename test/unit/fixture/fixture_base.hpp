@@ -9,7 +9,7 @@
 
 #include <seqan3/std/type_traits>
 
-namespace alignment::test {
+namespace pairwise_aligner::test {
 // ----------------------------------------------------------------------------
 // Base fixture: extracts the values object it is parameterised with
 // ----------------------------------------------------------------------------
@@ -26,4 +26,4 @@ struct fixture : public ::testing::Test
     }
 };
 
-} // namespace alignment::test
+} // namespace pairwise_aligner::test

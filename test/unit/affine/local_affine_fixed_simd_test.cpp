@@ -54,10 +54,10 @@ DEFINE_TEST_VALUES(equal_size_8, int8_t,
 
 using equal_size_types =
     ::testing::Types<
-        alignment::test::fixture<&equal_size_64>,
-        alignment::test::fixture<&equal_size_32>,
-        alignment::test::fixture<&equal_size_16>,
-        alignment::test::fixture<&equal_size_8>
+        pairwise_aligner::test::fixture<&equal_size_64>,
+        pairwise_aligner::test::fixture<&equal_size_32>,
+        pairwise_aligner::test::fixture<&equal_size_16>,
+        pairwise_aligner::test::fixture<&equal_size_8>
     >;
 
 // ----------------------------------------------------------------------------
@@ -94,10 +94,10 @@ DEFINE_TEST_VALUES(variable_size_8, int8_t,
 
 using variable_size_types =
     ::testing::Types<
-        alignment::test::fixture<&variable_size_64>,
-        alignment::test::fixture<&variable_size_32>,
-        alignment::test::fixture<&variable_size_16>,
-        alignment::test::fixture<&variable_size_8>
+        pairwise_aligner::test::fixture<&variable_size_64>,
+        pairwise_aligner::test::fixture<&variable_size_32>,
+        pairwise_aligner::test::fixture<&variable_size_16>,
+        pairwise_aligner::test::fixture<&variable_size_8>
     >;
 } // local::affine::fixed_simd
 

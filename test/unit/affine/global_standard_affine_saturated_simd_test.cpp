@@ -64,11 +64,11 @@ DEFINE_TEST_VALUES(sequence_size_1000_equal_32, int32_t,
 
 using equal_size_types =
     ::testing::Types<
-        alignment::test::fixture<&equal_size_64>,
-        alignment::test::fixture<&equal_size_32>,
-        alignment::test::fixture<&equal_size_16>,
-        alignment::test::fixture<&equal_size_8>,
-        alignment::test::fixture<&sequence_size_1000_equal_32>
+        pairwise_aligner::test::fixture<&equal_size_64>,
+        pairwise_aligner::test::fixture<&equal_size_32>,
+        pairwise_aligner::test::fixture<&equal_size_16>,
+        pairwise_aligner::test::fixture<&equal_size_8>,
+        pairwise_aligner::test::fixture<&sequence_size_1000_equal_32>
     >;
 // ----------------------------------------------------------------------------
 // Variable size
@@ -111,11 +111,11 @@ DEFINE_TEST_VALUES(sequence_size_1000_variable_32, int32_t,
 
 using variable_size_types =
     ::testing::Types<
-        alignment::test::fixture<&variable_size_64>,
-        alignment::test::fixture<&variable_size_32>,
-        alignment::test::fixture<&variable_size_16>,
-        alignment::test::fixture<&variable_size_8>,
-        alignment::test::fixture<&sequence_size_1000_variable_32>
+        pairwise_aligner::test::fixture<&variable_size_64>,
+        pairwise_aligner::test::fixture<&variable_size_32>,
+        pairwise_aligner::test::fixture<&variable_size_16>,
+        pairwise_aligner::test::fixture<&variable_size_8>,
+        pairwise_aligner::test::fixture<&sequence_size_1000_variable_32>
     >;
 } // global::affine::saturated_simd
 

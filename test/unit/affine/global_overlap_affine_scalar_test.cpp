@@ -55,9 +55,9 @@ DEFINE_TEST_VALUES(overlap_right_match,
 
 using test_types =
     ::testing::Types<
-        alignment::test::fixture<&all_match>,
-        alignment::test::fixture<&overlap_left_match>,
-        alignment::test::fixture<&overlap_right_match>
+        pairwise_aligner::test::fixture<&all_match>,
+        pairwise_aligner::test::fixture<&overlap_left_match>,
+        pairwise_aligner::test::fixture<&overlap_right_match>
     >;
 
 } // namespace global::overlap::affine::scalar

@@ -16,7 +16,7 @@
 #include <pairwise_aligner/configuration/configure_aligner.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary.hpp>
 
-#include "fixture_base.hpp"
+#include "../fixture/fixture_base.hpp"
 
 // ----------------------------------------------------------------------------
 // Helper macro to define test values
