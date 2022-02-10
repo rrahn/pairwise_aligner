@@ -30,6 +30,8 @@ private:
 
     using rank_t = typename rank_map_t::value_type;
 
+    static constexpr bool is_simd_rank_v = !std::integral<rank_t>;
+
 public:
 
     dp_vector_rank_transformation() = default;
@@ -86,6 +88,43 @@ public:
         std::ranges::copy(sequence | std::views::transform([&] (auto const & symbol) -> rank_t {
             return _rank_map[symbol];
         }), rank_sequence.begin());
+
+        return _dp_vector.initialise(std::move(rank_sequence), std::forward<initialisation_strategy_t>(init_strategy));
+    }
+
+    template <std::ranges::forward_range sequence_t, typename initialisation_strategy_t>
+        requires (is_simd_rank_v && std::integral<std::ranges::range_value_t<sequence_t>>)
+    auto initialise(sequence_t && sequence, initialisation_strategy_t && init_strategy)
+    {
+        using scalar_rank_t = typename rank_t::value_type;
+        // Load the sequence into a single vector of simd values.
+        std::ptrdiff_t sequence_size = std::ranges::distance(sequence);
+        std::vector<scalar_rank_t> rank_sequence{};
+        std::ptrdiff_t max_size = (sequence_size - 1 + rank_t::size) / rank_t::size;
+        rank_sequence.reserve(max_size * rank_t::size);
+        rank_sequence.resize(sequence_size);
+
+        if constexpr (std::ranges::contiguous_range<sequence_t>) {
+            std::ranges::for_each(std::views::iota(0, max_size), [&] (std::ptrdiff_t i) {
+                std::ptrdiff_t memory_offset = i * rank_t::size;
+                rank_t tmp{};
+                tmp.load(reinterpret_cast<scalar_rank_t const *>(sequence.data()) + memory_offset);
+                tmp = _rank_map[tmp]; // convert the rank.
+                tmp.store(rank_sequence.data() + memory_offset);
+            });
+        } else {
+            std::ranges::for_each(std::views::iota(0, max_size), [&] (std::ptrdiff_t i) {
+                std::ptrdiff_t offset = i * rank_t::size;
+                std::ptrdiff_t offset_end = std::min<std::ptrdiff_t>(rank_t::size, sequence_size);
+                rank_t tmp{};
+                // load from non-contiguous memory:
+                for (std::ptrdiff_t k = 0; k + offset < offset_end; ++k) {
+                    tmp[k] = sequence[k + offset];
+                }
+                tmp = _rank_map[tmp]; // convert the rank.
+                tmp.store(rank_sequence.data() + offset);
+            });
+        }
 
         return _dp_vector.initialise(std::move(rank_sequence), std::forward<initialisation_strategy_t>(init_strategy));
     }

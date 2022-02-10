@@ -38,7 +38,7 @@ void alignment_global_affine(benchmark::State & state)
 
     auto aligner = pa::cfg::configure_aligner(
         pa::cfg::gap_model_affine(
-            pa::cfg::score_model_matrix(pa::blosum62_standard),
+            pa::cfg::score_model_matrix(pa::blosum62_standard<>),
             -10, -1
         )
     );

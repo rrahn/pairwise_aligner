@@ -24,6 +24,11 @@ inline namespace v1
 template <typename aligner_result_t>
 class aligner_result_bulk
 {
+    static constexpr bool is_bulk_sequence_v =
+        std::conditional_t<std::ranges::range<std::ranges::range_reference_t<decltype(std::declval<aligner_result_t>().sequence1())>>,
+                           std::true_type,
+                           std::false_type>::value;
+
     std::shared_ptr<aligner_result_t> _result{};
     size_t _index{};
 
@@ -47,7 +52,10 @@ public:
 
     auto const & sequence1() const noexcept
     {
-        return _result->sequence1()[_index];
+        if constexpr (is_bulk_sequence_v)
+            return _result->sequence1()[_index];
+        else
+            return _result->sequence1();
     }
 
     auto const & sequence2() const noexcept

@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides seqan::pairwise_aligner::cfg::score_model_matrix_simd.
+ * \brief Provides seqan::pairwise_aligner::cfg::score_model_matrix_simd_1xN.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
@@ -21,12 +21,13 @@
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
 #include <pairwise_aligner/alphabet_conversion/alphabet_rank_map_simd.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
-#include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
+#include <pairwise_aligner/interface/interface_one_to_many_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_rank_transformation.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
-#include <pairwise_aligner/score_model/score_model_matrix_simd_NxN.hpp>
+
+#include <pairwise_aligner/score_model/score_model_matrix_simd_1xN.hpp>
 #include <pairwise_aligner/tracker/tracker_global_simd_fixed.hpp>
 #include <pairwise_aligner/tracker/tracker_local_simd_fixed.hpp>
 #include <pairwise_aligner/type_traits.hpp>
@@ -38,7 +39,7 @@ inline namespace v1
 {
 namespace cfg
 {
-namespace _score_model_matrix_simd
+namespace _score_model_matrix_simd_1xN
 {
 
 // ----------------------------------------------------------------------------
@@ -67,8 +68,11 @@ struct traits
 
     template <bool is_local>
     using score_model_type = std::conditional_t<is_local,
-                                                score_model_matrix_simd_NxN<score_type, dimension_v>,
-                                                score_model_matrix_simd_NxN<score_type, dimension_v>>;
+                                                score_model_matrix_simd_1xN<score_type, dimension_v>,
+                                                score_model_matrix_simd_1xN<score_type, dimension_v>>;
+
+    template <typename cell_t>
+    using buffer_t = std::vector<cell_t, seqan3::aligned_allocator<cell_t, alignof(cell_t)>>;
 
     template <typename dp_vector_t>
     using dp_vector_column_type = dp_vector_bulk<dp_vector_t, score_type>;
@@ -76,14 +80,12 @@ struct traits
     template <typename dp_vector_t>
     using dp_vector_row_type = dp_vector_bulk<dp_vector_t, score_type>;
 
-    template <typename dp_algorithm_t>
-    using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t, score_type::size>;
-
     using result_factory_type = tracker::global_simd_fixed::factory<score_type>;
 
     template <typename configuration_t>
     constexpr auto configure_substitution_policy([[maybe_unused]] configuration_t const & configuration) const noexcept
     {
+        // TODO: Run this mode!
         std::array<std::array<score_t, dimension_v>, dimension_v> tmp{};
 
         std::ranges::for_each(std::views::iota(size_t(0), dimension_v), [&] (size_t const i)
@@ -94,6 +96,7 @@ struct traits
                 std::ranges::copy(_substitution_matrix[i].second, tmp[i].data());
         });
 
+        // We need to select the profile!
         return score_model_type<configuration_t::is_local>{tmp};
     }
 
@@ -127,11 +130,9 @@ struct traits
         alphabet_rank_map_simd<index_type> rank_map{std::move(extended_symbol_list)};
 
         return dp_vector_policy{
+                    dp_vector_rank_transformation_factory(dp_vector_single<column_cell_t, buffer_t<column_cell_t>>{}, rank_map),
                     dp_vector_bulk_factory(
-                        dp_vector_rank_transformation_factory(dp_vector_single<column_cell_t>{}, rank_map),
-                        index_type{padding_symbol}),
-                    dp_vector_bulk_factory(
-                        dp_vector_rank_transformation_factory(dp_vector_single<row_cell_t>{}, rank_map),
+                        dp_vector_rank_transformation_factory(dp_vector_single<row_cell_t, buffer_t<row_cell_t>>{}, rank_map),
                         index_type{padding_symbol})
         };
     }
@@ -142,7 +143,7 @@ struct traits
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
                                                                      std::remove_cvref_t<policies_t>...>;
 
-        return interface_one_to_one_bulk<algorithm_t, score_type::size>{algorithm_t{std::move(policies)...}};
+        return interface_one_to_many_bulk<algorithm_t, score_type::size>{algorithm_t{std::move(policies)...}};
     }
 };
 
@@ -223,8 +224,8 @@ struct _fn
     {
         using substitution_matrix_t = std::array<std::pair<alphabet_t, std::array<score_t, dimension>>, dimension>;
 
-        using traits_t = _score_model_matrix_simd::traits<substitution_matrix_t>;
-        using rule_t = _score_model_matrix_simd::rule<predecessor_t, traits_t>;
+        using traits_t = _score_model_matrix_simd_1xN::traits<substitution_matrix_t>;
+        using rule_t = _score_model_matrix_simd_1xN::rule<predecessor_t, traits_t>;
         return rule_t{{}, std::forward<predecessor_t>(predecessor), traits_t{std::move(substitution_matrix)}};
     }
 
@@ -240,7 +241,7 @@ struct _fn
 } // namespace _cpo
 } // namespace _score_model
 
-inline constexpr _score_model_matrix_simd::_cpo::_fn score_model_matrix_simd{};
+inline constexpr _score_model_matrix_simd_1xN::_cpo::_fn score_model_matrix_simd_1xN{};
 
 } // namespace cfg
 } // inline namespace v1

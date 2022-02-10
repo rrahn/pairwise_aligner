@@ -21,9 +21,7 @@
 namespace aligner::benchmark::fixed_simd {
 namespace pa = seqan::pairwise_aligner;
 
-inline constexpr size_t sequence_size = 1000;
-
-using score_t = int16_t;
+using score_t = int8_t;
 
 inline constexpr size_t max_sequence_count = pa::simd_score<int8_t>::size;
 inline constexpr auto base_configurator =
@@ -72,9 +70,9 @@ DEFINE_BENCHMARK_VALUES(overlap_matrix_same_size,
 )
 
 ALIGNER_BENCHMARK(fixed_simd, standard_matrix_same_size)
-// ALIGNER_BENCHMARK(fixed_simd, semi_first_matrix_same_size)
-// ALIGNER_BENCHMARK(fixed_simd, semi_second_matrix_same_size)
-// ALIGNER_BENCHMARK(fixed_simd, overlap_matrix_same_size)
+ALIGNER_BENCHMARK(fixed_simd, semi_first_matrix_same_size)
+ALIGNER_BENCHMARK(fixed_simd, semi_second_matrix_same_size)
+ALIGNER_BENCHMARK(fixed_simd, overlap_matrix_same_size)
 
 } // namespace aligner::benchmark::fixed_simd
 

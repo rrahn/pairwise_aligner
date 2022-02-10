@@ -13,7 +13,7 @@
 #include <tuple>
 #include <seqan3/std/type_traits>
 
-#include <pairwise_aligner/score_model/score_model_matrix_simd.hpp>
+#include <pairwise_aligner/score_model/score_model_matrix_simd_1xN.hpp>
 #include <pairwise_aligner/simd/simd_score_type.hpp>
 
 #include <pairwise_aligner/score_model/substitution_matrix.hpp>
@@ -30,8 +30,8 @@ struct score_model_matrix_simd_test : public testing::Test
 
     static constexpr size_t dimension = std::tuple_size_v<matrix_t>;
 
-    using score_model_t = pa::score_model_matrix_simd<pa::simd_score<scalar_score_t, pa::detail::max_simd_size>,
-                                                      dimension>;
+    using score_model_t = pa::score_model_matrix_simd_1xN<pa::simd_score<scalar_score_t, pa::detail::max_simd_size>,
+                                                          dimension>;
     using simd_score_t = typename score_model_t::score_type;
     using simd_index_t = typename score_model_t::index_type;
 
@@ -85,12 +85,11 @@ TYPED_TEST(score_model_matrix_simd_test, access_same)
         // We have to get the profile first, for a sequence char:
         std::array<simd_index_t, TestFixture::stride> symbols{};
         symbols.fill(column_rank);
-        auto profile = this->matrix.template initialise_profile<TestFixture::stride>(symbols);
+        auto profile = this->matrix.initialise_profile(symbols, pa::strip_width<TestFixture::stride>);
 
         // Receive score for every element
         for (size_t r = 0; r < TestFixture::dimension; ++r) {
-            simd_index_t row_rank{static_cast<int8_t>(r)};
-            auto score_array = profile.scores_for(row_rank);
+            auto score_array = profile.scores_for(r);
 
             std::ranges::for_each(score_array, [&] (simd_index_t const & scores) {
                 for (int8_t k = 0; k < TestFixture::simd_size; ++k) {
@@ -124,29 +123,20 @@ TYPED_TEST(score_model_matrix_simd_test, access_rotate)
         // We have to get the profile first, for a sequence char:
         std::array<simd_index_t, TestFixture::stride> symbols{};
         symbols.fill(column_rank);
-        auto profile = this->matrix.template initialise_profile<TestFixture::stride>(symbols);
+        auto profile = this->matrix.initialise_profile(symbols, pa::strip_width<TestFixture::stride>);
 
         // Fill the row symbols with values by rotating through the symbol list.
-        std::vector<int8_t> symbols_row{};
-        symbols_row.resize(TestFixture::dimension);
-        std::iota(symbols_row.begin(), symbols_row.end(), 0);
-
-        for (size_t cycle_row = 0; cycle_row < symbols_row.size(); ++cycle_row) {
-            std::ranges::rotate(symbols_row, symbols_row.end() - cycle_row);
-            simd_index_t row_rank{};
-            for (int8_t k = 0; k < TestFixture::simd_size; ++k)
-                row_rank[k] = symbols_row[k % symbols_row.size()]; // cycle around symbols
-
+        for (size_t r = 0; r < TestFixture::dimension; ++r) {
             // Which index are we now comapring for every element?
-            auto score_array = profile.scores_for(row_rank);
+            auto score_array = profile.scores_for(r);
 
             std::ranges::for_each(score_array, [&] (simd_index_t const & scores) {
                 for (int8_t k = 0; k < TestFixture::simd_size; ++k) {
                     EXPECT_EQ(scores[k],
-                            pa::blosum62_standard<scalar_score_t>[row_rank[k]].second[column_rank[k]])
+                            pa::blosum62_standard<scalar_score_t>[r].second[column_rank[k]])
                             << "k = " << (int32_t) k << " "
                             << "rank_c = " << (int32_t) column_rank[k] << " "
-                            << "rank_r = " << (int32_t) row_rank[k] << "\n";
+                            << "rank_r = " << (int32_t) r << "\n";
                 }
             });
         }
