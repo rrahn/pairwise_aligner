@@ -15,8 +15,10 @@
 #include <cmath>
 
 #include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
-#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_saturated_local.hpp>
-#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_saturated.hpp>
+#include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_column_saturated_local.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_column_saturated.hpp>
+#include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
@@ -105,15 +107,21 @@ struct traits
     template <typename configuration_t, typename ...policies_t>
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
-        using algorithm_t =
-            std::conditional_t<configuration_t::is_local,
-                                typename configuration_t::algorithm_type<dp_algorithm_template_saturated_local,
-                                                                         std::remove_cvref_t<policies_t>...>,
-                                typename configuration_t::algorithm_type<dp_algorithm_template_saturated,
-                                                                         std::remove_cvref_t<policies_t>...>
-            >;
+        auto make_dp_matrix_policy = [&] () constexpr {
+            if constexpr (configuration_t::is_local)
+                return dp_matrix_column_saturated_local;
+            else
+                return dp_matrix_column_saturated;
+        };
 
-        return interface_one_to_one_bulk<algorithm_t, score_type::size>{algorithm_t{std::move(policies)...}};
+        using dp_matrix_policy_t = dp_matrix_policies<std::invoke_result_t<decltype(make_dp_matrix_policy)>>;
+
+        using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
+                                                                     dp_matrix_policy_t,
+                                                                     std::remove_cvref_t<policies_t>...>;
+
+        return interface_one_to_one_bulk<algorithm_t, score_type::size>{
+                algorithm_t{dp_matrix_policy_t{make_dp_matrix_policy()}, std::move(policies)...}};
     }
 
 private:

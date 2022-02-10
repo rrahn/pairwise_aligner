@@ -38,5 +38,27 @@ class alignas(detail::max_simd_size) simd_score;
 template <std::unsigned_integral score_t, size_t simd_size = detail::max_simd_size / sizeof(score_t)>
 class alignas(detail::max_simd_size) simd_mask;
 
+namespace detail {
+
+template <typename simd_score_t>
+struct make_unsigned_impl;
+
+template <std::integral simd_score_t>
+struct make_unsigned_impl<simd_score_t>
+{
+    using type = std::make_unsigned_t<simd_score_t>;
+};
+
+template <std::integral score_t, size_t simd_size_v>
+struct make_unsigned_impl<simd_score<score_t, simd_size_v>>
+{
+    using type = simd_score<std::make_unsigned_t<score_t>, simd_size_v>;
+};
+
+template <typename simd_score_t>
+using make_unsigned_t = typename make_unsigned_impl<simd_score_t>::type;
+
+} // namespace detail
+
 } // v1
 } // namespace seqan::pairwise_aligner

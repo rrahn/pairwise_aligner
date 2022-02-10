@@ -1,0 +1,1 @@
+pairwise_aligner_test (simd_index_map_test)

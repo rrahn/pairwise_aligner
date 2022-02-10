@@ -27,36 +27,35 @@ inline namespace v1
 {
 
 // Now the rank type is a simd type.
-template <typename key_t>
+template <typename simd_from_t, typename simd_to_t>
 struct _alphabet_rank_map_simd
 {
     class type;
 };
 
-template <typename key_t>
-using  alphabet_rank_map_simd = typename _alphabet_rank_map_simd<key_t>::type;
+template <typename simd_from_t, typename simd_to_t = simd_from_t>
+using  alphabet_rank_map_simd = typename _alphabet_rank_map_simd<simd_from_t, simd_to_t>::type;
 
-template <typename key_t>
-class _alphabet_rank_map_simd<key_t>::type : protected detail::simd_rank_selector_t<key_t>
+template <typename simd_from_t, typename simd_to_t>
+class _alphabet_rank_map_simd<simd_from_t, simd_to_t>::type : protected detail::simd_rank_selector_t<simd_to_t>
 {
 private:
-    using simd_rank_selector_t = detail::simd_rank_selector_t<key_t>;
-    using rank_t = key_t;
-    using scalar_key_t = typename rank_t::value_type;
+    using simd_rank_selector_t = detail::simd_rank_selector_t<simd_to_t>; // conversion to value_type?
+    using scalar_from_t = typename simd_from_t::value_type;
     using rank_map_t = typename simd_rank_selector_t::rank_map_t;
 
     std::shared_ptr<rank_map_t> _rank_map_ptr{};
-    rank_t _min_rank_offset{};
+    simd_from_t _min_rank_offset{};
 
 public:
 
-    using key_type = key_t;
-    using value_type = key_t;
+    using key_type = simd_from_t;
+    using value_type = simd_to_t;
 
     type() = default;
 
     template <std::ranges::random_access_range symbol_list_t>
-        requires (std::convertible_to<std::ranges::range_reference_t<symbol_list_t const>, scalar_key_t>)
+        requires (std::convertible_to<std::ranges::range_reference_t<symbol_list_t const>, scalar_from_t>)
     explicit constexpr type(symbol_list_t const & valid_symbols)
     {
         if (valid_symbols.empty()) {
@@ -67,27 +66,27 @@ public:
         // First scan list of symbols to find the minimal and maximal decimal rank value in list of symbols.
         auto [min_rank, max_rank] = std::ranges::minmax(valid_symbols,
                                                         std::ranges::less{},
-                                                        [] (auto const & symbol) -> scalar_key_t {
-            return static_cast<scalar_key_t>(symbol);
+                                                        [] (auto const & symbol) -> scalar_from_t {
+            return static_cast<scalar_from_t>(symbol);
         });
 
         assert(min_rank >= 0);
         assert(max_rank >= min_rank);
-        _min_rank_offset = rank_t{min_rank};
+        _min_rank_offset = simd_from_t{min_rank};
         // For example DNA5 = {A, C, G, N, T} as char only requires range of size (84(T) - 65(A)) + 1 = 20.
-        scalar_key_t const max_rank_range = max_rank - min_rank + 1;
+        scalar_from_t const max_rank_range = max_rank - min_rank + 1;
 
-        assert(static_cast<int32_t>(std::numeric_limits<scalar_key_t>::max()) >
+        assert(static_cast<int32_t>(std::numeric_limits<scalar_from_t>::max()) >
                static_cast<int32_t>(max_rank_range));
 
         // Resize the map to hold all ranks.
-        size_t const rank_width = (rank_t::size + max_rank_range - 1) / rank_t::size;
-        std::vector<rank_t, seqan3::aligned_allocator<rank_t, alignof(rank_t)>> ranks{};
-        ranks.resize(rank_width, rank_t{static_cast<scalar_key_t>(-1)});
+        size_t const rank_width = (simd_from_t::size + max_rank_range - 1) / simd_from_t::size;
+        std::vector<simd_from_t, seqan3::aligned_allocator<simd_from_t, alignof(simd_from_t)>> ranks{};
+        ranks.resize(rank_width, simd_from_t{static_cast<scalar_from_t>(-1)});
 
         // Fill rank map.
-        for (scalar_key_t rank = 0; rank < std::ranges::ssize(valid_symbols); ++rank) {
-            scalar_key_t key = static_cast<scalar_key_t>(valid_symbols[rank]);
+        for (scalar_from_t rank = 0; rank < std::ranges::ssize(valid_symbols); ++rank) {
+            scalar_from_t key = static_cast<scalar_from_t>(valid_symbols[rank]);
             auto [index, position] = key_offset(key);
             ranks[index][position] = rank;
         }
@@ -107,10 +106,10 @@ private:
         return key - _min_rank_offset;
     }
 
-    constexpr std::pair<scalar_key_t, scalar_key_t> key_offset(scalar_key_t key) const noexcept
+    constexpr std::pair<scalar_from_t, scalar_from_t> key_offset(scalar_from_t key) const noexcept
     {
-        scalar_key_t normalised_key = key - _min_rank_offset[0];
-        return {normalised_key / rank_t::size, normalised_key % rank_t::size};
+        scalar_from_t normalised_key = key - _min_rank_offset[0];
+        return {normalised_key / simd_from_t::size, normalised_key % simd_from_t::size};
     }
 };
 

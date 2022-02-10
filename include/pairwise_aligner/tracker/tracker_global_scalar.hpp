@@ -35,19 +35,24 @@ public:
     constexpr auto max_score([[maybe_unused]] sequence1_t && sequence1,
                              [[maybe_unused]] sequence2_t && sequence2,
                              dp_column_t const & dp_column,
-                             dp_row_t const & dp_row) const noexcept {
-        auto best_score = dp_column[dp_column.size() - 1].score();
+                             dp_row_t const & dp_row) const noexcept
+    {
+        assert(dp_column.size() == 1);
+        assert(dp_row.size() == 1);
+
+        size_t const inner_size = dp_column[0].size();
+        auto best_score = dp_column[0][inner_size - 1].score();
 
         if (_end_gap.last_row == cfg::end_gap::free)
         {
-            for (size_t cell_idx = 0; cell_idx < dp_row.size(); ++cell_idx)
-                best_score = std::max(dp_row[cell_idx].score(), best_score);
+            for (size_t cell_idx = 0; cell_idx < dp_row[0].size(); ++cell_idx)
+                best_score = std::max(dp_row[0][cell_idx].score(), best_score);
         }
 
         if (_end_gap.last_column == cfg::end_gap::free)
         {
-            for (size_t cell_idx = 0; cell_idx < dp_column.size(); ++cell_idx)
-                best_score = std::max(dp_column[cell_idx].score(), best_score);
+            for (size_t cell_idx = 0; cell_idx < dp_column[0].size(); ++cell_idx)
+                best_score = std::max(dp_column[0][cell_idx].score(), best_score);
         }
 
         return best_score;

@@ -24,9 +24,10 @@
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
+#include <pairwise_aligner/matrix/dp_vector_offset_transformation.hpp>
 #include <pairwise_aligner/matrix/dp_vector_rank_transformation.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
-#include <pairwise_aligner/score_model/score_model_matrix_simd.hpp>
+#include <pairwise_aligner/score_model/score_model_matrix_simd_NxN.hpp>
 #include <pairwise_aligner/tracker/tracker_global_simd_fixed.hpp>
 #include <pairwise_aligner/tracker/tracker_local_simd_fixed.hpp>
 #include <pairwise_aligner/type_traits.hpp>
@@ -44,31 +45,33 @@ namespace _score_model_matrix_simd
 // ----------------------------------------------------------------------------
 // traits
 // ----------------------------------------------------------------------------
-
 template <typename substitution_matrix_t>
 struct traits
 {
     static constexpr cfg::detail::rule_category category = cfg::detail::rule_category::score_model;
 
     // extend the dimension to handle padding symbol.
-    static constexpr size_t dimension_v = std::tuple_size_v<substitution_matrix_t> + 1;
+    static constexpr size_t dimension = std::tuple_size_v<substitution_matrix_t> + 1;
+    static constexpr size_t matrix_size = (dimension * (dimension + 1)) / 2;
 
     using matrix_row_t = typename substitution_matrix_t::value_type;
     using symbol_t = std::tuple_element_t<0, matrix_row_t>;
-    using score_t = typename std::tuple_element_t<1, matrix_row_t>::value_type;
+    using scalar_score_t = typename std::tuple_element_t<1, matrix_row_t>::value_type;
 
-    // simd score typ: use full range?
-    using index_type = simd_score<int8_t>; // TODO: should depend on given substitution matrix.
-    using score_type = simd_score<score_t, index_type::size>;
+    using index_type = simd_score<std::make_unsigned_t<scalar_score_t>>;
+    using score_type = simd_score<scalar_score_t>;
+
+    static_assert(index_type::size == score_type::size,
+                  "The sizes of the index and score simd vector must not differ.");
 
     substitution_matrix_t _substitution_matrix;
-    score_t _match_padding_score{1};
-    score_t _mismatch_padding_score{-1};
+    scalar_score_t _match_padding_score{1};
+    scalar_score_t _mismatch_padding_score{-1};
 
     template <bool is_local>
     using score_model_type = std::conditional_t<is_local,
-                                                score_model_matrix_simd<score_type, dimension_v>,
-                                                score_model_matrix_simd<score_type, dimension_v>>;
+                                                score_model_matrix_simd_NxN<score_type, dimension>,
+                                                score_model_matrix_simd_NxN<score_type, dimension>>;
 
     template <typename dp_vector_t>
     using dp_vector_column_type = dp_vector_bulk<dp_vector_t, score_type>;
@@ -84,13 +87,13 @@ struct traits
     template <typename configuration_t>
     constexpr auto configure_substitution_policy([[maybe_unused]] configuration_t const & configuration) const noexcept
     {
-        std::array<std::array<score_t, dimension_v>, dimension_v> tmp{};
+        std::array<std::array<scalar_score_t, dimension>, dimension> tmp{};
 
-        std::ranges::for_each(std::views::iota(size_t(0), dimension_v), [&] (size_t const i)
+        std::ranges::for_each(std::views::iota(size_t(0), dimension), [&] (size_t const i)
         {
             tmp[i].fill((configuration_t::is_local ? _mismatch_padding_score : _match_padding_score));
             // Overwrite the other values with data from the original substitution matrix.
-            if (i < (dimension_v - 1))
+            if (i < (dimension - 1))
                 std::ranges::copy(_substitution_matrix[i].second, tmp[i].data());
         });
 
@@ -117,22 +120,29 @@ struct traits
         // Add padding symbol: Assuming the symbols are sorted lexicographically, take the last symbol plus one
         // (only char?).
         // TODO: Find some unused values between ranks/symbols!
-        assert(static_cast<uint8_t>(_substitution_matrix.back().first) < 255);
-        int8_t const padding_symbol = (static_cast<int8_t>(_substitution_matrix.back().first) + 1);
-        std::string extended_symbol_list{};
-        extended_symbol_list.resize(dimension_v, padding_symbol);
+        using scalar_index_t = typename index_type::value_type;
+        assert(static_cast<scalar_index_t>(_substitution_matrix.back().first) < 255);
+        scalar_index_t const padding_symbol = _substitution_matrix.back().first + 1;
+        std::vector<scalar_index_t> extended_symbol_list{};
+        extended_symbol_list.resize(dimension, padding_symbol);
         std::ranges::copy(_substitution_matrix | std::views::elements<0>, extended_symbol_list.begin());
 
         // Initialise the scale for the column sequence map.
-        alphabet_rank_map_simd<index_type> rank_map{std::move(extended_symbol_list)};
+        alphabet_rank_map_simd<index_type, index_type> rank_map{std::move(extended_symbol_list)};
 
         return dp_vector_policy{
                     dp_vector_bulk_factory(
-                        dp_vector_rank_transformation_factory(dp_vector_single<column_cell_t>{}, rank_map),
-                        index_type{padding_symbol}),
+                        dp_vector_rank_transformation_factory(
+                            dp_vector_offset_transformation(
+                                dp_vector_single<column_cell_t>{}, offset_transform{dimension, matrix_size}
+                            ), rank_map
+                        ), index_type{padding_symbol}),
                     dp_vector_bulk_factory(
-                        dp_vector_rank_transformation_factory(dp_vector_single<row_cell_t>{}, rank_map),
-                        index_type{padding_symbol})
+                        dp_vector_rank_transformation_factory(
+                            dp_vector_offset_transformation(
+                                dp_vector_single<row_cell_t>{}, offset_transform{dimension, matrix_size}
+                            ), rank_map
+                        ), index_type{padding_symbol})
         };
     }
 

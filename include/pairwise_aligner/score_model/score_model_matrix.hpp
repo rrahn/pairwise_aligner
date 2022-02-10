@@ -54,6 +54,11 @@ public:
                   value1_t const & value1,
                   value2_t const & value2) const noexcept
     {
+        assert(static_cast<size_t>(value1 + value2) < _substitution_matrix.size());
+        // std::cout << "value1 = " << (int32_t) value1 << "\n";
+        // std::cout << "value2 = " << (int32_t) value2 << "\n";
+        // std::cout << "value1 + value2 = " << (int32_t) value1 + value2 << "\n";
+        // std::cout << "_substitution_matrix.size() = " << _substitution_matrix.size() << "\n";
         return last_diagonal + _substitution_matrix[value1 + value2]; // lookup into 1-D matrix.
     }
 

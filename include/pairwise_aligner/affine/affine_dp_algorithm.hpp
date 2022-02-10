@@ -113,9 +113,36 @@ protected:
     }
 
     template <typename ...args_t>
+    constexpr auto initialise_policies(args_t && ...args) const noexcept
+    {
+        return this->make_policies(std::forward<args_t>(args)...);
+    }
+
+    template <typename ...args_t>
     constexpr auto make_result(args_t && ...args) const noexcept
     {
         return this->operator()(std::forward<args_t>(args)..., this->last_column, this->last_row);
+    }
+
+    template <typename cache_t,
+              typename dp_cell_t,
+              typename score_t,
+              typename tracker_t>
+    constexpr auto compute_cell(cache_t & cache,
+                                dp_cell_t & column_cell,
+                                score_t const & score,
+                                tracker_t & tracker) const noexcept
+    {
+        using std::max;
+
+        // auto & [next_diagonal, horizontal_score] = column_cell;
+        score_t best = cache.first + score;
+        best = max(max(best, cache.second), get<1>(column_cell));
+        cache.first = get<0>(column_cell); // cache next diagonal score!
+        get<0>(column_cell) = tracker.track(best); // get<0>(column_cell) = best;
+        best += (this->gap_open_score + this->gap_extension_score);
+        cache.second = max(static_cast<score_t>(cache.second + this->gap_extension_score), best);
+        get<1>(column_cell) = max(static_cast<score_t>(get<1>(column_cell) + this->gap_extension_score), best);
     }
 
     template <typename cache_t,

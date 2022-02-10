@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides seqan::pairwise_aligner::score_model_matrix_simd.
+ * \brief Provides seqan::pairwise_aligner::score_model_matrix_simd_1xN.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
@@ -14,7 +14,8 @@
 
 #include <seqan3/std/concepts>
 
-#include <pairwise_aligner/score_model/interleaved_score_profile.hpp>
+#include <pairwise_aligner/score_model/strip_width.hpp>
+#include <pairwise_aligner/score_model/scoring_handler_striped_1xN.hpp>
 #include <pairwise_aligner/simd/simd_base.hpp>
 #include <pairwise_aligner/simd/simd_rank_selector.hpp>
 
@@ -24,16 +25,16 @@ inline namespace v1
 {
 
 template <typename score_t, size_t dimension>
-struct _score_model_matrix_simd
+struct _score_model_matrix_simd_1xN
 {
     class type;
 };
 
 template <typename score_t, size_t dimension>
-using  score_model_matrix_simd = typename _score_model_matrix_simd<score_t, dimension>::type;
+using  score_model_matrix_simd_1xN = typename _score_model_matrix_simd_1xN<score_t, dimension>::type;
 
 template <typename score_t, size_t dimension>
-class _score_model_matrix_simd<score_t, dimension>::type :
+class _score_model_matrix_simd_1xN<score_t, dimension>::type :
     protected detail::simd_rank_selector_t<simd_score<int8_t, score_t::size>>
 {
 private:
@@ -72,15 +73,16 @@ public:
         return simd_rank_selector_t::select_rank_for(_matrix[offset.first], offset.second);
     }
 
-    template <size_t stride, typename slice_t>
-        requires (std::same_as<std::ranges::range_value_t<slice_t>, index_type>)
-    constexpr auto initialise_profile(slice_t && sequence_slice) const noexcept
+    template <typename strip_t, size_t width_v>
+        requires (std::same_as<std::ranges::range_value_t<strip_t>, index_type>)
+    constexpr auto initialise_profile(strip_t && sequence_strip, strip_width_t<width_v> const &) const noexcept
     {
-        return interleaved_score_profile<type, stride>{*this, std::forward<slice_t>(sequence_slice)};
+        return scoring_handler_striped_1xN<type, width_v>{*this, std::forward<strip_t>(sequence_strip)};
     }
 
+    template <typename value1_t>
     score_type score(score_type const & last_diagonal,
-                     [[maybe_unused]] index_type const & value1,
+                     [[maybe_unused]] value1_t const & value1,
                      index_type const & value2) const noexcept
     {
         // Upcasting the index scores to the score type.

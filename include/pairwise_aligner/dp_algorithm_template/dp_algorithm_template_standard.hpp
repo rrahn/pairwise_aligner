@@ -14,6 +14,8 @@
 
 #include <seqan3/std/ranges>
 
+#include <seqan3/utility/views/slice.hpp>
+
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_base.hpp>
 
 namespace seqan::pairwise_aligner
@@ -43,19 +45,43 @@ protected:
         // ----------------------------------------------------------------------------
         // Initialisation
         // ----------------------------------------------------------------------------
-
         auto transformed_seq1 = base_t::initialise_column(sequence1, dp_column);
         auto transformed_seq2 = base_t::initialise_row(sequence2, dp_row);
+
+        auto [dp_matrix_column] = base_t::initialise_policies();
         auto tracker = base_t::initialise_tracker();
         auto scorer = base_t::initialise_substitution_scheme();
+
+        using block_sequence1_t = decltype(seqan3::views::slice(transformed_seq1, 0, 1));
+        using block_sequence1_collection_t = std::vector<block_sequence1_t>;
+
+        block_sequence1_collection_t block_sequences1{};
+        block_sequences1.reserve(dp_column.size());
+
+        { // Slice the first sequence according to the column size of each dp block.
+            size_t offset = 0;
+            std::ranges::for_each(std::views::iota(0ull, dp_column.size()), [&] (size_t const index) {
+                size_t const column_size = dp_column[index].size() - 1;
+                block_sequences1.emplace_back(seqan3::views::slice(transformed_seq1, offset, offset + column_size));
+                offset += column_size;
+            });
+        }
 
         // ----------------------------------------------------------------------------
         // Recursion
         // ----------------------------------------------------------------------------
 
-        base_t::rotate_row_scores_right(dp_row);
-        base_t::compute_block(transformed_seq1, transformed_seq2, dp_column, dp_row, scorer, tracker);
-        base_t::rotate_row_scores_left(dp_row);
+        size_t row_offset{};
+        for (size_t column_idx = 0; column_idx < dp_row.size(); ++column_idx) {
+            auto current_column = dp_matrix_column(dp_column, dp_row[column_idx], std::move(scorer), tracker);
+            size_t const row_size = current_column.row().size() - 1;
+            auto block_sequence2 = seqan3::views::slice(transformed_seq2, row_offset, row_offset + row_size);
+            for (size_t block_idx = 0; block_idx < current_column.size(); ++block_idx) {
+                auto dp_block = current_column[block_idx];
+                base_t::compute_block(block_sequences1[block_idx], block_sequence2, dp_block);
+            }
+            row_offset += row_size;
+        }
 
         // ----------------------------------------------------------------------------
         // Create result

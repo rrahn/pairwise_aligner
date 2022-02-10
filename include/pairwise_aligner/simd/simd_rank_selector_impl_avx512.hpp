@@ -76,7 +76,8 @@ protected:
 
         key_t tmp{};
         for (int32_t i = 0; i < std::ranges::ssize(rank_map); ++i) {
-            tmp |= blend(offset.eq(key_t{i}), select_rank_for_impl(rank_map, key_low, key_high), key_t{});
+            tmp |= blend(offset.eq(key_t{static_cast<scalar_t>(i)}),
+                         select_rank_for_impl(rank_map[i], key_low, key_high), key_t{});
         }
         return tmp;
     }
@@ -89,18 +90,14 @@ private:
         constexpr scalar_t bit_index = std::bit_width(detail::max_simd_size) - 1;
         constexpr key_t modulo_mask{static_cast<scalar_t>((1ull << bit_index) - 1)};
 
-        key_t local_index = index & modulo_mask; // modulo 64.
-        return std::tuple{index >> key_t{bit_index}, to_packed(rotate_right(to_native(local_index))), local_index};
+        key_t local_index = index & modulo_mask; // & 63 <=> mod 64.
+        // Rotate high keys to the right by 8 bit to put them on the low 8 bits of the 16-bit shuffle mask.
+        return std::tuple{index >> bit_index, local_index, to_packed(rotate_right(to_native(local_index)))};
     }
 
     static __m512i rotate_right(__m512i const & index) noexcept
     {
         return _mm512_ror_epi64(index, seqan3::detail::bits_of<scalar_t>);
-    }
-
-    static __m512i rotate_left(__m512i const & index) noexcept
-    {
-        return _mm512_rol_epi64(index, seqan3::detail::bits_of<scalar_t>);
     }
 
     static key_t select_rank_for_impl(split_key_t const & ranks, key_t const & key_low, key_t const & key_high)
@@ -111,12 +108,13 @@ private:
         __m512i lo_32x16 = _mm512_permutex2var_epi16(to_native(ranks_lo), to_native(key_low), to_native(ranks_hi));
         // Load 32x16 bit operands using the high 8 bits of each 16 bit operand (unmodified).
         __m512i hi_32x16 = _mm512_permutex2var_epi16(to_native(ranks_lo), to_native(key_high), to_native(ranks_hi));
-        // Or the results after rotating high 8 bits of each 16-bit operand of the lo_32x16 register back to their
-        // low position.
-        return to_packed(rotate_left(lo_32x16) | hi_32x16);
+        // Or the results after rotating low 8 bits of each 16-bit operand of the lo_32x16 register to the right by 8
+        // bits, which corresponds to their corres position the final 8-bit packed result vector.
+        return to_packed(rotate_right(lo_32x16) | hi_32x16);
     }
 
-    static __m512i const & to_native(key_t const & packed) noexcept
+    template <typename packed_t>
+    static __m512i const & to_native(packed_t const & packed) noexcept
     {
         return reinterpret_cast<__m512i const &>(packed);
     }
