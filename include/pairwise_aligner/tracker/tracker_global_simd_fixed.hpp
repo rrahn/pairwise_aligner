@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <seqan3/std/ranges>
+
 #include <pairwise_aligner/configuration/end_gap_policy.hpp>
 #include <pairwise_aligner/simd/simd_base.hpp>
 
@@ -43,28 +45,43 @@ public:
         return score; // no-op.
     }
 
-    // receive the optimal score.
+    template <typename sequence1_t, typename sequences2_t, typename dp_column_t, typename dp_row_t>
+    constexpr score_t max_score(sequence1_t && sequence1,
+                                sequences2_t && sequences2,
+                                dp_column_t const & dp_column,
+                                dp_row_t const & dp_row) const noexcept
+    {
+        std::vector<std::views::all_t<sequence1_t>> sequence1_bulk{};
+        sequence1_bulk.resize(std::ranges::distance(sequences2), sequence1 | std::views::all);
+
+        return max_score(std::move(sequence1_bulk), std::forward<sequences2_t>(sequences2), dp_column, dp_row);
+    }
+
     template <typename sequences1_t, typename sequences2_t, typename dp_column_t, typename dp_row_t>
+        requires std::ranges::range<std::ranges::range_reference_t<sequences1_t>>
     constexpr score_t max_score(sequences1_t && sequences1,
                                 sequences2_t && sequences2,
                                 dp_column_t const & dp_column,
-                                dp_row_t const & dp_row) const noexcept {
+                                dp_row_t const & dp_row) const noexcept
+    {
+        assert(dp_column.size() == 1);
+        assert(dp_row.size() == 1);
 
         if (_end_gap.last_column == cfg::end_gap::penalised && _end_gap.last_row == cfg::end_gap::penalised) {
             score_t best_score{};
             for (std::ptrdiff_t idx = 0; idx < std::ranges::distance(sequences1); ++idx) {
-                best_score[idx] = select_max_score(idx, sequences1[idx], sequences2[idx], dp_column, dp_row);
+                best_score[idx] = select_max_score(idx, sequences1[idx], sequences2[idx], dp_column[0], dp_row[0]);
             }
             return best_score;
         }
 
         score_t best_score{std::numeric_limits<typename score_t::value_type>::lowest()};
         if (_end_gap.last_column == cfg::end_gap::free) {
-            best_score = find_max_score(sequences1, dp_column, sequences2, dp_row);
+            best_score = find_max_score(sequences1, dp_column[0], sequences2, dp_row[0]);
         }
 
         if (_end_gap.last_row == cfg::end_gap::free) {
-            best_score = max(best_score, find_max_score(sequences2, dp_row, sequences1, dp_column));
+            best_score = max(best_score, find_max_score(sequences2, dp_row[0], sequences1, dp_column[0]));
         }
 
         return best_score;

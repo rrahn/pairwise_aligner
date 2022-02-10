@@ -19,7 +19,10 @@
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_column.hpp>
+#include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
+#include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
 #include <pairwise_aligner/score_model/score_model_unitary_local.hpp>
 #include <pairwise_aligner/score_model/score_model_unitary.hpp>
@@ -86,16 +89,20 @@ struct traits
         using column_cell_t = typename common_configurations_t::dp_cell_column_type<score_type>;
         using row_cell_t = typename common_configurations_t::dp_cell_row_type<score_type>;
 
-        return dp_vector_policy{dp_vector_single<column_cell_t>{}, dp_vector_single<row_cell_t>{}};
+        return dp_vector_policy{dp_vector_chunk_factory(dp_vector_single<column_cell_t>{}),
+                                dp_vector_chunk_factory(dp_vector_single<row_cell_t>{})};
     }
 
     template <typename configuration_t, typename ...policies_t>
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
+        using dp_matrix_policies_t = dp_matrix_policies<decltype(dp_matrix_column)>;
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
+                                                                     dp_matrix_policies_t,
                                                                      std::remove_cvref_t<policies_t>...>;
 
-        return interface_one_to_one_single<algorithm_t>{algorithm_t{std::move(policies)...}};
+        return interface_one_to_one_single<algorithm_t>{
+                algorithm_t{dp_matrix_policies_t{dp_matrix_column}, std::move(policies)...}};
     }
 };
 

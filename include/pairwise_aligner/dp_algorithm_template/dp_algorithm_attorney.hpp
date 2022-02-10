@@ -65,6 +65,13 @@ private:
     }
 
     template <typename ...args_t>
+    constexpr static auto initialise_policies(algorithm_client_t const & client, args_t && ...args)
+        noexcept(noexcept(client.initialise_policies(std::forward<args_t>(args)...)))
+    {
+        return client.initialise_policies(std::forward<args_t>(args)...);
+    }
+
+    template <typename ...args_t>
     constexpr static auto initialise_column_vector(algorithm_client_t const & client, args_t && ...args)
         noexcept(noexcept(client.initialise_column_vector(std::forward<args_t>(args)...)))
     {

@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <pairwise_aligner/tracker/tracker_local_simd_fixed.hpp>
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
@@ -31,39 +32,47 @@ using tracker = typename _tracker<saturated_score_t, regular_score_t>::type;
 template <typename saturated_score_t, typename regular_score_t>
 class _tracker<saturated_score_t, regular_score_t>::type
 {
-public:
+private:
+
 
     regular_score_t _max_score{std::numeric_limits<typename regular_score_t::value_type>::lowest()};
-    saturated_score_t _block_max_score{std::numeric_limits<typename saturated_score_t::value_type>::lowest()};
 
-    template <typename score_t>
-    constexpr score_t const & track(score_t const & score) noexcept {
-        using std::max;
-        if constexpr (std::same_as<score_t, saturated_score_t>)
-            _block_max_score = max(_block_max_score, score);
-        else
-            _max_score = max(_max_score, score);
-
-        return score;
-    }
-
-    constexpr void reset_block_max_score() noexcept
+    template <typename score_converter_t>
+    struct _in_block_tracker : public local_simd_fixed::tracker<saturated_score_t>
     {
-        // TODO: move assignment or better fill?
-        _block_max_score = saturated_score_t{std::numeric_limits<typename saturated_score_t::value_type>::lowest()};
+    private:
+        using base_t = local_simd_fixed::tracker<saturated_score_t>;
+        type & _parent_tracker;
+        score_converter_t _score_converter;
+
+    public:
+        _in_block_tracker() = delete;
+        _in_block_tracker(type & parent_tracker, score_converter_t score_converter) noexcept :
+            base_t{},
+            _parent_tracker{parent_tracker},
+            _score_converter{std::forward<score_converter_t>(score_converter)}
+        {} // initialising the local tracker
+        ~_in_block_tracker() noexcept
+        {
+            _parent_tracker.track(std::invoke(std::forward<score_converter_t>(_score_converter),
+                                              base_t::max_score()));
+        }
+    };
+
+public:
+
+    template <typename score_converter_t>
+    constexpr auto in_block_tracker(score_converter_t && score_converter) noexcept {
+        return _in_block_tracker<score_converter_t>{*this, std::forward<score_converter_t>(score_converter)};
     }
 
-    template <typename ...args_t>
-    constexpr auto block_max_score([[maybe_unused]] args_t && ...args) const noexcept {
-        return _block_max_score;
+    constexpr void track(regular_score_t const & in_block_score) noexcept {
+        _max_score = max(_max_score, in_block_score);
     }
 
     template <typename ...args_t>
     constexpr auto max_score([[maybe_unused]] args_t && ...args) const noexcept {
-        if constexpr (std::same_as<saturated_score_t, regular_score_t>)
-            return _block_max_score;
-        else
-            return _max_score;
+        return _max_score;
     }
 
     // TODO: optimal_coordinate()

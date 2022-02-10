@@ -40,7 +40,7 @@ inline constexpr size_t sequence_size = 1000;
 // Templatized fixture values.
 // ----------------------------------------------------------------------------
 
-template <typename configurator_t, typename seqan_configurator_t, typename alphabet_t>
+template <typename configurator_t, typename seqan_configurator_t, typename alphabet_t, typename one_vs_many_t = std::false_type>
 struct values
 {
     using alphabet_type = alphabet_t;
@@ -48,6 +48,7 @@ struct values
     configurator_t configurator;
     seqan_configurator_t seqan_configurator;
     alphabet_t alphabet;
+    one_vs_many_t one_vs_many{};
 
     size_t sequence_size_mean;
     size_t sequence_size_variance;
@@ -63,8 +64,7 @@ struct fixture : public ::benchmark::Fixture
 {
     using alphabet_type = typename std::remove_cvref_t<decltype(*_fixture)>::alphabet_type;
 
-    auto GetParam() const noexcept
-        -> decltype(*_fixture) const &
+    constexpr auto GetParam() const noexcept -> decltype(*_fixture) const &
     {
         return *_fixture;
     }
@@ -85,6 +85,8 @@ public:
 
     using typename fixture_t::alphabet_type;
     using fixture_t::GetParam;
+
+    static constexpr bool one_vs_many_v = std::remove_cvref_t<decltype(std::declval<fixture_t>().GetParam().one_vs_many)>::value;
 
     void SetUp([[maybe_unused]] ::benchmark::State & state) override {
 
@@ -125,14 +127,32 @@ public:
 
         int32_t score{};
 
-        for (auto _ : state)
-            for (auto const & res : aligner.compute(sequence1(), sequence2()))
-                score += res.score();
+        if constexpr (one_vs_many_v) {
+            for (auto _ : state)
+                for (auto const & first_sequence : sequence1())
+                    for (auto const & res : aligner.compute(first_sequence, sequence2()))
+                        score += res.score();
+        } else {
+            for (auto _ : state)
+                for (auto const & res : aligner.compute(sequence1(), sequence2()))
+                    score += res.score();
+        }
+
+        uint64_t cell_updates{};
+        if constexpr (one_vs_many_v) {
+            for (auto const & first_sequence : sequence1()) {
+                std::vector<std::views::all_t<decltype(first_sequence)>> seq1_bulk{};
+                seq1_bulk.resize(std::ranges::distance(sequence2()), first_sequence | std::views::all);
+                cell_updates += seqan3::test::pairwise_cell_updates(seqan3::views::zip(seq1_bulk, sequence2()),
+                                                                    GetParam().seqan_configurator);
+            }
+        } else {
+            cell_updates = seqan3::test::pairwise_cell_updates(seqan3::views::zip(sequence1(), sequence2()),
+                                                               GetParam().seqan_configurator);
+        }
 
         state.counters["score"] = score;
-        state.counters["cells"] = seqan3::test::pairwise_cell_updates(seqan3::views::zip(sequence1(),
-                                                                                         sequence2()),
-                                                                    GetParam().seqan_configurator);
+        state.counters["cells"] = cell_updates;
         state.counters["CUPS"] = seqan3::test::cell_updates_per_second(state.counters["cells"]);
     }
 };

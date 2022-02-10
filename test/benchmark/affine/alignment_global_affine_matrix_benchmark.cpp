@@ -17,6 +17,7 @@
 #include <seqan3/test/performance/sequence_generator.hpp>
 #include <seqan3/test/performance/units.hpp>
 #include <seqan3/core/configuration/configuration.hpp>
+#include <seqan3/core/debug_stream.hpp>
 
 #include <pairwise_aligner/configuration/configure_aligner.hpp>
 #include <pairwise_aligner/configuration/score_model_matrix.hpp>
@@ -28,17 +29,19 @@
 void alignment_global_affine(benchmark::State & state)
 {
     size_t sequence_length = aligner::benchmark::sequence_size;
-    auto seq1_tmp = seqan3::test::generate_sequence<seqan3::aa20>(sequence_length, 0, 0) | seqan3::views::to_char;
-    auto seq2_tmp = seqan3::test::generate_sequence<seqan3::aa20>(sequence_length, 0, 1) | seqan3::views::to_char;
+    auto [seq1_aa, seq2_aa] = seqan3::test::generate_sequence_pairs<seqan3::aa20>(sequence_length, 1, 0)[0];
+
+    auto seq1_tmp = seq1_aa | seqan3::views::to_char;
+    auto seq2_tmp = seq2_aa | seqan3::views::to_char;
 
     std::string seq1{std::ranges::begin(seq1_tmp), std::ranges::end(seq1_tmp)};
-    std::string seq2{std::ranges::begin(seq2_tmp), std::ranges::end(seq2_tmp)};
+    std::string seq2{std::ranges::begin(seq2_tmp), std::ranges::end(seq2_tmp)};;
 
     namespace pa = seqan::pairwise_aligner;
 
     auto aligner = pa::cfg::configure_aligner(
         pa::cfg::gap_model_affine(
-            pa::cfg::score_model_matrix(pa::blosum62_standard),
+            pa::cfg::score_model_matrix(pa::blosum62_standard<>),
             -10, -1
         )
     );

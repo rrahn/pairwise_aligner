@@ -64,11 +64,11 @@ DEFINE_TEST_VALUES(sequence_size_1000_equal_32,
 
 using equal_size_types =
     ::testing::Types<
-        // pairwise_aligner::test::fixture<&equal_size_64>,
-        pairwise_aligner::test::fixture<&equal_size_32>//,
-        // pairwise_aligner::test::fixture<&equal_size_16>,
-        // pairwise_aligner::test::fixture<&equal_size_8>,
-        // pairwise_aligner::test::fixture<&sequence_size_1000_equal_32>
+        pairwise_aligner::test::fixture<&equal_size_64>,
+        pairwise_aligner::test::fixture<&equal_size_32>,
+        pairwise_aligner::test::fixture<&equal_size_16>,
+        pairwise_aligner::test::fixture<&equal_size_8>,
+        pairwise_aligner::test::fixture<&sequence_size_1000_equal_32>
     >;
 // ----------------------------------------------------------------------------
 // Variable size
@@ -123,6 +123,6 @@ INSTANTIATE_TYPED_TEST_SUITE_P(equal_size_test,
                                test_suite,
                                global::standard::affine::saturated_simd::equal_size_types,);
 
-// INSTANTIATE_TYPED_TEST_SUITE_P(variable_size_test,
-//                                test_suite,
-//                                global::standard::affine::saturated_simd::variable_size_types,);
+INSTANTIATE_TYPED_TEST_SUITE_P(variable_size_test,
+                               test_suite,
+                               global::standard::affine::saturated_simd::variable_size_types,);

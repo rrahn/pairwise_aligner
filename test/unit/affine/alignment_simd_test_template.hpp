@@ -69,7 +69,7 @@ struct matrix_model{
     }
 };
 
-template <typename base_configurator_t, typename score_configurator_t, typename score_model_t>
+template <typename base_configurator_t, typename score_configurator_t, typename score_model_t, typename bool_t = std::false_type>
 struct values
 {
     using score_type = typename score_model_t::score_type;
@@ -78,6 +78,7 @@ struct values
     score_configurator_t score_configurator;
     score_model_t substitution_scores;
     std::tuple<std::size_t, std::size_t, std::size_t> sequence_generation_param;
+    bool_t one_vs_many{};
     unsigned seed{42};
 
     constexpr auto symbol_list() const noexcept
@@ -108,6 +109,20 @@ struct test : public fixture_t
     {
         std::mt19937 random_engine{this->GetParam().seed};
         generate_sequences(random_engine);
+    }
+
+    auto const & sequence1() const noexcept
+    {
+        if constexpr (decltype(std::declval<fixture_t>().GetParam().one_vs_many)::value == true) {
+            return sequence_collection1.front();
+        } else {
+            return sequence_collection1;
+        }
+    }
+
+    auto const & sequence2() const noexcept
+    {
+        return sequence_collection2;
     }
 
     template <typename score_config_t, typename score_t>
@@ -187,7 +202,7 @@ TYPED_TEST_P(test_suite, score)
     //                                         static_cast<TestFixture::scalar_score_type>(mismatch_score))
     // );
 
-    auto simd_results = simd_aligner.compute(this->sequence_collection1, this->sequence_collection2);
+    auto simd_results = simd_aligner.compute(this->sequence1(), this->sequence2());
     size_t index = 0;
     for (auto result : simd_results) {
         EXPECT_EQ(result.score(), (scalar_aligner.compute(result.sequence1(), result.sequence2()).score()))
