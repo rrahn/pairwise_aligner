@@ -107,11 +107,20 @@ public:
                                  uindex_t const & offsets,
                                  std::index_sequence<lane_idx...> const &) const noexcept
     {
-        auto gather = [&] (index_t const & column_rank,
-                           uindex_t const & column_offset,
-                           index_t const & row_rank,
-                           uindex_t const & row_offset) {
 
+    auto gather = [&] (index_t const & column_rank,
+                       uindex_t const & column_offset,
+                       index_t const & row_rank,
+                       uindex_t const & row_offset) {
+
+        uindex_t matrix_offset = min(row_offset, column_offset) +
+                                 reinterpret_cast<uindex_t &&>(abs(row_rank - column_rank));
+
+        #if defined(__AVX512VBMI__)
+            return blend(matrix_offset.le(uindex_t{static_cast<typename uindex_t::value_type>(0x7F)}),
+                         select_scores(_matrix[0], matrix_offset, _matrix[1]),
+                         select_scores(_matrix[2], matrix_offset, _matrix[3]));
+        #else // require AVX512BW, to use less optimal version using cross lane permute with 16-bit packed operands.
             auto as_16bit_packed = [] (auto const & vec) -> index_epu16_t const & {
                 return reinterpret_cast<index_epu16_t const &>(vec);
             };
@@ -121,10 +130,6 @@ public:
             // index_t pre_row_rank = reinterpret_cast<index_t &&>(as_16bit_packed(row_rank) >> 1);
             // uindex_t pre_column_offset = reinterpret_cast<uindex_t &&>(as_16bit_packed(column_offset) >> 1);
             // uindex_t pre_row_offset = reinterpret_cast<uindex_t &&>(as_16bit_packed(row_offset) >> 1);
-
-            uindex_t matrix_offset = min(row_offset, column_offset) +
-                                     reinterpret_cast<uindex_t &&>(abs(row_rank - column_rank));
-
 
             // can we precompute this?
             uindex_t idx_32x16_even = reinterpret_cast<uindex_t &&>(as_16bit_packed(matrix_offset) >> 1);
@@ -147,22 +152,10 @@ public:
             return blend(matrix_offset.le(uindex_t{static_cast<typename uindex_t::value_type>(0x7F)}),
                          select_scores(_matrix[0], idx_32x16_even, idx_32x16_uneven, selector_even, selector_uneven, _matrix[1]),
                          select_scores(_matrix[2], idx_32x16_even, idx_32x16_uneven, selector_even, selector_uneven, _matrix[3]));
+        #endif // defined(__AVX512VBMI__)
         };
 
-        #if defined(__AVX512VBMI__)
-        striped_ranks_t scores{};
-        ((indices[lane_idx] = min(offsets, _striped_offsets[lane_idx]) +
-                              reinterpret_cast<uindex_t &&>(abs(ranks - _striped_ranks[lane_idx]))), ...);
-        ((masks[lane_idx] = indices[lane_idx].le(uindex_t{static_cast<typename uindex_t::value_type>(0x7F)})), ...);
-        ((scores[lane_idx] = blend(masks[lane_idx],
-                                   select_scores(_matrix[0], indices[lane_idx], _matrix[1]),
-                                   select_scores(_matrix[2], indices[lane_idx], _matrix[3]))),...);
-        return scores;
-        #else // require AVX512BW, to use less optimal version using cross lane permute with 16-bit packed operands.
-
         return striped_ranks_t{gather(_striped_ranks[lane_idx], _striped_offsets[lane_idx], ranks, offsets)...};
-
-        #endif // defined(__AVX512VBMI__)
     }
 
     #if defined(__AVX512VBMI__)
