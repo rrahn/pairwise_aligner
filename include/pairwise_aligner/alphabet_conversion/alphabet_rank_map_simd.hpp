@@ -45,7 +45,7 @@ private:
     using rank_map_t = typename simd_rank_selector_t::rank_map_t;
 
     std::shared_ptr<rank_map_t> _rank_map_ptr{};
-    simd_from_t _min_rank_offset{};
+    simd_to_t _min_rank_offset{};
 
 public:
 

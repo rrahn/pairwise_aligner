@@ -51,7 +51,7 @@ protected:
     using rank_map_t = std::vector<split_key_t, seqan3::aligned_allocator<split_key_t, alignof(key_t)>>;
 
     template <std::ranges::random_access_range ranks_t>
-        requires (std::same_as<std::ranges::range_value_t<ranks_t>, key_t>)
+        requires (std::ranges::range_value_t<ranks_t>::size == key_t::size)
     static rank_map_t initialise_rank_map(ranks_t && ranks) noexcept
     {
         rank_map_t tmp{};

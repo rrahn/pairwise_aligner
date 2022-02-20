@@ -14,9 +14,8 @@
 
 #include <seqan3/std/concepts>
 
-#include <pairwise_aligner/score_model/strip_width.hpp>
-#include <pairwise_aligner/score_model/scoring_handler_striped_NxN.hpp>
 #include <pairwise_aligner/simd/simd_base.hpp>
+#include <pairwise_aligner/simd/simd_index_map.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -68,41 +67,32 @@ private:
         }
     }
 };
-template <typename score_t, size_t dimension>
+template <typename score_t, typename index_t, size_t dimension>
 struct _score_model_matrix_simd_NxN
 {
     class type;
 };
 
-template <typename score_t, size_t dimension>
-using  score_model_matrix_simd_NxN = typename _score_model_matrix_simd_NxN<score_t, dimension>::type;
+template <typename score_t, typename index_t, size_t dimension>
+using  score_model_matrix_simd_NxN = typename _score_model_matrix_simd_NxN<score_t, index_t, dimension>::type;
 
-template <typename score_t, size_t dimension>
-class _score_model_matrix_simd_NxN<score_t, dimension>::type
+template <typename score_t, typename index_t, size_t dimension>
+class _score_model_matrix_simd_NxN<score_t, index_t, dimension>::type
 {
 private:
 
-    template <typename, size_t>
-    friend class _scoring_handler_striped_NxN;
-
-    using index_t = simd_score<uint8_t, score_t::size>;
-
-    // Do we only work on these types?
     static constexpr size_t diagonal_matrix_size = ((dimension * (dimension + 1)) / 2);
     static constexpr size_t data_size_v = (diagonal_matrix_size - 1 + index_t::size) / index_t::size;
 
     using scalar_score_t = typename score_t::value_type;
+    using scalar_index_t = typename index_t::value_type;
+    using map_t = simd_index_map<scalar_score_t, scalar_index_t, diagonal_matrix_size>;
 
-    using map_t = simd_index_map<scalar_score_t, uint8_t, diagonal_matrix_size>;
-    // std::array<index_t, data_size_v> _data{};
     map_t _data{};
 
 public:
-
-    static constexpr size_t dimension_v = dimension;
     using score_type = score_t;
     using index_type = index_t;
-    // using offset_type = int32_t;
 
     type() = default;
 
@@ -111,9 +101,8 @@ public:
     {
         size_t position{};
         std::array<scalar_score_t, diagonal_matrix_size> tmp{};
-        for (size_t rank_h = 0; rank_h < dimension_v; ++rank_h) {
-            for (size_t rank_v = rank_h; rank_v < dimension_v; ++rank_v, ++position) {
-                // _data[position / index_t::size][position % index_t::size] = matrix[rank_h][rank_v];
+        for (size_t rank_h = 0; rank_h < dimension; ++rank_h) {
+            for (size_t rank_v = rank_h; rank_v < dimension; ++rank_v, ++position) {
                 tmp[position] = matrix[rank_h][rank_v];
             }
         }
@@ -121,26 +110,36 @@ public:
         assert(position == diagonal_matrix_size);
     }
 
-    template <typename strip_t, size_t width>
-        // requires (std::same_as<std::ranges::range_value_t<strip_t>, index_type>)
-    constexpr auto initialise_profile(strip_t && sequence_strip, strip_width_t<width> const &) const noexcept
+    template <typename value1_t, typename value2_t>
+    score_type score(score_type const & last_diagonal, value1_t const & value1, value2_t const & value2) const noexcept
     {
-        return scoring_handler_striped_NxN<type, width>{*this, std::forward<strip_t>(sequence_strip)};
-    }
-
-    template <typename value1_t>
-    score_type score(score_type const & last_diagonal,
-                     [[maybe_unused]] value1_t const & value1,
-                     score_type const & value2) const noexcept
-    {
-        // Upcasting the index scores to the score type.
-        return last_diagonal + static_cast<score_type>(value2);
+        return last_diagonal + gather(value1, value2);
     }
 
     // TODO: Refactor into separate factory CPO.
     constexpr type make_substitution_scheme() const noexcept
     {
         return *this;
+    }
+
+private:
+    template <typename value1_t, typename value2_t>
+    constexpr score_type gather(value1_t const & value1, value2_t const & value2) const noexcept
+    {
+        auto && [column_rank, column_offset] = value1;
+        auto && [row_rank, row_offset] = value2;
+        auto matrix_offset = min(row_offset, column_offset) + absolut_difference(row_rank, column_rank);
+
+        return _data[matrix_offset];
+    }
+
+    template <typename simd_rank_t>
+    constexpr auto absolut_difference(simd_rank_t const & row_ranks, simd_rank_t const & column_ranks) const noexcept
+    {
+        using signed_simd_rank_t = detail::make_signed_t<simd_rank_t>;
+        signed_simd_rank_t tmp = abs(reinterpret_cast<signed_simd_rank_t const &>(row_ranks) -
+                                     reinterpret_cast<signed_simd_rank_t const &>(column_ranks));
+        return reinterpret_cast<simd_rank_t const &>(tmp);
     }
 };
 

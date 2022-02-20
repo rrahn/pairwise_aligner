@@ -22,7 +22,12 @@
 #include <pairwise_aligner/alphabet_conversion/alphabet_rank_map_simd.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_block.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_column.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_lane.hpp>
+#include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
+#include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_offset_transformation.hpp>
 #include <pairwise_aligner/matrix/dp_vector_rank_transformation.hpp>
@@ -70,8 +75,8 @@ struct traits
 
     template <bool is_local>
     using score_model_type = std::conditional_t<is_local,
-                                                score_model_matrix_simd_NxN<score_type, dimension>,
-                                                score_model_matrix_simd_NxN<score_type, dimension>>;
+                                                score_model_matrix_simd_NxN<score_type, index_type, dimension>,
+                                                score_model_matrix_simd_NxN<score_type, index_type, dimension>>;
 
     template <typename dp_vector_t>
     using dp_vector_column_type = dp_vector_bulk<dp_vector_t, score_type>;
@@ -120,27 +125,29 @@ struct traits
         // Add padding symbol: Assuming the symbols are sorted lexicographically, take the last symbol plus one
         // (only char?).
         // TODO: Find some unused values between ranks/symbols!
-        using scalar_index_t = typename index_type::value_type;
-        assert(static_cast<scalar_index_t>(_substitution_matrix.back().first) < 255);
-        scalar_index_t const padding_symbol = _substitution_matrix.back().first + 1;
-        std::vector<scalar_index_t> extended_symbol_list{};
+        using scalar_rank_t = typename index_type::value_type;
+        assert(static_cast<scalar_rank_t>(_substitution_matrix.back().first) < 255);
+        scalar_rank_t const padding_symbol = _substitution_matrix.back().first + 1;
+        std::vector<scalar_rank_t> extended_symbol_list{};
         extended_symbol_list.resize(dimension, padding_symbol);
         std::ranges::copy(_substitution_matrix | std::views::elements<0>, extended_symbol_list.begin());
 
         // Initialise the scale for the column sequence map.
-        alphabet_rank_map_simd<index_type, index_type> rank_map{std::move(extended_symbol_list)};
+        alphabet_rank_map_simd<index_type> rank_map{std::move(extended_symbol_list)};
 
         return dp_vector_policy{
                     dp_vector_bulk_factory(
                         dp_vector_rank_transformation_factory(
                             dp_vector_offset_transformation(
-                                dp_vector_single<column_cell_t>{}, offset_transform{dimension, matrix_size}
+                                dp_vector_chunk_factory(dp_vector_single<column_cell_t>{}),
+                                offset_transform{dimension, matrix_size}
                             ), rank_map
                         ), index_type{padding_symbol}),
                     dp_vector_bulk_factory(
                         dp_vector_rank_transformation_factory(
                             dp_vector_offset_transformation(
-                                dp_vector_single<row_cell_t>{}, offset_transform{dimension, matrix_size}
+                                dp_vector_chunk_factory(dp_vector_single<row_cell_t>{}),
+                                offset_transform{dimension, matrix_size}
                             ), rank_map
                         ), index_type{padding_symbol})
         };
@@ -149,10 +156,15 @@ struct traits
     template <typename configuration_t, typename ...policies_t>
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
+        using block_closure_t = dp_matrix::cpo::_block_closure<dp_matrix::cpo::_lane_closure, 4>;
+        using dp_matrix_column_t = dp_matrix::cpo::_column_closure<block_closure_t>;
+        using dp_matrix_policies_t = dp_matrix_policies<dp_matrix_column_t>;
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
+                                                                     dp_matrix_policies_t,
                                                                      std::remove_cvref_t<policies_t>...>;
 
-        return interface_one_to_one_bulk<algorithm_t, score_type::size>{algorithm_t{std::move(policies)...}};
+        return interface_one_to_one_bulk<algorithm_t, score_type::size>{
+                algorithm_t{dp_matrix_policies_t{dp_matrix_column_t{block_closure_t{}}}, std::move(policies)...}};
     }
 };
 

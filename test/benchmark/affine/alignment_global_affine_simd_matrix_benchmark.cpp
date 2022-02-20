@@ -70,9 +70,9 @@ DEFINE_BENCHMARK_VALUES(overlap_matrix_same_size,
 )
 
 ALIGNER_BENCHMARK(fixed_simd, standard_matrix_same_size)
-ALIGNER_BENCHMARK(fixed_simd, semi_first_matrix_same_size)
-ALIGNER_BENCHMARK(fixed_simd, semi_second_matrix_same_size)
-ALIGNER_BENCHMARK(fixed_simd, overlap_matrix_same_size)
+// ALIGNER_BENCHMARK(fixed_simd, semi_first_matrix_same_size)
+// ALIGNER_BENCHMARK(fixed_simd, semi_second_matrix_same_size)
+// ALIGNER_BENCHMARK(fixed_simd, overlap_matrix_same_size)
 
 } // namespace aligner::benchmark::fixed_simd
 

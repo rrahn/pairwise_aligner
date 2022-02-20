@@ -27,7 +27,7 @@ class dp_vector_chunk
 private:
 
     std::vector<dp_vector_t> _dp_vector_chunks{};
-    std::ptrdiff_t _chunk_size{};
+    size_t _chunk_size{};
 
 public:
 
@@ -36,7 +36,7 @@ public:
     using reference = std::ranges::range_reference_t<range_type>;
     using const_reference = std::ranges::range_reference_t<range_type const>;
 
-    explicit dp_vector_chunk(dp_vector_t && dp_vector, std::ptrdiff_t const chunk_size) noexcept :
+    explicit dp_vector_chunk(dp_vector_t && dp_vector, size_t const chunk_size) noexcept :
         _dp_vector_chunks{1, std::move(dp_vector)},
         _chunk_size{chunk_size}
     {}
@@ -104,8 +104,8 @@ public:
         using pure_factory_t = std::remove_cvref_t<factory_t>;
 
         size_t const sequence_size = std::ranges::distance(sequence);
-        size_t const chunk_size = (_chunk_size == -1) ? sequence_size : _chunk_size;
-        size_t const element_count = (sequence_size + chunk_size - 1) / chunk_size;
+        size_t const chunk_size = std::min(sequence_size, _chunk_size);
+        size_t const element_count = (chunk_size > 0) ? (sequence_size + chunk_size - 1) / chunk_size : 1;
 
         _dp_vector_chunks.resize(element_count, _dp_vector_chunks.front());
 
@@ -130,7 +130,7 @@ struct dp_vector_chunk_factory_fn
 {
 
     template <typename dp_vector_t>
-    auto operator()(dp_vector_t && dp_vector, std::ptrdiff_t const block_size = -1) const noexcept
+    auto operator()(dp_vector_t && dp_vector, size_t const block_size = -1) const noexcept
     {
         return dp_vector_chunk<std::remove_cvref_t<dp_vector_t>>{std::forward<dp_vector_t>(dp_vector), block_size};
     }
