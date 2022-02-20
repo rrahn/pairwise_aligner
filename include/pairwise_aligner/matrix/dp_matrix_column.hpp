@@ -113,18 +113,6 @@ template <typename block_closure_t = dp_matrix::cpo::_block_closure<>>
 struct _column_closure
 {
     block_closure_t block_closure{};
-    // template <typename dp_column_vector_t, typename dp_row_vector_t, typename substitution_model_t, typename tracker_t>
-    // constexpr auto operator()(dp_column_vector_t && dp_column,
-    //                           dp_row_vector_t && dp_row,
-    //                           substitution_model_t && substitution_model,
-    //                           tracker_t && tracker) const noexcept {
-    //     using dp_column_t = dp_matrix::column_t<dp_column_vector_t, dp_row_vector_t, substitution_model_t, tracker_t>;
-
-    //     return dp_column_t{std::forward<dp_column_vector_t>(dp_column),
-    //                        std::forward<dp_row_vector_t>(dp_row),
-    //                        std::forward<substitution_model_t>(substitution_model),
-    //                        std::forward<tracker_t>(tracker)};
-    // }
 
     template <typename ...dp_data_t>
     constexpr auto operator()(dp_data_t && ...dp_data) const noexcept {

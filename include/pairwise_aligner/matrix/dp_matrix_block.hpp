@@ -14,6 +14,7 @@
 
 #include <pairwise_aligner/matrix/dp_matrix_data_handle.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane.hpp>
+#include <pairwise_aligner/simd/simd_base.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -21,20 +22,18 @@ inline namespace v1
 {
 namespace dp_matrix {
 
-template <typename lane_closure_t, typename ...dp_data_t>
+template <typename lane_closure_t, size_t _lane_width, typename ...dp_data_t>
 struct _block
 {
     class type;
 };
 
-template <typename lane_closure_t, typename ...dp_data_t>
-using block_t = typename _block<lane_closure_t, dp_data_t...>::type;
+template <typename lane_closure_t, size_t _lane_width, typename ...dp_data_t>
+using block_t = typename _block<lane_closure_t, _lane_width, dp_data_t...>::type;
 
-template <typename lane_closure_t, typename ...dp_data_t>
-class _block<lane_closure_t, dp_data_t...>::type : public detail::dp_matrix_data_handle<dp_data_t...>
+template <typename lane_closure_t, size_t _lane_width, typename ...dp_data_t>
+class _block<lane_closure_t, _lane_width, dp_data_t...>::type : public detail::dp_matrix_data_handle<dp_data_t...>
 {
-    static constexpr size_t _lane_width = 8; //TODO: make copnfigurable?
-
     using base_t = detail::dp_matrix_data_handle<dp_data_t...>;
 
     lane_closure_t _lane_closure;
@@ -90,14 +89,15 @@ protected:
 
 namespace cpo {
 
-template <typename lane_closure_t = dp_matrix::cpo::_lane_closure>
+template <typename lane_closure_t = dp_matrix::cpo::_lane_closure,
+          size_t lane_width = ((seqan::pairwise_aligner::detail::max_simd_size == 64) ? 8 : 4)>
 struct _block_closure
 {
     lane_closure_t lane_closure{};
 
     template <typename ...dp_data_t>
     constexpr auto operator()(dp_data_t && ...dp_data) const noexcept {
-        using dp_block_t = dp_matrix::block_t<lane_closure_t, dp_data_t...>;
+        using dp_block_t = dp_matrix::block_t<lane_closure_t, lane_width, dp_data_t...>;
 
         return dp_block_t{lane_closure, std::forward<dp_data_t>(dp_data)...};
     }
