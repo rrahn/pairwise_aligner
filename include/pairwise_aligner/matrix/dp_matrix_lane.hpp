@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include <seqan3/std/ranges>
+#include <seqan3/utility/views/slice.hpp>
 
 #include <pairwise_aligner/matrix/dp_matrix_data_handle.hpp>
 
@@ -105,7 +105,19 @@ public:
         return _cached_row;
     }
 
+    constexpr auto row_sequence() const noexcept
+    {
+        size_t const sequence_offset = row_sequence_offset();
+        return seqan3::views::slice(_dp_block.row_sequence(), sequence_offset, sequence_offset + lane_width);
+    }
+
 private:
+
+    constexpr size_t row_sequence_offset() const noexcept
+    {
+        return _row_offset - 1;
+    }
+
     template <typename cache_t, typename row_vector_t, size_t ...idx>
     constexpr void unroll_load(cache_t & bulk_cache,
                                row_vector_t const & row_vector,

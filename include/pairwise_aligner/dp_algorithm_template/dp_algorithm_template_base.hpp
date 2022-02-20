@@ -70,9 +70,8 @@ protected:
         return algorithm_attorney_t::initialise_policies(as_algorithm(), std::forward<args_t>(args)...);
     }
 
-    template <typename sequence1_t, typename sequence2_t, typename dp_block_t>
-    void compute_block(sequence1_t && sequence1, sequence2_t && sequence2, dp_block_t && dp_block)
-        const noexcept
+    template <typename sequence1_t, typename dp_block_t>
+    void compute_block(sequence1_t && sequence1, dp_block_t && dp_block) const noexcept
     {
         // Initialise bulk_cache array.
         constexpr std::ptrdiff_t lane_width = std::remove_cvref_t<dp_block_t>::lane_width();
@@ -82,11 +81,10 @@ protected:
         auto && scorer = dp_block.substitution_model();
         auto && tracker = dp_block.tracker();
 
-        auto sequence2_it = sequence2.begin();
-        for (size_t lane_index = 0; lane_index < dp_block.size() - 1; ++lane_index, sequence2_it += lane_width)
+        for (size_t lane_index = 0; lane_index < dp_block.size() - 1; ++lane_index)
         {
-            std::span seq2_slice{sequence2_it, lane_width};
             auto dp_lane = dp_block[lane_index];
+            auto seq2_slice = dp_lane.row_sequence();
 
             // compute cache many cells in one row for one horizontal value.
             for (std::ptrdiff_t i = 0; i < sequence1_size; ++i) {
@@ -97,9 +95,9 @@ protected:
         }
 
         // Compute remaining cells requesting explicitly last lane.
-        std::span seq2_slice{sequence2_it, sequence2.end()};
-        assert(seq2_slice.size() <= lane_width);
         auto last_dp_lane = dp_block.last_lane();
+        auto seq2_slice = last_dp_lane.row_sequence();
+        assert(seq2_slice.size() <= lane_width);
 
         // compute cache many cells in one row for one horizontal value.
         for (std::ptrdiff_t i = 0; i < sequence1_size; ++i) {

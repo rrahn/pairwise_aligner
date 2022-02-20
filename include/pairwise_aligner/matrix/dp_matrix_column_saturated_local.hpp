@@ -119,7 +119,8 @@ public:
                                base_t::substitution_model().block_scheme(base_t::row().is_local()),
                                base_t::tracker().in_block_tracker([&](auto const & in_block_score) {
                                    return base_t::row().to_regular_score(in_block_score);
-                               }));
+                               }),
+                               base_t::row_sequence());
     }
 };
 

@@ -73,12 +73,12 @@ protected:
 
         size_t row_offset{};
         for (size_t column_idx = 0; column_idx < dp_row.size(); ++column_idx) {
-            auto current_column = dp_matrix_column(dp_column, dp_row[column_idx], std::move(scorer), tracker);
-            size_t const row_size = current_column.row().size() - 1;
+            size_t const row_size = dp_row[column_idx].size() - 1;
             auto block_sequence2 = seqan3::views::slice(transformed_seq2, row_offset, row_offset + row_size);
+            auto current_column = dp_matrix_column(dp_column, dp_row[column_idx], scorer, tracker, std::move(block_sequence2));
             for (size_t block_idx = 0; block_idx < current_column.size(); ++block_idx) {
                 auto dp_block = current_column[block_idx];
-                base_t::compute_block(block_sequences1[block_idx], block_sequence2, dp_block);
+                base_t::compute_block(block_sequences1[block_idx], dp_block);
             }
             row_offset += row_size;
         }
