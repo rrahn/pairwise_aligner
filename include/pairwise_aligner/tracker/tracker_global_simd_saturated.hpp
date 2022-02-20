@@ -13,7 +13,7 @@
 #pragma once
 
 #include <pairwise_aligner/configuration/end_gap_policy.hpp>
-#include <pairwise_aligner/simd/simd_base.hpp>
+#include <pairwise_aligner/simd/simd_score_type.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -329,8 +329,20 @@ public:
         return score; // no-op.
     }
 
-    // receive the optimal score.
+    template <typename sequence1_t, typename sequences2_t, typename dp_column_t, typename dp_row_t>
+    constexpr score_t max_score(sequence1_t && sequence1,
+                                sequences2_t && sequences2,
+                                dp_column_t const & dp_column,
+                                dp_row_t const & dp_row) const noexcept
+    {
+        std::vector<std::views::all_t<sequence1_t>> sequence1_bulk{};
+        sequence1_bulk.resize(std::ranges::distance(sequences2), sequence1 | std::views::all);
+
+        return max_score(std::move(sequence1_bulk), std::forward<sequences2_t>(sequences2), dp_column, dp_row);
+    }
+
     template <typename sequences1_t, typename sequences2_t, typename dp_column_t, typename dp_row_t>
+        requires std::ranges::range<std::ranges::range_reference_t<sequences1_t>>
     constexpr score_t max_score(sequences1_t && sequences1,
                                 sequences2_t && sequences2,
                                 dp_column_t const & dp_column,

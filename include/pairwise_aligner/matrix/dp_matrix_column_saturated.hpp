@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <iosfwd>
+
 #include <pairwise_aligner/matrix/dp_matrix_block.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column.hpp>
 #include <pairwise_aligner/type_traits.hpp>

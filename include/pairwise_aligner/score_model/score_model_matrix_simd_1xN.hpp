@@ -14,6 +14,8 @@
 
 #include <seqan3/std/concepts>
 
+#include <seqan3/utility/container/aligned_allocator.hpp>
+
 #include <pairwise_aligner/score_model/strip_width.hpp>
 #include <pairwise_aligner/simd/simd_base.hpp>
 #include <pairwise_aligner/simd/simd_rank_selector.hpp>
@@ -73,13 +75,6 @@ public:
         }
     }
 
-    // constexpr auto operator[](size_t const offset) const noexcept
-    // {
-    //     return simd_rank_selector_t::select_rank_for(_matrix[offset.first], offset.second);
-
-    //     return std::pair<type const &, size_t>{*this, offset}; // we ask for the element
-    // }
-
     template <typename strip_t, size_t width_v>
         requires (std::same_as<std::ranges::range_value_t<strip_t>, index_type>)
     constexpr auto initialise_profile(strip_t && sequence_strip, strip_width_t<width_v> const &) const noexcept
@@ -87,14 +82,13 @@ public:
         return profile_type<width_v>{_matrix, std::forward<strip_t>(sequence_strip)};
     }
 
-    template <typename value1_t, typename interleved_profile_t>
+    template <typename value1_t, typename interleaved_profile_t>
     score_type score(score_type const & last_diagonal,
                      value1_t const & value1,
-                     interleved_profile_t const & interleaved_profile) const noexcept
+                     interleaved_profile_t const & profile) const noexcept
     {
-        auto && [profile, offset] = interleaved_profile;
         // Upcasting the index scores to the score type.
-        return last_diagonal + profile.scores_for(value1)[offset];
+        return last_diagonal + profile[value1];
     }
 
     // TODO: Refactor into separate factory CPO.
@@ -111,11 +105,22 @@ class _score_model_matrix_simd_1xN<score_t, dimension>::type::_interleaved_subst
     static constexpr size_t alphabet_size_v = dimension;
 
     using simd_score_t = score_type;
-    // using index_t = index_type;
     using scalar_index_t = typename index_t::value_type;
 
     using interleaved_scores_t = std::array<index_t, strip_width_v>;
-    using profile_t = std::array<interleaved_scores_t, alphabet_size_v>;
+    using profile_t = std::vector<interleaved_scores_t,
+                                  seqan3::aligned_allocator<interleaved_scores_t, alignof(index_t)>>;
+
+    struct proxy_reference
+    {
+        profile_t const & _interleaved_profile;
+        size_t const _profile_index;
+
+        constexpr auto operator[](size_t const rank) const noexcept
+        {
+            return _interleaved_profile[rank][_profile_index];
+        }
+    };
 
     profile_t _interleaved_profile;
     size_t _size;
@@ -128,22 +133,20 @@ public:
     {
         _size = std::ranges::distance(sequence);
         assert(_size <= strip_width_v); // can't be larger, but smaller.
+
         // Initialise profile: - go over all symbols in range [0..sigma)
-        for_each_symbol([&] (scalar_index_t symbol) {
-            interleaved_scores_t & profile = _interleaved_profile[symbol]; // fill profile for current symbol!
+        _interleaved_profile.resize(dimension);
+        for_each_symbol([&] (scalar_index_t const rank) {
+            interleaved_scores_t & profile = _interleaved_profile[rank]; // fill profile for current symbol!
             for (size_t index = 0; index < _size; ++index) { // for every symbol in sequence
-                profile[index] |= simd_rank_selector_t::select_rank_for(matrix[symbol], sequence[index]);
-                // profile[index] = profile[index] | matrix[offset_t{symbol, sequence[index]}]; // scores for ranks at
+                profile[index] |= simd_rank_selector_t::select_rank_for(matrix[rank], sequence[index]);
             }
         }, std::make_index_sequence<dimension>());
-        // for (size_t symbol = 0; symbol < alphabet_size_v; ++symbol) {
-
-        // }
     }
 
     constexpr auto operator[](size_t const offset) const noexcept
     {
-        return std::pair<_interleaved_substitution_profile const &, size_t>{*this, offset};
+        return proxy_reference{_interleaved_profile, offset};
     }
 
     constexpr size_t size() const noexcept
