@@ -84,33 +84,25 @@ protected:
 } // namespace detail
 
 
-template <typename dp_column_t, typename dp_row_t, typename substitution_model_t, typename tracker_t>
+template <typename ...dp_data_t>
 struct _column_saturated_local
 {
     class type;
 };
 
-template <typename dp_column_t, typename dp_row_t, typename substitution_model_t, typename tracker_t>
+template <typename ...dp_data_t>
 using column_saturated_local_t =
-    typename _column_saturated_local<dp_column_t, dp_row_t, substitution_model_t, tracker_t>::type;
+    typename _column_saturated_local<dp_data_t...>::type;
 
-template <typename dp_column_t, typename dp_row_t, typename substitution_model_t, typename tracker_t>
-class _column_saturated_local<dp_column_t, dp_row_t, substitution_model_t, tracker_t>::type :
-    public dp_matrix::column_t<dp_column_t, dp_row_t, substitution_model_t, tracker_t>
+template <typename ...dp_data_t>
+class _column_saturated_local<dp_data_t...>::type : public dp_matrix::column_t<dp_data_t...>
 {
-    using base_t = dp_matrix::column_t<dp_column_t, dp_row_t, substitution_model_t, tracker_t>;
+    using base_t = dp_matrix::column_t<dp_data_t...>;
 
 public:
 
     type() = delete;
-    constexpr explicit type(dp_column_t dp_column,
-                            dp_row_t dp_row,
-                            substitution_model_t substitution_model,
-                            tracker_t tracker) noexcept :
-        base_t{std::forward<dp_column_t>(dp_column),
-               std::forward<dp_row_t>(dp_row),
-               std::forward<substitution_model_t>(substitution_model),
-               std::forward<tracker_t>(tracker)}
+    constexpr explicit type(dp_data_t ...dp_data) noexcept : base_t{std::forward<dp_data_t>(dp_data)...}
     {}
     ~type() = default;
 
@@ -121,7 +113,6 @@ public:
         detail::saturated_wrapper_local saturated_column{base_t::column()[index]};
         saturated_column.update_offset();
         base_t::row().update_offset();
-
         // we have regular simd local tracker and we wrap it into a local wrapper.
         return dp_matrix_block(std::move(saturated_column),
                                base_t::row(),
@@ -135,22 +126,17 @@ public:
 namespace cpo {
 struct _column_saturated_local_closure
 {
-    template <typename dp_column_vector_t, typename dp_row_vector_t, typename substitution_model_t, typename tracker_t>
-    constexpr auto operator()(dp_column_vector_t && dp_column,
-                              dp_row_vector_t && dp_row,
-                              substitution_model_t && substitution_model,
-                              tracker_t && tracker) const noexcept {
-        using dp_column_t =
+    template <typename dp_column_t, typename dp_row_t, typename ...remaining_dp_data_t>
+    constexpr auto operator()(dp_column_t && dp_column,
+                              dp_row_t & dp_row,
+                              remaining_dp_data_t && ...remaining_dp_data) const noexcept {
+        using column_saturated_local_t =
             dp_matrix::column_saturated_local_t<
-                dp_column_vector_t,
-                detail::saturated_wrapper_local<std::remove_reference_t<dp_row_vector_t>>,
-                substitution_model_t,
-                tracker_t>;
+                dp_column_t, detail::saturated_wrapper_local<dp_row_t>, remaining_dp_data_t...>;
 
-        return dp_column_t{std::forward<dp_column_vector_t>(dp_column),
-                           detail::saturated_wrapper_local{std::forward<dp_row_vector_t>(dp_row)},
-                           std::forward<substitution_model_t>(substitution_model),
-                           std::forward<tracker_t>(tracker)};
+        return column_saturated_local_t{std::forward<dp_column_t>(dp_column),
+                                        detail::saturated_wrapper_local{dp_row},
+                                        std::forward<remaining_dp_data_t>(remaining_dp_data)...};
     }
 };
 
