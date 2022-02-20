@@ -15,6 +15,7 @@
 #include <cmath>
 
 #include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
+#include <pairwise_aligner/configuration/saturated_block_handler.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated.hpp>
@@ -54,12 +55,14 @@ struct traits
 
     // result_factory configurator
     using result_factory_type = tracker::global_simd_saturated::factory<original_score_type>;
+    using block_handler_t = detail::saturated_block_handler;
 
     template <typename configuration_t>
     constexpr auto configure_substitution_policy([[maybe_unused]] configuration_t const & configuration) const noexcept
     {
         if constexpr (configuration_t::is_local) {
-            int8_t local_zero = lowest_viable_local_score(configuration);
+            int8_t local_zero = block_handler_t::lowest_viable_local_score(configuration._gap_open_score,
+                                                                           configuration._gap_extension_score);
             return score_model_unitary_local<score_type>{static_cast<score_type>(_match_score),
                                                          static_cast<score_type>(_mismatch_score),
                                                          static_cast<score_type>(local_zero)};
@@ -86,15 +89,14 @@ struct traits
     template <typename configuration_t>
     constexpr auto configure_dp_vector_policy(configuration_t const & configuration) const
     {
-        // auto [zero_offset, max_block_size] = compute_max_block_size(configuration);
-
         using column_cell_t = typename configuration_t::dp_cell_column_type<score_type>;
         using original_column_cell_t = typename configuration_t::dp_cell_column_type<original_score_type>;
 
         constexpr score_type padding_symbol_column{static_cast<int8_t>(1ull << 7)};
         constexpr score_type padding_symbol_row{padding_symbol_column + configuration_t::is_local};
 
-        auto column_vector = configure_dp_vector<column_cell_t, original_column_cell_t>(configuration, padding_symbol_column);
+        auto column_vector =
+            configure_dp_vector<column_cell_t, original_column_cell_t>(configuration, padding_symbol_column);
 
         using row_cell_t = typename configuration_t::dp_cell_row_type<score_type>;
         using original_row_cell_t = typename configuration_t::dp_cell_row_type<original_score_type>;
@@ -126,23 +128,24 @@ struct traits
 
 private:
 
-    template <typename configuration_t>
-    auto lowest_viable_local_score(configuration_t const & configuration) const noexcept
-    {
-        static_assert(configuration_t::is_local);
-
-        return std::numeric_limits<int8_t>::lowest() - configuration._gap_open_score -
-                    (2 * configuration._gap_extension_score);
-    }
-
     template <typename saturated_cell_t, typename regular_cell_t, typename configuration_t>
     auto configure_dp_vector(configuration_t const & configuration, score_type padding_symbol) const noexcept
     {
-        auto [global_zero, max_block_size] = compute_max_block_size(configuration);
+        auto [global_zero, max_block_size] =
+            block_handler_t::compute_max_block_size(_match_score,
+                                                    _mismatch_score,
+                                                    configuration._gap_open_score,
+                                                    configuration._gap_extension_score);
+
+        std::cout << "max_match_score  = " << (int32_t) _match_score << "\n";
+        std::cout << "min_mismatch_score  = " << (int32_t) _mismatch_score << "\n";
+        std::cout << "global_zero  = " << (int32_t) global_zero << "\n";
+        std::cout << "max_block_size  = " << (int32_t) max_block_size << "\n";
 
         auto saturated_dp_vector = [&] () {
             if constexpr (configuration_t::is_local) {
-                int8_t local_zero = lowest_viable_local_score(configuration);
+                int8_t local_zero = block_handler_t::lowest_viable_local_score(configuration._gap_open_score,
+                                                                               configuration._gap_extension_score);
                 int8_t threshold = std::numeric_limits<int8_t>::max() - (max_block_size * _match_score);
                 return dp_vector_saturated_local_factory<regular_cell_t>(dp_vector_single<saturated_cell_t>{},
                                                                          local_zero,
@@ -154,73 +157,6 @@ private:
         };
 
         return  dp_vector_bulk_factory(dp_vector_chunk_factory(saturated_dp_vector(), max_block_size), padding_symbol);
-    }
-
-    template <typename configuration_t>
-    constexpr auto compute_max_block_size(configuration_t const & configuration) const noexcept
-    {
-        auto [block_size_gap, zero_offset_gap] = max_block_size_with_gaps(std::abs(configuration._gap_open_score),
-                                                                          std::abs(configuration._gap_extension_score));
-        auto [block_size_mismatch, zero_offset_mismatch] = max_block_size_with_mismatch();
-
-        // Choose the max of both block sizes since due to the recursion the largest negative distance is affected
-        // by the lowest negative score with the given block size.
-        // Also set the corresponding zero offset accordingly.
-        int8_t zero_offset{};
-        size_t max_block_size = (block_size_gap < block_size_mismatch)
-                              ? (zero_offset = zero_offset_mismatch, block_size_mismatch)
-                              : (zero_offset = zero_offset_gap, block_size_gap);
-        return std::pair{zero_offset, max_block_size};
-    }
-
-    constexpr auto max_block_size_with_gaps(float const gap_open, float const gap_extension) const noexcept
-    {
-        // Assume positive gap scores for the following formula.
-        assert(gap_open >= 0);
-        assert(gap_extension >= 0);
-
-        // This formula computes the maximal block size and the respective zero offset for which the scores during
-        // the computation of the alignment blocks in saturated mode are guaranteed to not exceed the value range
-        // of the machines int8_t type, under the condition of having only gaps in a single block.
-        // It is derived from solving the following equations:
-        //  I: 127 >= x + match * block_size + gap_open + gap_extension * block_size
-        // II: -128 <= x - 2 * (gap_open + gap_extension * block_size)
-        // Here x represents the zero offset for which the block size is maximised.
-
-        float const max_score = std::numeric_limits<int8_t>::max();
-        float const min_score = std::numeric_limits<int8_t>::lowest();
-        float const upper_score_limit = max_score - gap_open;
-        float const block_divisor = _match_score + gap_extension;
-        float const block_scale = 2 * gap_extension / block_divisor;
-
-        int8_t const zero_offset = std::ceil((min_score + 2 * gap_open + (block_scale * upper_score_limit)) /
-                                             (1 + block_scale));
-        size_t const block_size = std::floor((upper_score_limit - zero_offset) / block_divisor);
-
-        return std::pair{block_size, zero_offset};
-    }
-
-    constexpr auto max_block_size_with_mismatch() const noexcept
-    {
-        // Assume positive mismatch score for the following equation
-        float const mismatch = std::abs(_mismatch_score);
-
-        // This formula computes the maximal block size and the respective zero offset for which the scores during
-        // the computation of the alignment blocks in saturated mode are guaranteed to not exceed the value range
-        // of the machines int8_t type, under the condition of having only mismatches in a single block.
-        // It is derived from solving the following equations:
-        //  I: 127 >= x + match * block_size + mismatch * block_size
-        // II: -128 <= x - mismatch * block_size
-        // Here x represents the zero offset for which the block size is maximised.
-
-        float const max_score = std::numeric_limits<int8_t>::max();
-        float const min_score = std::numeric_limits<int8_t>::lowest();
-        float const block_scale = mismatch / (_match_score + mismatch);
-
-        int8_t const zero_offset = std::ceil((min_score + max_score * block_scale) / (1 + block_scale));
-        size_t const block_size = std::floor((max_score - zero_offset) / (_match_score + mismatch));
-
-        return std::pair{block_size, zero_offset};
     }
 };
 
