@@ -111,6 +111,12 @@ public:
         return seqan3::views::slice(_dp_block.row_sequence(), sequence_offset, sequence_offset + lane_width);
     }
 
+protected:
+    constexpr dp_block_t const & dp_block() const noexcept
+    {
+        return _dp_block;
+    }
+
 private:
 
     constexpr size_t row_sequence_offset() const noexcept
@@ -140,11 +146,13 @@ private:
 
 namespace cpo {
 
-template <bool is_last_lane>
 struct _lane_closure
 {
-    template <typename dp_block_t, size_t lane_width>
-    constexpr auto operator()(dp_block_t && dp_block, size_t const row_offset, lane_width_t<lane_width>) const noexcept
+    template <typename dp_block_t, size_t lane_width, bool is_last_lane>
+    constexpr auto operator()(dp_block_t && dp_block,
+                              size_t const row_offset,
+                              lane_width_t<lane_width>,
+                              std::bool_constant<is_last_lane>) const noexcept
     {
         using dp_lane_t = dp_matrix::lane_t<dp_block_t, lane_width, is_last_lane>;
 
@@ -155,7 +163,6 @@ struct _lane_closure
 } // namespace cpo
 } // namespace dp_matrxix
 
-inline constexpr dp_matrix::cpo::_lane_closure<false> dp_matrix_lane{};
-inline constexpr dp_matrix::cpo::_lane_closure<true> dp_matrix_last_lane{};
+inline constexpr dp_matrix::cpo::_lane_closure dp_matrix_lane{};
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner

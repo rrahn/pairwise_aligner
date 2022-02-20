@@ -22,7 +22,12 @@
 #include <pairwise_aligner/alphabet_conversion/alphabet_rank_map_simd.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/interface/interface_one_to_many_bulk.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_block.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_column.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_lane_profile.hpp>
+#include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
+#include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_rank_transformation.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
@@ -130,9 +135,13 @@ struct traits
         alphabet_rank_map_simd<index_type> rank_map{std::move(extended_symbol_list)};
 
         return dp_vector_policy{
-                    dp_vector_rank_transformation_factory(dp_vector_single<column_cell_t, buffer_t<column_cell_t>>{}, rank_map),
+                    dp_vector_rank_transformation_factory(
+                            dp_vector_chunk_factory(dp_vector_single<column_cell_t, buffer_t<column_cell_t>>{}),
+                            rank_map),
                     dp_vector_bulk_factory(
-                        dp_vector_rank_transformation_factory(dp_vector_single<row_cell_t, buffer_t<row_cell_t>>{}, rank_map),
+                        dp_vector_rank_transformation_factory(
+                            dp_vector_chunk_factory(dp_vector_single<row_cell_t, buffer_t<row_cell_t>>{}),
+                            rank_map),
                         index_type{padding_symbol})
         };
     }
@@ -140,10 +149,15 @@ struct traits
     template <typename configuration_t, typename ...policies_t>
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
+        using block_closure_t = dp_matrix::cpo::_block_closure<dp_matrix::cpo::_lane_profile_closure>;
+        using dp_matrix_column_t = dp_matrix::cpo::_column_closure<block_closure_t>;
+        using dp_matrix_policies_t = dp_matrix_policies<dp_matrix_column_t>;
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
+                                                                     dp_matrix_policies_t,
                                                                      std::remove_cvref_t<policies_t>...>;
 
-        return interface_one_to_many_bulk<algorithm_t, score_type::size>{algorithm_t{std::move(policies)...}};
+        return interface_one_to_many_bulk<algorithm_t, score_type::size>{
+                algorithm_t{dp_matrix_policies_t{dp_matrix_column_t{block_closure_t{}}}, std::move(policies)...}};
     }
 };
 

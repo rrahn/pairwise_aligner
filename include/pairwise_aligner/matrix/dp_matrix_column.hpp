@@ -21,25 +21,29 @@ inline namespace v1
 {
 namespace dp_matrix {
 
-template <typename ...dp_data_t>
+template <typename block_closure_t, typename ...dp_data_t>
 struct _column
 {
     class type;
 };
 
-template <typename ...dp_data_t>
-using column_t = typename _column<dp_data_t...>::type;
+template <typename block_closure_t, typename ...dp_data_t>
+using column_t = typename _column<block_closure_t, dp_data_t...>::type;
 
-template <typename ...dp_data_t>
-class _column<dp_data_t...>::type : public detail::dp_matrix_data_handle<dp_data_t...>
+template <typename block_closure_t, typename ...dp_data_t>
+class _column<block_closure_t, dp_data_t...>::type : public detail::dp_matrix_data_handle<dp_data_t...>
 {
 protected:
 
     using base_t = detail::dp_matrix_data_handle<dp_data_t...>;
 
+    block_closure_t _block_closure{};
+
 public:
     type() = delete;
-    constexpr explicit type(dp_data_t ...dp_data) noexcept : base_t{std::forward<dp_data_t>(dp_data)...}
+    constexpr explicit type(block_closure_t block_closure, dp_data_t ...dp_data) noexcept :
+        base_t{std::forward<dp_data_t>(dp_data)...},
+        _block_closure{std::move(block_closure)}
     {
         rotate_row_scores_right(base_t::row());
     }
@@ -59,11 +63,19 @@ public:
         // -> decltype(dp_matrix_block(_dp_column[index], index))
     {
         assert(index < size());
-        return dp_matrix_block(base_t::column()[index],
-                               base_t::row(),
-                               base_t::substitution_model(),
-                               base_t::tracker(),
-                               base_t::row_sequence());
+        return make_matrix_block(base_t::column()[index],
+                                 base_t::row(),
+                                 base_t::substitution_model(),
+                                 base_t::tracker(),
+                                 base_t::row_sequence());
+    }
+
+protected:
+    template <typename ...args_t>
+    constexpr auto make_matrix_block(args_t && ...args) const noexcept
+        -> std::invoke_result_t<block_closure_t, args_t...>
+    {
+        return std::invoke(_block_closure, std::forward<args_t>(args)...);
     }
 
 private:
@@ -97,8 +109,10 @@ private:
 };
 
 namespace cpo {
+template <typename block_closure_t = dp_matrix::cpo::_block_closure<>>
 struct _column_closure
 {
+    block_closure_t block_closure{};
     // template <typename dp_column_vector_t, typename dp_row_vector_t, typename substitution_model_t, typename tracker_t>
     // constexpr auto operator()(dp_column_vector_t && dp_column,
     //                           dp_row_vector_t && dp_row,
@@ -114,16 +128,16 @@ struct _column_closure
 
     template <typename ...dp_data_t>
     constexpr auto operator()(dp_data_t && ...dp_data) const noexcept {
-        using dp_column_t = dp_matrix::column_t<dp_data_t...>;
+        using dp_column_t = dp_matrix::column_t<block_closure_t, dp_data_t...>;
 
-        return dp_column_t{std::forward<dp_data_t>(dp_data)...};
+        return dp_column_t{block_closure, std::forward<dp_data_t>(dp_data)...};
     }
 };
 
 } // namespace cpo
 } // namespace dp_matrix
 
-inline constexpr dp_matrix::cpo::_column_closure dp_matrix_column{};
+inline constexpr dp_matrix::cpo::_column_closure<> dp_matrix_column{};
 
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner
