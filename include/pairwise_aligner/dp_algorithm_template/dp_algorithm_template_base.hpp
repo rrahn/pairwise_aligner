@@ -78,13 +78,13 @@ protected:
         constexpr auto index_sequence = std::make_index_sequence<lane_width>();
         std::ptrdiff_t const sequence1_size = std::ranges::distance(sequence1);
 
-        auto && scorer = dp_block.substitution_model();
         auto && tracker = dp_block.tracker();
+        auto && scorer = dp_block.substitution_model();
 
         for (size_t lane_index = 0; lane_index < dp_block.size() - 1; ++lane_index)
         {
             auto dp_lane = dp_block[lane_index];
-            auto seq2_slice = dp_lane.row_sequence();
+            auto && seq2_slice = dp_lane.row_sequence();
 
             // compute cache many cells in one row for one horizontal value.
             for (std::ptrdiff_t i = 0; i < sequence1_size; ++i) {
@@ -96,7 +96,7 @@ protected:
 
         // Compute remaining cells requesting explicitly last lane.
         auto last_dp_lane = dp_block.last_lane();
-        auto seq2_slice = last_dp_lane.row_sequence();
+        auto && seq2_slice = last_dp_lane.row_sequence();
         assert(seq2_slice.size() <= lane_width);
 
         // compute cache many cells in one row for one horizontal value.
@@ -156,19 +156,19 @@ protected:
             std::span seq2_slice{sequence2.begin() + j, sequence2.begin() + j + cache_size};
 
             unroll_load(bulk_cache, dp_row, j + 1, std::make_index_sequence<cache_size>());
-            // auto profile = scorer.initialise_profile(seq2_slice, strip_width<cache_size>); // initialise_profile<cache_size>(scorer, seq2_slice);
+            auto profile = scorer.initialise_profile(seq2_slice, strip_width<cache_size>); // initialise_profile<cache_size>(scorer, seq2_slice);
 
             // compute cache many cells in one row for one horizontal value.
             for (std::ptrdiff_t i = 0; i < sequence1_size; ++i) {
                 auto cacheH = dp_column[i+1];
-                // auto profile_scores = profile.scores_for(sequence1[i]);
+                auto profile_scores = profile.scores_for(sequence1[i]);
 
                 unroll_loop(bulk_cache,
                             cacheH,
                             scorer,
                             tracker,
                             sequence1[i],
-                            seq2_slice,
+                            profile_scores,
                             std::make_index_sequence<cache_size>());
 
                 dp_column[i+1] = cacheH;
@@ -291,7 +291,7 @@ private:
                                seq1_value_t const & seq1_value,
                                seq2_values_t const & seq2_values) const noexcept
     {
-        for (std::ptrdiff_t idx = 0; idx < std::ranges::distance(seq2_values); ++idx) {
+        for (size_t idx = 0; idx < seq2_values.size(); ++idx) {
             algorithm_attorney_t::compute_cell(as_algorithm(),
                                                row_cells[idx],
                                                col_cell,

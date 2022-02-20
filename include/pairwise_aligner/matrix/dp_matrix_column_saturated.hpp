@@ -159,26 +159,23 @@ protected:
 };
 } // namespace detail
 
-template <typename ...dp_data_t>
+template <typename block_closure_t, typename ...dp_data_t>
 struct _column_saturated
 {
     class type;
 };
 
-template <typename ...dp_data_t>
-using column_saturated_t = typename _column_saturated<dp_data_t...>::type;
+template <typename block_closure_t, typename ...dp_data_t>
+using column_saturated_t = typename _column_saturated<block_closure_t, dp_data_t...>::type;
 
-template <typename ...dp_data_t>
-class _column_saturated<dp_data_t...>::type : public dp_matrix::column_t<dp_data_t...>
+template <typename block_closure_t, typename ...dp_data_t>
+class _column_saturated<block_closure_t, dp_data_t...>::type : public dp_matrix::column_t<block_closure_t, dp_data_t...>
 {
-    using base_t = dp_matrix::column_t<dp_data_t...>;
+    using base_t = dp_matrix::column_t<block_closure_t, dp_data_t...>;
 
 public:
 
-    type() = delete;
-    constexpr explicit type(dp_data_t ...dp_data) noexcept : base_t{std::forward<dp_data_t>(dp_data)...}
-    {}
-    ~type() = default;
+    using base_t::base_t;
 
     constexpr auto operator[](size_t const index) noexcept
     {
@@ -187,25 +184,34 @@ public:
         detail::saturated_wrapper saturated_column{base_t::column()[index]};
         saturated_column.update_offset();
         base_t::row().update_offset();
-        return dp_matrix_block(std::move(saturated_column),
-                               base_t::row(),
-                               base_t::substitution_model(),
-                               base_t::tracker(),
-                               base_t::row_sequence());
+        return base_t::make_matrix_block(std::move(saturated_column),
+                                         base_t::row(),
+                                         base_t::substitution_model(),
+                                         base_t::tracker(),
+                                         base_t::row_sequence());
     }
 };
 
 namespace cpo {
+
+
+template <typename block_closure_t = dp_matrix::cpo::_block_closure<>>
 struct _column_saturated_closure
 {
+    block_closure_t block_closure{};
+
     template <typename dp_column_t, typename dp_row_t, typename ...remaining_dp_data_t>
     constexpr auto operator()(dp_column_t && dp_column,
                               dp_row_t & dp_row,
                               remaining_dp_data_t && ...remaining_dp_data) const noexcept {
         using dp_saturated_column_t =
-            dp_matrix::column_saturated_t<dp_column_t, detail::saturated_wrapper<dp_row_t>, remaining_dp_data_t...>;
+            dp_matrix::column_saturated_t<block_closure_t,
+                                          dp_column_t,
+                                          detail::saturated_wrapper<dp_row_t>,
+                                          remaining_dp_data_t...>;
 
-        return dp_saturated_column_t{std::forward<dp_column_t>(dp_column),
+        return dp_saturated_column_t{block_closure,
+                                     std::forward<dp_column_t>(dp_column),
                                      detail::saturated_wrapper{dp_row},
                                      std::forward<remaining_dp_data_t>(remaining_dp_data)...};
     }
@@ -214,7 +220,7 @@ struct _column_saturated_closure
 } // namespace cpo
 } // namespace dp_matrix
 
-inline constexpr dp_matrix::cpo::_column_saturated_closure dp_matrix_column_saturated{};
+inline constexpr dp_matrix::cpo::_column_saturated_closure<> dp_matrix_column_saturated{};
 
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner

@@ -15,7 +15,6 @@
 #include <seqan3/std/concepts>
 
 #include <pairwise_aligner/score_model/strip_width.hpp>
-#include <pairwise_aligner/score_model/scoring_handler_striped_1xN.hpp>
 #include <pairwise_aligner/simd/simd_base.hpp>
 #include <pairwise_aligner/simd/simd_rank_selector.hpp>
 
@@ -43,6 +42,9 @@ private:
     using simd_rank_selector_t = detail::simd_rank_selector_t<index_t>;
     using typename simd_rank_selector_t::rank_map_t;
 
+    template <size_t width>
+    struct _interleaved_substitution_profile;
+
     std::array<rank_map_t, dimension> _matrix{};
 
 public:
@@ -51,6 +53,9 @@ public:
     using score_type = score_t;
     using index_type = index_t;
     using offset_type = std::pair<int32_t, index_t>;
+
+    template <size_t width>
+    using profile_type = _interleaved_substitution_profile<width>;
 
     type() = default;
 
@@ -68,31 +73,94 @@ public:
         }
     }
 
-    constexpr index_type operator[](offset_type const & offset) const noexcept
-    {
-        return simd_rank_selector_t::select_rank_for(_matrix[offset.first], offset.second);
-    }
+    // constexpr auto operator[](size_t const offset) const noexcept
+    // {
+    //     return simd_rank_selector_t::select_rank_for(_matrix[offset.first], offset.second);
+
+    //     return std::pair<type const &, size_t>{*this, offset}; // we ask for the element
+    // }
 
     template <typename strip_t, size_t width_v>
         requires (std::same_as<std::ranges::range_value_t<strip_t>, index_type>)
     constexpr auto initialise_profile(strip_t && sequence_strip, strip_width_t<width_v> const &) const noexcept
     {
-        return scoring_handler_striped_1xN<type, width_v>{*this, std::forward<strip_t>(sequence_strip)};
+        return profile_type<width_v>{_matrix, std::forward<strip_t>(sequence_strip)};
     }
 
-    template <typename value1_t>
+    template <typename value1_t, typename interleved_profile_t>
     score_type score(score_type const & last_diagonal,
-                     [[maybe_unused]] value1_t const & value1,
-                     index_type const & value2) const noexcept
+                     value1_t const & value1,
+                     interleved_profile_t const & interleaved_profile) const noexcept
     {
+        auto && [profile, offset] = interleaved_profile;
         // Upcasting the index scores to the score type.
-        return last_diagonal + static_cast<score_type>(value2);
+        return last_diagonal + profile.scores_for(value1)[offset];
     }
 
     // TODO: Refactor into separate factory CPO.
     constexpr type make_substitution_scheme() const noexcept
     {
         return *this;
+    }
+};
+
+template <typename score_t, size_t dimension>
+template <size_t strip_width_v>
+class _score_model_matrix_simd_1xN<score_t, dimension>::type::_interleaved_substitution_profile
+{
+    static constexpr size_t alphabet_size_v = dimension;
+
+    using simd_score_t = score_type;
+    // using index_t = index_type;
+    using scalar_index_t = typename index_t::value_type;
+
+    using interleaved_scores_t = std::array<index_t, strip_width_v>;
+    using profile_t = std::array<interleaved_scores_t, alphabet_size_v>;
+
+    profile_t _interleaved_profile;
+    size_t _size;
+
+public:
+
+    _interleaved_substitution_profile() = default;
+    template <typename matrix_t, typename sequence_slice_t>
+    explicit _interleaved_substitution_profile(matrix_t const & matrix, sequence_slice_t && sequence) noexcept
+    {
+        _size = std::ranges::distance(sequence);
+        assert(_size <= strip_width_v); // can't be larger, but smaller.
+        // Initialise profile: - go over all symbols in range [0..sigma)
+        for_each_symbol([&] (scalar_index_t symbol) {
+            interleaved_scores_t & profile = _interleaved_profile[symbol]; // fill profile for current symbol!
+            for (size_t index = 0; index < _size; ++index) { // for every symbol in sequence
+                profile[index] |= simd_rank_selector_t::select_rank_for(matrix[symbol], sequence[index]);
+                // profile[index] = profile[index] | matrix[offset_t{symbol, sequence[index]}]; // scores for ranks at
+            }
+        }, std::make_index_sequence<dimension>());
+        // for (size_t symbol = 0; symbol < alphabet_size_v; ++symbol) {
+
+        // }
+    }
+
+    constexpr auto operator[](size_t const offset) const noexcept
+    {
+        return std::pair<_interleaved_substitution_profile const &, size_t>{*this, offset};
+    }
+
+    constexpr size_t size() const noexcept
+    {
+        return _size;
+    }
+
+    constexpr auto scores_for(scalar_index_t const & rank) const noexcept
+    {
+        return _interleaved_profile[rank];
+    }
+
+private:
+    template <typename fn_t, size_t ...alphabet_rank>
+    void for_each_symbol(fn_t && fn, std::index_sequence<alphabet_rank...> const &) const noexcept
+    {
+        (fn(static_cast<scalar_index_t>(alphabet_rank)), ...);
     }
 };
 

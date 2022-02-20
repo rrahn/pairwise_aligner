@@ -21,7 +21,7 @@
 namespace aligner::benchmark::fixed_simd {
 namespace pa = seqan::pairwise_aligner;
 
-using score_t = int16_t;
+using score_t = int8_t;
 
 inline constexpr size_t max_sequence_count = pa::simd_score<int8_t>::size;
 inline constexpr auto base_configurator =
