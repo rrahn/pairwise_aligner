@@ -190,7 +190,8 @@ public:
         return dp_matrix_block(std::move(saturated_column),
                                base_t::row(),
                                base_t::substitution_model(),
-                               base_t::tracker());
+                               base_t::tracker(),
+                               base_t::row_sequence());
     }
 };
 

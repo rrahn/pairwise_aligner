@@ -44,6 +44,7 @@ private:
         _row = 1,
         _substitution_model = 2,
         _tracker = 3,
+        _row_sequence = 4
     };
 
     using data_as_tuple_t = std::tuple<dp_data_t...>;
@@ -55,12 +56,14 @@ protected:
     using fwd_dp_row_t = std::tuple_element_t<accessor_id::_row, data_as_tuple_t>;
     using fwd_substitution_model_t = std::tuple_element_t<accessor_id::_substitution_model, data_as_tuple_t>;
     using fwd_tracker_t = std::tuple_element_t<accessor_id::_tracker, data_as_tuple_t>;
+    using fwd_row_sequence_t = std::tuple_element_t<accessor_id::_row_sequence, data_as_tuple_t>;
 
 public:
     using column_type = std::remove_reference_t<fwd_dp_column_t>;
     using row_type = std::remove_reference_t<fwd_dp_row_t>;
     using substitution_model_type = std::remove_reference_t<fwd_substitution_model_t>;
     using tracker_type = std::remove_reference_t<fwd_tracker_t>;
+    using row_sequence_type = std::remove_reference_t<fwd_row_sequence_t>;
 
     type() = default;
     explicit constexpr type(dp_data_t ...dp_data) noexcept :
@@ -105,6 +108,16 @@ public:
     constexpr tracker_type const & tracker() const noexcept
     {
         return get<accessor_id::_tracker>(_dp_data_as_tuple);
+    }
+
+    constexpr row_sequence_type & row_sequence() noexcept
+    {
+        return get<accessor_id::_row_sequence>(_dp_data_as_tuple);
+    }
+
+    constexpr row_sequence_type const & row_sequence() const noexcept
+    {
+        return get<accessor_id::_row_sequence>(_dp_data_as_tuple);
     }
 };
 

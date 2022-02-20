@@ -62,12 +62,11 @@ public:
         return dp_matrix_block(base_t::column()[index],
                                base_t::row(),
                                base_t::substitution_model(),
-                               base_t::tracker());
+                               base_t::tracker(),
+                               base_t::row_sequence());
     }
 
-
 private:
-
     constexpr void rotate_row_scores_right(typename base_t::row_type & dp_row) const noexcept
     {
         size_t const dp_row_size = dp_row.size() - 1;
