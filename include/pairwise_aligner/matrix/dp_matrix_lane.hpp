@@ -13,7 +13,8 @@
 #pragma once
 
 #include <seqan3/std/ranges>
-#include <tuple>
+
+#include <pairwise_aligner/matrix/dp_matrix_data_handle.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -21,28 +22,26 @@ inline namespace v1
 {
 namespace dp_matrix {
 
-template <typename dp_block_t, bool is_last_lane>
+template <size_t width>
+using lane_width_t = std::integral_constant<size_t, width>;
+
+template <typename dp_block_t, size_t lane_width, bool is_last_lane>
 struct _lane
 {
     class type;
 };
 
-template <typename dp_block_t, bool is_last_lane>
-using lane_t = typename _lane<dp_block_t, is_last_lane>::type;
+template <typename dp_block_t, size_t lane_width, bool is_last_lane>
+using lane_t = typename _lane<dp_block_t, lane_width, is_last_lane>::type;
 
-template <typename dp_block_t, bool is_last_lane>
-class _lane<dp_block_t, is_last_lane>::type
+template <typename dp_block_t, size_t lane_width, bool is_last_lane>
+class _lane<dp_block_t, lane_width, is_last_lane>::type
 {
-public:
-    using dp_column_type = typename std::remove_cvref_t<dp_block_t>::dp_column_type;
-    using dp_row_type = typename std::remove_cvref_t<dp_block_t>::dp_row_type;
-
 private:
 
-    static constexpr size_t _width = std::remove_cvref_t<dp_block_t>::lane_width();
-
-    using dp_row_value_t = typename dp_row_type::value_type;
-    using cached_row_t = std::array<dp_row_value_t, _width>;
+    using base_block_t = std::remove_reference_t<dp_block_t>;
+    using dp_row_value_t = typename base_block_t::row_type::value_type;
+    using cached_row_t = std::array<dp_row_value_t, lane_width>;
 
     dp_block_t _dp_block;
     cached_row_t _cached_row;
@@ -78,20 +77,30 @@ public:
 
     static constexpr size_t width() noexcept
     {
-        return _width;
+        return lane_width;
     }
 
     constexpr size_t size() const noexcept
     {
-        return column().size();
+        return _dp_block.column().size();
     }
 
-    constexpr dp_column_type & column() noexcept
+    constexpr typename base_block_t::column_type & column() noexcept
+    {
+        return _dp_block.column();
+    }
+
+    constexpr typename base_block_t::column_type const & column() const noexcept
     {
         return _dp_block.column();
     }
 
     constexpr cached_row_t & row() noexcept
+    {
+        return _cached_row;
+    }
+
+    constexpr cached_row_t const & row() const noexcept
     {
         return _cached_row;
     }
@@ -122,21 +131,13 @@ namespace cpo {
 template <bool is_last_lane>
 struct _lane_closure
 {
-    template <typename dp_matrix_block_t>
-    constexpr auto operator()(dp_matrix_block_t && dp_block, size_t const row_offset) const noexcept {
-        using dp_lane_t = dp_matrix::lane_t<dp_matrix_block_t, is_last_lane>;
+    template <typename dp_block_t, size_t lane_width>
+    constexpr auto operator()(dp_block_t && dp_block, size_t const row_offset, lane_width_t<lane_width>) const noexcept
+    {
+        using dp_lane_t = dp_matrix::lane_t<dp_block_t, lane_width, is_last_lane>;
 
-        return dp_lane_t{std::forward<dp_matrix_block_t>(dp_block), row_offset};
+        return dp_lane_t{std::forward<dp_block_t>(dp_block), row_offset};
     }
-
-    // template <typename dp_matrix_column_t>
-    // constexpr auto operator()(dp_matrix_column_t && dp_matrix_column, size_t const index) const noexcept {
-    //     assert(index < dp_matrix_column.size());
-
-    //     using dp_lane_t = dp_matrix::lane_t<dp_matrix_column_t>;
-
-    //     return dp_lane_t{std::forward<dp_matrix_column_t>(dp_matrix_column), index};
-    // }
 };
 
 } // namespace cpo
