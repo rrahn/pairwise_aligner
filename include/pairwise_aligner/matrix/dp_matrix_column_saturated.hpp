@@ -161,19 +161,20 @@ protected:
 };
 } // namespace detail
 
-template <typename block_closure_t, typename ...dp_data_t>
+template <template <typename ...> typename column_base_t, typename block_closure_t, typename ...dp_data_t>
 struct _column_saturated
 {
     class type;
 };
 
-template <typename block_closure_t, typename ...dp_data_t>
-using column_saturated_t = typename _column_saturated<block_closure_t, dp_data_t...>::type;
+template <template <typename ...> typename column_base_t, typename block_closure_t, typename ...dp_data_t>
+using column_saturated_t = typename _column_saturated<column_base_t, block_closure_t, dp_data_t...>::type;
 
-template <typename block_closure_t, typename ...dp_data_t>
-class _column_saturated<block_closure_t, dp_data_t...>::type : public dp_matrix::column_t<block_closure_t, dp_data_t...>
+template <template <typename ...> typename column_base_t, typename block_closure_t, typename ...dp_data_t>
+class _column_saturated<column_base_t, block_closure_t, dp_data_t...>::type :
+    public column_base_t<block_closure_t, dp_data_t...>
 {
-    using base_t = dp_matrix::column_t<block_closure_t, dp_data_t...>;
+    using base_t = column_base_t<block_closure_t, dp_data_t...>;
 
 public:
 
@@ -190,14 +191,15 @@ public:
                                          base_t::row(),
                                          base_t::substitution_model(),
                                          base_t::tracker(),
-                                         base_t::row_sequence());
+                                         base_t::row_sequence(),
+                                         base_t::lane_width());
     }
 };
 
 namespace cpo {
 
-
-template <typename block_closure_t = dp_matrix::cpo::_block_closure<>>
+template <typename block_closure_t = dp_matrix::cpo::_block_closure<>,
+          template <typename ...> typename column_base_t = dp_matrix::column_t>
 struct _column_saturated_closure
 {
     block_closure_t block_closure{};
@@ -207,7 +209,8 @@ struct _column_saturated_closure
                               dp_row_t & dp_row,
                               remaining_dp_data_t && ...remaining_dp_data) const noexcept {
         using dp_saturated_column_t =
-            dp_matrix::column_saturated_t<block_closure_t,
+            dp_matrix::column_saturated_t<column_base_t,
+                                          block_closure_t,
                                           dp_column_t,
                                           detail::saturated_wrapper<dp_row_t>,
                                           remaining_dp_data_t...>;

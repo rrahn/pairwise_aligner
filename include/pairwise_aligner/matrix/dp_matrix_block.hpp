@@ -22,17 +22,17 @@ inline namespace v1
 {
 namespace dp_matrix {
 
-template <typename lane_closure_t, size_t _lane_width, typename ...dp_data_t>
+template <typename lane_closure_t, typename ...dp_data_t>
 struct _block
 {
     class type;
 };
 
-template <typename lane_closure_t, size_t _lane_width, typename ...dp_data_t>
-using block_t = typename _block<lane_closure_t, _lane_width, dp_data_t...>::type;
+template <typename lane_closure_t, typename ...dp_data_t>
+using block_t = typename _block<lane_closure_t, dp_data_t...>::type;
 
-template <typename lane_closure_t, size_t _lane_width, typename ...dp_data_t>
-class _block<lane_closure_t, _lane_width, dp_data_t...>::type : public detail::dp_matrix_data_handle<dp_data_t...>
+template <typename lane_closure_t, typename ...dp_data_t>
+class _block<lane_closure_t, dp_data_t...>::type : public detail::dp_matrix_data_handle<dp_data_t...>
 {
     using base_t = detail::dp_matrix_data_handle<dp_data_t...>;
 
@@ -57,26 +57,22 @@ public:
 
     constexpr auto operator[](size_t const index) noexcept
     {
-        return make_block_lane(*this, index * lane_width(), lane_width_t<type::lane_width()>{}, std::false_type{});
+        return make_block_lane(*this, index * base_t::lane_width_v, base_t::lane_width(), std::false_type{});
     }
 
     constexpr auto last_lane() noexcept
     {
         return make_block_lane(*this,
-                               ((base_t::row().size() - 1) / lane_width()) * lane_width(),
-                               lane_width_t<type::lane_width()>{},
+                               ((base_t::row().size() - 1) / base_t::lane_width_v) * base_t::lane_width_v,
+                               base_t::lane_width(),
                                std::true_type{});
-    }
-
-    static constexpr size_t lane_width() noexcept
-    {
-        return _lane_width;
     }
 
     constexpr size_t size() const noexcept
     {
-        return (base_t::row().size() - 1 + lane_width()) / lane_width();
+        return base_t::lanes_per_block();
     }
+
 protected:
     template <typename ...args_t>
     constexpr auto make_block_lane(args_t && ...args) const noexcept
@@ -89,15 +85,14 @@ protected:
 
 namespace cpo {
 
-template <typename lane_closure_t = dp_matrix::cpo::_lane_closure,
-          size_t lane_width = ((seqan::pairwise_aligner::detail::max_simd_size == 64) ? 8 : 4)>
+template <typename lane_closure_t = dp_matrix::cpo::_lane_closure>
 struct _block_closure
 {
     lane_closure_t lane_closure{};
 
     template <typename ...dp_data_t>
     constexpr auto operator()(dp_data_t && ...dp_data) const noexcept {
-        using dp_block_t = dp_matrix::block_t<lane_closure_t, lane_width, dp_data_t...>;
+        using dp_block_t = dp_matrix::block_t<lane_closure_t, dp_data_t...>;
 
         return dp_block_t{lane_closure, std::forward<dp_data_t>(dp_data)...};
     }

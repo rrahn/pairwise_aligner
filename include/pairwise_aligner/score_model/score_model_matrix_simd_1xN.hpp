@@ -32,7 +32,7 @@ struct _score_model_matrix_simd_1xN
 };
 
 template <typename score_t, size_t dimension>
-using  score_model_matrix_simd_1xN = typename _score_model_matrix_simd_1xN<score_t, dimension>::type;
+using score_model_matrix_simd_1xN = typename _score_model_matrix_simd_1xN<score_t, dimension>::type;
 
 template <typename score_t, size_t dimension>
 class _score_model_matrix_simd_1xN<score_t, dimension>::type :

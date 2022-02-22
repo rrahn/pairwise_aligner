@@ -84,6 +84,13 @@ private:
     {
         return client.initialise_row_vector(std::forward<args_t>(args)...);
     }
+
+    template <typename ...args_t>
+    constexpr static auto lane_width(algorithm_client_t const & client, args_t && ...args)
+        noexcept(noexcept(client.lane_width(std::forward<args_t>(args)...)))
+    {
+        return client.lane_width(std::forward<args_t>(args)...);
+    }
 };
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner

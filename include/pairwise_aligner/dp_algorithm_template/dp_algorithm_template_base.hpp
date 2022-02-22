@@ -70,11 +70,17 @@ protected:
         return algorithm_attorney_t::initialise_policies(as_algorithm(), std::forward<args_t>(args)...);
     }
 
+    template <typename ...args_t>
+    constexpr auto lane_width(args_t && ...args) const noexcept
+    {
+        return algorithm_attorney_t::lane_width(as_algorithm(), std::forward<args_t>(args)...);
+    }
+
     template <typename sequence1_t, typename dp_block_t>
     void compute_block(sequence1_t && sequence1, dp_block_t && dp_block) const noexcept
     {
         // Initialise bulk_cache array.
-        constexpr std::ptrdiff_t lane_width = std::remove_cvref_t<dp_block_t>::lane_width();
+        constexpr std::ptrdiff_t lane_width = std::remove_cvref_t<dp_block_t>::lane_width_v;
         constexpr auto index_sequence = std::make_index_sequence<lane_width>();
         std::ptrdiff_t const sequence1_size = std::ranges::distance(sequence1);
 

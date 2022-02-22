@@ -50,7 +50,6 @@ protected:
 
         auto [dp_matrix_column] = base_t::initialise_policies();
         auto tracker = base_t::initialise_tracker();
-        auto scorer = base_t::initialise_substitution_scheme();
 
         using block_sequence1_t = decltype(seqan3::views::slice(transformed_seq1, 0, 1));
         using block_sequence1_collection_t = std::vector<block_sequence1_t>;
@@ -75,7 +74,12 @@ protected:
         for (size_t column_idx = 0; column_idx < dp_row.size(); ++column_idx) {
             size_t const row_size = dp_row[column_idx].size() - 1;
             auto block_sequence2 = seqan3::views::slice(transformed_seq2, row_offset, row_offset + row_size);
-            auto current_column = dp_matrix_column(dp_column, dp_row[column_idx], scorer, tracker, std::move(block_sequence2));
+            auto current_column = dp_matrix_column(dp_column,
+                                                   dp_row[column_idx],
+                                                   base_t::initialise_substitution_scheme(),
+                                                   tracker,
+                                                   std::move(block_sequence2),
+                                                   base_t::lane_width());
             for (size_t block_idx = 0; block_idx < current_column.size(); ++block_idx) {
                 auto dp_block = current_column[block_idx];
                 base_t::compute_block(block_sequences1[block_idx], dp_block);

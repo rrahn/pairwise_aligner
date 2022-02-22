@@ -124,6 +124,11 @@ protected:
         return this->operator()(std::forward<args_t>(args)..., this->last_column, this->last_row);
     }
 
+    constexpr auto lane_width() const noexcept
+    {
+        return this->make_lane_width();
+    }
+
     template <typename cache_t,
               typename dp_cell_t,
               typename score_t,
