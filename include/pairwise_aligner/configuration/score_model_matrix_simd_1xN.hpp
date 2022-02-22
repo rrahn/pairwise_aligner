@@ -25,6 +25,7 @@
 #include <pairwise_aligner/matrix/dp_matrix_block.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane_profile.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
 #include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
@@ -154,10 +155,11 @@ struct traits
         using dp_matrix_policies_t = dp_matrix_policies<dp_matrix_column_t>;
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
                                                                      dp_matrix_policies_t,
+                                                                     lane_width_policy<>,
                                                                      std::remove_cvref_t<policies_t>...>;
 
         return interface_one_to_many_bulk<algorithm_t, score_type::size>{
-                algorithm_t{dp_matrix_policies_t{dp_matrix_column_t{block_closure_t{}}}, std::move(policies)...}};
+                algorithm_t{dp_matrix_policies_t{dp_matrix_column_t{block_closure_t{}}}, lane_width_policy<>{}, std::move(policies)...}};
     }
 };
 

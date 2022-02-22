@@ -19,6 +19,7 @@
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
 #include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
@@ -120,10 +121,11 @@ struct traits
 
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
                                                                      dp_matrix_policy_t,
+                                                                     lane_width_policy<>,
                                                                      std::remove_cvref_t<policies_t>...>;
 
         return interface_one_to_one_bulk<algorithm_t, score_type::size>{
-                algorithm_t{dp_matrix_policy_t{make_dp_matrix_policy()}, std::move(policies)...}};
+                algorithm_t{dp_matrix_policy_t{make_dp_matrix_policy()}, lane_width_policy<>{}, std::move(policies)...}};
     }
 
 private:
@@ -136,11 +138,6 @@ private:
                                                     _mismatch_score,
                                                     configuration._gap_open_score,
                                                     configuration._gap_extension_score);
-
-        std::cout << "max_match_score  = " << (int32_t) _match_score << "\n";
-        std::cout << "min_mismatch_score  = " << (int32_t) _mismatch_score << "\n";
-        std::cout << "global_zero  = " << (int32_t) global_zero << "\n";
-        std::cout << "max_block_size  = " << (int32_t) max_block_size << "\n";
 
         auto saturated_dp_vector = [&] () {
             if constexpr (configuration_t::is_local) {

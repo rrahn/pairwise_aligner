@@ -20,6 +20,7 @@
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
 #include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
@@ -99,10 +100,11 @@ struct traits
         using dp_matrix_policies_t = dp_matrix_policies<decltype(dp_matrix_column)>;
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
                                                                      dp_matrix_policies_t,
+                                                                     lane_width_policy<>,
                                                                      std::remove_cvref_t<policies_t>...>;
 
         return interface_one_to_one_single<algorithm_t>{
-                algorithm_t{dp_matrix_policies_t{dp_matrix_column}, std::move(policies)...}};
+                algorithm_t{dp_matrix_policies_t{dp_matrix_column}, lane_width_policy<>{}, std::move(policies)...}};
     }
 };
 

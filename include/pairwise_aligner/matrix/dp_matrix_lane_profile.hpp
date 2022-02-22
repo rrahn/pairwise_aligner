@@ -48,10 +48,12 @@ public:
 
     type() = delete;
     constexpr explicit type(dp_block_t dp_block, size_t const row_offset) noexcept :
-        base_t{std::forward<dp_block_t>(dp_block), row_offset}
+        base_t{std::forward<dp_block_t>(dp_block), row_offset},
+        _profile{base_t::dp_block().substitution_model().initialise_profile(base_t::row_sequence(),
+                                                                            strip_width<lane_width>)}
     {
-        _profile = base_t::dp_block().substitution_model().initialise_profile(base_t::row_sequence(),
-                                                                              strip_width<lane_width>);
+        // _profile = base_t::dp_block().substitution_model().initialise_profile(base_t::row_sequence(),
+        //                                                                       strip_width<lane_width>);
     }
     ~type() = default;
 

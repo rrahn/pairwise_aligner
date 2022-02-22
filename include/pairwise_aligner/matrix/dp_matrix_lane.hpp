@@ -117,6 +117,11 @@ protected:
         return _dp_block;
     }
 
+    constexpr dp_block_t & dp_block() noexcept
+    {
+        return _dp_block;
+    }
+
 private:
 
     constexpr size_t row_sequence_offset() const noexcept

@@ -22,9 +22,8 @@
 #include <pairwise_aligner/alphabet_conversion/alphabet_rank_map_simd.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_block.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_lane.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
 #include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
@@ -156,15 +155,14 @@ struct traits
     template <typename configuration_t, typename ...policies_t>
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
-        using block_closure_t = dp_matrix::cpo::_block_closure<dp_matrix::cpo::_lane_closure, 4>;
-        using dp_matrix_column_t = dp_matrix::cpo::_column_closure<block_closure_t>;
-        using dp_matrix_policies_t = dp_matrix_policies<dp_matrix_column_t>;
+        using dp_matrix_policies_t = dp_matrix_policies<decltype(dp_matrix_column)>;
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
                                                                      dp_matrix_policies_t,
+                                                                     lane_width_policy<4>,
                                                                      std::remove_cvref_t<policies_t>...>;
 
         return interface_one_to_one_bulk<algorithm_t, score_type::size>{
-                algorithm_t{dp_matrix_policies_t{dp_matrix_column_t{block_closure_t{}}}, std::move(policies)...}};
+                algorithm_t{dp_matrix_policies_t{}, lane_width_policy<4>{}, std::move(policies)...}};
     }
 };
 

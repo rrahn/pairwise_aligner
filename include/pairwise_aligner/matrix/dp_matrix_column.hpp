@@ -67,7 +67,8 @@ public:
                                  base_t::row(),
                                  base_t::substitution_model(),
                                  base_t::tracker(),
-                                 base_t::row_sequence());
+                                 base_t::row_sequence(),
+                                 base_t::lane_width());
     }
 
 protected:

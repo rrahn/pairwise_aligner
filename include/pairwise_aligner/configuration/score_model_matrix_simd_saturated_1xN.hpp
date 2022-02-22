@@ -23,9 +23,11 @@
 #include <pairwise_aligner/alphabet_conversion/alphabet_rank_map_simd.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/interface/interface_one_to_many_bulk.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_block.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_block_cached_profile.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_column_cached_profiles.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane_profile.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
 #include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
@@ -60,6 +62,7 @@ struct traits
 
     // extend the dimension to handle padding symbol.
     static constexpr size_t dimension_v = std::tuple_size_v<substitution_matrix_t> + 1;
+    static constexpr size_t lane_width = 8;
 
     using matrix_row_t = typename substitution_matrix_t::value_type;
     using symbol_t = std::tuple_element_t<0, matrix_row_t>;
@@ -144,10 +147,6 @@ struct traits
                                                     min_mismatch_score,
                                                     configuration._gap_open_score,
                                                     configuration._gap_extension_score);
-        std::cout << "max_match_score  = " << (int32_t) max_match_score << "\n";
-        std::cout << "min_mismatch_score  = " << (int32_t) min_mismatch_score << "\n";
-        std::cout << "global_zero  = " << (int32_t) global_zero << "\n";
-        std::cout << "max_block_size  = " << (int32_t) max_block_size << "\n";
         // Add padding symbol: Assuming the symbols are sorted lexicographically, take the last symbol plus one
         // (only char?).
         // TODO: Find some unused values between ranks/symbols!
@@ -181,15 +180,18 @@ struct traits
     template <typename configuration_t, typename ...policies_t>
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
-        using block_closure_t = dp_matrix::cpo::_block_closure<dp_matrix::cpo::_lane_profile_closure>;
-        using dp_matrix_column_t = dp_matrix::cpo::_column_saturated_closure<block_closure_t>;
+        using dp_matrix_column_t =
+            dp_matrix::cpo::_column_saturated_closure<
+                dp_matrix::cpo::_block_cached_profile_closure<>,
+                dp_matrix::column_cached_profiles_t>;
         using dp_matrix_policies_t = dp_matrix_policies<dp_matrix_column_t>;
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
                                                                      dp_matrix_policies_t,
+                                                                     lane_width_policy<>,
                                                                      std::remove_cvref_t<policies_t>...>;
 
         return interface_one_to_many_bulk<algorithm_t, score_type::size>{
-                algorithm_t{dp_matrix_policies_t{dp_matrix_column_t{block_closure_t{}}}, std::move(policies)...}};
+                algorithm_t{dp_matrix_policies_t{}, lane_width_policy<>{}, std::move(policies)...}};
     }
 };
 

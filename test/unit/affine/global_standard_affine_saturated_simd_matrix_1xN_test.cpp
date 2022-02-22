@@ -15,7 +15,7 @@
 
 #include "alignment_simd_test_template.hpp"
 
-namespace global::standard::affine::fixed_simd::matrix {
+namespace global::standard::affine::saturated_simd::matrix {
 
 namespace aligner = seqan::pairwise_aligner;
 
@@ -111,12 +111,12 @@ using variable_size_types =
         pairwise_aligner::test::fixture<&variable_size_16>,
         pairwise_aligner::test::fixture<&variable_size_8>
     >;
-} // global::affine::fixed_simd
+} // global::affine::saturated_simd
 
 INSTANTIATE_TYPED_TEST_SUITE_P(equal_size_test,
                                test_suite,
-                               global::standard::affine::fixed_simd::matrix::equal_size_types,);
+                               global::standard::affine::saturated_simd::matrix::equal_size_types,);
 
 INSTANTIATE_TYPED_TEST_SUITE_P(variable_size_test,
                                test_suite,
-                               global::standard::affine::fixed_simd::matrix::variable_size_types,);
+                               global::standard::affine::saturated_simd::matrix::variable_size_types,);
