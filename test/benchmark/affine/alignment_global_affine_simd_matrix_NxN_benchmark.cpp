@@ -11,7 +11,7 @@
 #include <seqan3/core/configuration/configuration.hpp>
 
 #include <pairwise_aligner/configuration/method_global.hpp>
-#include <pairwise_aligner/configuration/score_model_matrix_simd.hpp>
+#include <pairwise_aligner/configuration/score_model_matrix_simd_NxN.hpp>
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
 
 #include <pairwise_aligner/score_model/substitution_matrix.hpp>
@@ -25,7 +25,7 @@ using score_t = int8_t;
 
 inline constexpr size_t max_sequence_count = pa::simd_score<int8_t>::size;
 inline constexpr auto base_configurator =
-    pa::cfg::gap_model_affine(pa::cfg::score_model_matrix_simd(pa::blosum62_standard<score_t>), -10, -1);
+    pa::cfg::gap_model_affine(pa::cfg::score_model_matrix_simd_NxN(pa::blosum62_standard<score_t>), -10, -1);
 
 DEFINE_BENCHMARK_VALUES(standard_matrix_same_size,
     .configurator = base_configurator,

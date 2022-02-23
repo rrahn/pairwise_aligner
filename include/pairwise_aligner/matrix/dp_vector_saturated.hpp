@@ -52,7 +52,6 @@ private:
             _regular_offset{offset}
         {}
 
-        // assignable from actual type.
         _proxy & operator=(_proxy other) noexcept
         {
             using std::swap;
@@ -60,6 +59,7 @@ private:
             return *this;
         }
 
+        // assignable from actual type.
         _proxy & operator=(value_type cell) noexcept
         {
             using std::swap;
