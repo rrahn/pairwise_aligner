@@ -15,6 +15,8 @@
 #include <seqan3/std/concepts>
 #include <cstdint>
 
+#include <pairwise_aligner/simd/simd_saturated_score.hpp>
+
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
@@ -30,10 +32,17 @@ inline constexpr size_t max_simd_size = 32;
 inline constexpr size_t max_simd_size = 16;
 #endif
 
+template <typename score_t, size_t simd_size, template <typename > typename ...policies_t>
+struct simd_score_base;
+
 } // namespace detail
 
+
 template <std::integral score_t, size_t simd_size = detail::max_simd_size / sizeof(score_t)>
-class alignas(detail::max_simd_size) simd_score;
+using simd_score = detail::simd_score_base<score_t, simd_size>;
+
+template <std::integral score_t, size_t simd_size = detail::max_simd_size / sizeof(score_t)>
+using simd_score_saturated = detail::simd_score_base<score_t, simd_size, saturated_score>;
 
 template <std::unsigned_integral score_t, size_t simd_size = detail::max_simd_size / sizeof(score_t)>
 class alignas(detail::max_simd_size) simd_mask;

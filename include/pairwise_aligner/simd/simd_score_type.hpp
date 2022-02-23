@@ -28,19 +28,36 @@ namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
-template <std::integral score_t, size_t simd_size>
-class alignas(detail::max_simd_size) simd_score : protected detail::simd_convert_base
+
+namespace detail {
+// template <typename score_t, size_t simd_size, template <typename > typename ...policies_t>
+// struct simd_score_base
+// {
+//     class type;
+// };
+
+// template <std::integral score_t, size_t simd_size>
+// class alignas(detail::max_simd_size) simd_score : protected simd_convert_base
+// {
+template <typename score_t, size_t simd_size, template <typename > typename ...policies_t>
+class alignas(max_simd_size) simd_score_base :
+    protected simd_convert_base,
+    public policies_t<simd_score_base<score_t, simd_size, policies_t...>>...
 {
 private:
-    using base_t = detail::simd_convert_base;
+    // using saturated_base_t = saturated_score<simd_score<score_t, simd_size>>;
+    using type = simd_score_base<score_t, simd_size, policies_t...>;
+    using base_t = simd_convert_base;
     using native_simd_t = seqan3::simd::simd_type_t<score_t>;
 
     static constexpr size_t native_simd_size = seqan3::simd_traits<native_simd_t>::length;
     static constexpr size_t native_simd_count = simd_size / native_simd_size;
     static constexpr bool is_native = native_simd_count == 1;
 
-    template <std::integral, size_t>
-    friend class simd_score;
+    template <typename, size_t, template <typename> typename ...>
+    friend class simd_score_base;
+
+    friend detail::_saturated_score<type>;
 
 public:
 
@@ -60,43 +77,43 @@ private:
 
 public:
 
-    simd_score() = default;
-    simd_score(simd_score const &) = default;
-    simd_score(simd_score &&) = default;
-    simd_score & operator=(simd_score const &) = default;
-    simd_score & operator=(simd_score &&) = default;
+    simd_score_base() = default;
+    simd_score_base(simd_score_base const &) = default;
+    simd_score_base(simd_score_base &&) = default;
+    simd_score_base & operator=(simd_score_base const &) = default;
+    simd_score_base & operator=(simd_score_base &&) = default;
 
-    constexpr explicit simd_score(score_t const initial_score) noexcept
+    constexpr explicit simd_score_base(score_t const initial_score) noexcept
     {
         apply([&] (native_simd_t & native_simd_chunk) {
             native_simd_chunk = seqan3::simd::fill<native_simd_t>(initial_score);
         }, values);
     }
 
-    constexpr simd_score(mask_type const mask) noexcept
+    constexpr simd_score_base(mask_type const mask) noexcept
     {
         apply([&] <typename mask_simd_t> (native_simd_t & native_simd_chunk, mask_simd_t const & mask_simd) {
             native_simd_chunk = static_cast<native_simd_t>(mask_simd);
         }, values, mask.values);
     }
 
-    constexpr explicit simd_score(native_simd_t simd_score) noexcept
+    constexpr explicit simd_score_base(native_simd_t native_value) noexcept
         requires (is_native)
-    : values{std::move(simd_score)}
+    : values{std::move(native_value)}
     {}
 
     template <typename ...other_score_t>
         requires ((sizeof...(other_score_t) == simd_size) && sizeof...(other_score_t) > 1 &&
                   (std::convertible_to<score_t, other_score_t> && ...))
-    constexpr explicit simd_score(other_score_t const ...values)
+    constexpr explicit simd_score_base(other_score_t const ...values)
         noexcept :
         values{{static_cast<score_t>(values)...}}
     {}
 
     // cast the other vector in this element
-    template <typename other_score_t>
+    template <typename other_score_t, template <typename> typename ...other_policies_t>
         requires (!std::same_as<other_score_t, score_t> && std::assignable_from<score_t &, other_score_t>)
-    constexpr explicit simd_score(simd_score<other_score_t, simd_size> const & other) noexcept
+    constexpr explicit simd_score_base(simd_score_base<other_score_t, simd_size, other_policies_t...> const & other) noexcept
     {
         if constexpr (native_simd_count > other.native_simd_count) { // upcast
             base_t::expand_into(values, other.values[0]);
@@ -133,209 +150,209 @@ public:
         }, values);
     }
 
-    constexpr simd_score & operator++() noexcept
+    constexpr type & operator++() noexcept
     {
         apply([] (native_simd_t & value) { ++value; }, values);
         return *this;
     }
 
-    constexpr simd_score & operator+=(simd_score const & right) noexcept
+    constexpr type & operator+=(type const & right) noexcept
     {
         apply([] (native_simd_t & left, native_simd_t const & right) { left += right; },
               values, right.values);
         return *this;
     }
 
-    constexpr simd_score & operator+=(score_t const right_constant) noexcept
+    constexpr type & operator+=(score_t const right_constant) noexcept
     {
         apply([] (native_simd_t & left, native_simd_t const & right) { left += right; },
-              values, simd_score{right_constant}.values);
+              values, type{right_constant}.values);
         return *this;
     }
 
-    constexpr simd_score operator+(simd_score const & right) const noexcept
+    constexpr type operator+(type const & right) const noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left + right; },
               tmp.values, values, right.values);
         return tmp;
     }
 
-    constexpr simd_score operator+(score_t const right_constant) const noexcept
+    constexpr type operator+(score_t const right_constant) const noexcept
     {
-        simd_score tmp{right_constant};
+        type tmp{right_constant};
         apply([] (native_simd_t & left, native_simd_t const & right) { left += right; },
               tmp.values, values);
         return tmp;
     }
 
-    constexpr simd_score & operator-=(simd_score const & right) noexcept
+    constexpr type & operator-=(type const & right) noexcept
     {
         apply([] (native_simd_t & left, native_simd_t const & right) { left -= right; },
               values, right.values);
         return *this;
     }
 
-    constexpr simd_score & operator-=(score_t const right_constant) noexcept
+    constexpr type & operator-=(score_t const right_constant) noexcept
     {
         apply([] (native_simd_t & left, native_simd_t const & right) { left -= right; },
-              values, simd_score{right_constant}.values);
+              values, type{right_constant}.values);
         return *this;
     }
 
-    constexpr simd_score operator-(simd_score const & right) const noexcept
+    constexpr type operator-(type const & right) const noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left - right; },
               tmp.values, values, right.values);
         return tmp;
     }
 
-    constexpr simd_score operator-(score_t const right_constant) const noexcept
+    constexpr type operator-(score_t const right_constant) const noexcept
     {
-        simd_score tmp{right_constant};
+        type tmp{right_constant};
         apply([] (native_simd_t & left, native_simd_t const & right) { left = right - left; },
               tmp.values, values);
         return tmp;
     }
 
-    constexpr simd_score & operator*=(simd_score const & right) noexcept
+    constexpr type & operator*=(type const & right) noexcept
     {
         apply([] (native_simd_t & left, native_simd_t const & right) { left *= right; },
               values, right.values);
         return *this;
     }
 
-    constexpr simd_score & operator*=(score_t const right_constant) noexcept
+    constexpr type & operator*=(score_t const right_constant) noexcept
     {
         apply([] (native_simd_t & left, native_simd_t const & right) { left *= right; },
-              values, simd_score{right_constant}.values);
+              values, type{right_constant}.values);
         return *this;
     }
 
-    constexpr simd_score operator*(simd_score const & right) const noexcept
+    constexpr type operator*(type const & right) const noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left * right; },
               tmp.values, values, right.values);
         return tmp;
     }
 
-    constexpr simd_score operator*(score_t const right_constant) const noexcept
+    constexpr type operator*(score_t const right_constant) const noexcept
     {
-        simd_score tmp{right_constant};
+        type tmp{right_constant};
         apply([] (native_simd_t & left, native_simd_t const & right) { left *= right; },
               tmp.values, values);
         return tmp;
     }
 
-    constexpr simd_score operator/(simd_score const & right) const noexcept
+    constexpr type operator/(type const & right) const noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left / right; },
               tmp.values, values, right.values);
         return tmp;
     }
 
-    constexpr simd_score operator/(score_t const right_constant) const noexcept
+    constexpr type operator/(score_t const right_constant) const noexcept
     {
-        simd_score tmp{right_constant};
+        type tmp{right_constant};
         apply([] (native_simd_t & left, native_simd_t const & right) { left /= right; },
               tmp.values, values);
         return tmp;
     }
 
-    constexpr simd_score operator^(simd_score const & right) const noexcept
+    constexpr type operator^(type const & right) const noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left ^ right; },
               tmp.values, values, right.values);
         return tmp;
     }
 
-    constexpr simd_score operator^(score_t const right_constant) const noexcept
+    constexpr type operator^(score_t const right_constant) const noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left ^ right; },
-              tmp.values, values, simd_score{right_constant}.values);
+              tmp.values, values, type{right_constant}.values);
         return tmp;
     }
 
-    constexpr simd_score operator|(simd_score const & right) const noexcept
+    constexpr type operator|(type const & right) const noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left | right; },
               tmp.values, values, right.values);
         return tmp;
     }
 
-    constexpr simd_score & operator|=(simd_score const & right) noexcept
+    constexpr type & operator|=(type const & right) noexcept
     {
         apply([] (native_simd_t & left, native_simd_t const & right) { left |= right; },
               values, right.values);
         return *this;
     }
 
-    constexpr simd_score operator&(simd_score const & right) const noexcept
+    constexpr type operator&(type const & right) const noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left & right; },
               tmp.values, values, right.values);
         return tmp;
     }
 
-    constexpr simd_score operator&(value_type const right_constant) const noexcept
+    constexpr type operator&(value_type const right_constant) const noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left & right; },
-              tmp.values, values, simd_score{right_constant}.values);
+              tmp.values, values, type{right_constant}.values);
         return tmp;
     }
 
-    constexpr simd_score operator>>(uint32_t const shift) const noexcept
+    constexpr type operator>>(uint32_t const shift) const noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([shift] (native_simd_t & res, native_simd_t const & left) { res = left >> shift; },
               tmp.values, values);
         return tmp;
     }
 
-    // constexpr simd_score operator>>(value_type const right_constant) const noexcept
+    // constexpr type operator>>(value_type const right_constant) const noexcept
     // {
-    //     simd_score tmp{};
+    //     type tmp{};
     //     apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left >> right; },
-    //           tmp.values, values, simd_score{right_constant}.values);
+    //           tmp.values, values, type{right_constant}.values);
     //     return tmp;
     // }
 
-    constexpr simd_score operator<<(uint32_t const shift) const noexcept
+    constexpr type operator<<(uint32_t const shift) const noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([shift] (native_simd_t & res, native_simd_t const & left) { res = left << shift; },
               tmp.values, values);
         return tmp;
     }
 
-    // constexpr simd_score operator<<(value_type const right_constant) const noexcept
+    // constexpr type operator<<(value_type const right_constant) const noexcept
     // {
-    //     simd_score tmp{};
+    //     type tmp{};
     //     apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left << right; },
-    //           tmp.values, values, simd_score{right_constant}.values);
+    //           tmp.values, values, type{right_constant}.values);
     //     return tmp;
     // }
 
-    constexpr friend simd_score max(simd_score const & left, simd_score const & right) noexcept
+    constexpr friend type max(type const & left, type const & right) noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) {
                 res = (left < right) ? right : left;
         }, tmp.values, left.values, right.values);
         return tmp;
     }
 
-    constexpr friend simd_score min(simd_score const & left, simd_score const & right) noexcept
+    constexpr friend type min(type const & left, type const & right) noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) {
                 res = (left < right) ? left : right;
         }, tmp.values, left.values, right.values);
@@ -343,13 +360,13 @@ public:
     }
 
     template <typename fn_t>
-    constexpr friend auto compare(simd_score const & left, simd_score const & right, fn_t && fn) noexcept
-        -> std::invoke_result_t<fn_t, simd_score const &, simd_score const &>
+    constexpr friend auto compare(type const & left, type const & right, fn_t && fn) noexcept
+        -> std::invoke_result_t<fn_t, type const &, type const &>
     {
         return fn(left, right);
     }
 
-    constexpr mask_type eq(simd_score const & rhs) const noexcept
+    constexpr mask_type eq(type const & rhs) const noexcept
     {
         mask_type masks{};
         apply([&] <typename result_t> (result_t & mask, native_simd_t const & left, native_simd_t const & right) {
@@ -358,7 +375,7 @@ public:
         return masks;
     }
 
-    constexpr mask_type lt(simd_score const & rhs) const noexcept
+    constexpr mask_type lt(type const & rhs) const noexcept
     {
         mask_type masks{};
         apply([&] <typename result_t> (result_t & mask, native_simd_t const & left, native_simd_t const & right) {
@@ -367,7 +384,7 @@ public:
         return masks;
     }
 
-    constexpr mask_type le(simd_score const & rhs) const noexcept
+    constexpr mask_type le(type const & rhs) const noexcept
     {
         mask_type masks{};
         apply([&] <typename result_t> (result_t & mask, native_simd_t const & left, native_simd_t const & right) {
@@ -376,30 +393,30 @@ public:
         return masks;
     }
 
-    constexpr friend simd_score blend(mask_type const & masks, simd_score const & left, simd_score const & right) noexcept
+    constexpr friend type blend(mask_type const & masks, type const & left, type const & right) noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] (native_simd_t & res, auto const & mask, native_simd_t const & left, native_simd_t const & right) {
                 res = mask ? left : right;
         }, tmp.values, masks.values, left.values, right.values);
         return tmp;
     }
 
-    constexpr friend simd_score abs(simd_score const & value) noexcept
+    constexpr friend type abs(type const & value) noexcept
     {
-        simd_score tmp;
+        type tmp;
         apply([&] (native_simd_t & res, native_simd_t const & a) {
             res = (a < 0) ? -a : a;
         }, tmp.values, value.values);
         return tmp;
     }
 
-    constexpr friend simd_score mask_max(simd_score const & source,
+    constexpr friend type mask_max(type const & source,
                                          mask_type const & mask,
-                                         simd_score const & left,
-                                         simd_score const & right) noexcept
+                                         type const & left,
+                                         type const & right) noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] <typename mask_t> (native_simd_t & res, native_simd_t const & src, mask_t const & k,
                                     native_simd_t const & a, native_simd_t const & b) {
                 res = k ? (a < b ? b : a) : src;
@@ -407,12 +424,12 @@ public:
         return tmp;
     }
 
-    constexpr friend simd_score mask_add(simd_score const & source,
+    constexpr friend type mask_add(type const & source,
                                          mask_type const & mask,
-                                         simd_score const & left,
-                                         simd_score const & right) noexcept
+                                         type const & left,
+                                         type const & right) noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] <typename mask_t> (native_simd_t & res, native_simd_t const & src, mask_t const & k,
                                     native_simd_t const & a, native_simd_t const & b) {
                 res = k ? a + b : src;
@@ -420,12 +437,12 @@ public:
         return tmp;
     }
 
-    constexpr friend simd_score mask_subtract(simd_score const & source,
+    constexpr friend type mask_subtract(type const & source,
                                               mask_type const & mask,
-                                              simd_score const & left,
-                                              simd_score const & right) noexcept
+                                              type const & left,
+                                              type const & right) noexcept
     {
-        simd_score tmp{};
+        type tmp{};
         apply([] <typename mask_t> (native_simd_t & res, native_simd_t const & src, mask_t const & k,
                                     native_simd_t const & a, native_simd_t const & b) {
                 res = k ? a - b : src;
@@ -446,50 +463,13 @@ private:
         for (size_t i = 0; i < native_simd_count; ++i)
             fn(first[i], remaining[i]...);
     }
-
-    template <typename target_masks_t, typename source_simd_t, size_t ...idx>
-    constexpr void downcast(target_masks_t & target,
-                            source_simd_t const & source,
-                            std::index_sequence<idx...> const &) const noexcept
-    {
-      constexpr size_t source_mask_size_v = source.native_simd_size;
-      constexpr size_t split_factor = source.native_simd_count / native_simd_count;
-      constexpr auto index_seq = std::make_index_sequence<source_mask_size_v>();
-
-      ((downcast_impl<(idx * source_mask_size_v) % native_simd_size>(target[idx / split_factor],
-                                                                     source.values[idx],
-                                                                     index_seq)), ...);
-    }
-
-    template <size_t first_idx, typename other_mask_t, size_t ...idx>
-    constexpr void downcast_impl(native_simd_t & target,
-                                 other_mask_t const & source,
-                                 std::index_sequence<idx...> const &) const noexcept
-    {
-      ((target[first_idx + idx] = static_cast<score_t>(source[idx])), ...);
-    }
-
-    template <typename target_masks_t, typename source_simd_t, size_t ...idx>
-    constexpr void upcast(target_masks_t & target,
-                          source_simd_t const & source,
-                          std::index_sequence<idx...> const &) const noexcept
-    {
-      constexpr size_t split_factor = native_simd_count / source.native_simd_count;
-      constexpr auto index_seq = std::make_index_sequence<native_simd_size>();
-
-      ((upcast_impl<(idx * native_simd_size) % source.native_simd_size>(target[idx],
-                                                                        source.values[idx / split_factor],
-                                                                        index_seq)), ...);
-    }
-
-    template <size_t first_idx, typename other_mask_t, size_t ...idx>
-    constexpr  void upcast_impl(native_simd_t & target,
-                                other_mask_t const & source,
-                                std::index_sequence<idx...> const &) const noexcept
-    {
-      ((target[idx] = static_cast<score_t>(source[first_idx + idx])), ...);
-    }
 };
+
+} // namespace detail
+
+// ----------------------------------------------------------------------------
+// Stream operator
+// ----------------------------------------------------------------------------
 
 template <typename stream_t, typename simd_score_t>
     requires requires {

@@ -38,8 +38,8 @@ private:
     static constexpr size_t native_simd_size = seqan3::simd_traits<native_simd_t>::length;
     static constexpr size_t native_simd_count = simd_size / native_simd_size;
 
-    template <std::integral, size_t>
-    friend class simd_score;
+    template <typename, size_t, template <typename> typename ...>
+    friend class simd_score_base;
 
     template <std::unsigned_integral, size_t>
     friend class simd_mask;

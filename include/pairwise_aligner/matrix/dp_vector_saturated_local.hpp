@@ -28,7 +28,8 @@ class dp_vector_saturated_local
 {
 private:
     using regular_score_t = typename regular_cell_t::score_type;
-    using saturated_score_t = simd_score<int8_t, regular_score_t::size>;
+    using cell_t = typename dp_vector_t::value_type;
+    using saturated_score_t = typename cell_t::score_type;
 
     template <bool is_const>
     struct _proxy
@@ -216,8 +217,12 @@ public:
                     _first_call = false;
                 }
 
-                std::apply([this] (auto & ...values) { ((values -= _regular_offset[0]), ...); }, scalar_cell);
-                return small_cell_t{scalar_cell}; // construct simd type with relative scores.
+                std::apply([this] (auto & ...values) {
+                    ((values = std::max<int32_t>(values - _regular_offset[0],
+                                                 std::numeric_limits<int8_t>::lowest())), ...);
+                }, scalar_cell);
+
+                return small_cell_t{scalar_cell};
             }
         };
 

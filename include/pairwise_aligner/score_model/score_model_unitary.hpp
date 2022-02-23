@@ -15,6 +15,7 @@
 #include <seqan3/std/concepts>
 
 #include <pairwise_aligner/simd/simd_score_type.hpp>
+#include <pairwise_aligner/utility/add_cpo.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -76,7 +77,7 @@ public:
                   value1_t const & value1,
                   value2_t const & value2) const noexcept
     {
-        return last_diagonal + ((value1 == value2) ? _match_score : _mismatch_score);
+        return add(last_diagonal, ((value1 == value2) ? _match_score : _mismatch_score));
     }
 
     template <std::integral scalar_score_t, size_t bulk_size>
@@ -89,9 +90,9 @@ public:
 
         using simd_t = simd_score<scalar_score_t, bulk_size>;
 
-        return blend(compare(value1, value2, [] (simd_t const & lhs, simd_t const & rhs) {
+        return add(blend(compare(value1, value2, [] (simd_t const & lhs, simd_t const & rhs) {
                         return (lhs ^ rhs).le(simd_t{0});
-                     }), _match_score, _mismatch_score) + last_diagonal;
+                     }), _match_score, _mismatch_score),  last_diagonal);
     }
 
     constexpr score_t padding_score() const noexcept

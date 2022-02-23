@@ -60,7 +60,7 @@ struct traits
     template <bool is_local>
     using score_model_type = std::conditional_t<is_local,
                                                 score_model_unitary_local<score_type>,
-                                                score_model_unitary<score_type>>;
+                                                pairwise_aligner::score_model_unitary<score_type>>;
 
     template <typename dp_vector_t>
     using dp_vector_column_type = dp_vector_bulk<dp_vector_t, score_type>;
