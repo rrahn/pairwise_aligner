@@ -80,9 +80,16 @@ struct traits
         if constexpr (configuration_t::is_local) {
             return tracker::local_simd_saturated::factory<score_type, original_score_type>{};
         } else {
+            auto [global_zero, max_block_size] =
+            block_handler_t::compute_max_block_size(_match_score,
+                                                    _mismatch_score,
+                                                    configuration._gap_open_score,
+                                                    configuration._gap_extension_score);
+
             return tracker::global_simd_saturated::factory<original_score_type>{
                 static_cast<original_score_type>(_match_score),
-                configuration.trailing_gap_setting()
+                configuration.trailing_gap_setting(),
+                max_block_size
             };
         }
     }

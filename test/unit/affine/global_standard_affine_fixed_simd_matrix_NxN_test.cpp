@@ -5,21 +5,17 @@
 // shipped with this file and also available at: https://github.com/rrahn/pairwise_aligner/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
 
-#include <iostream>
-
 #include <pairwise_aligner/configuration/gap_model_affine.hpp>
 #include <pairwise_aligner/configuration/method_global.hpp>
-#include <pairwise_aligner/configuration/score_model_matrix_simd_saturated_1xN.hpp>
+#include <pairwise_aligner/configuration/score_model_matrix_simd_NxN.hpp>
 
 #include <pairwise_aligner/score_model/substitution_matrix.hpp>
 
 #include "alignment_simd_test_template.hpp"
 
-namespace global::standard::affine::saturated_simd::matrix {
+namespace global::standard::affine::fixed_simd::matrix::NxN {
 
 namespace aligner = seqan::pairwise_aligner;
-
-inline constexpr size_t sequence_count = aligner::simd_score<int8_t>::size;
 
 inline constexpr auto base_config =
     aligner::cfg::method_global(
@@ -33,41 +29,37 @@ inline constexpr auto base_config =
 
 DEFINE_TEST_VALUES(equal_size_64,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_matrix_simd_saturated_1xN,
+    .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int64_t>},
-    .sequence_generation_param{sequence_count, 93, 93},
-    .one_vs_many = std::true_type{},
+    .sequence_generation_param{aligner::simd_score<int64_t>::size, 93, 93}
 )
 
 DEFINE_TEST_VALUES(equal_size_32,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_matrix_simd_saturated_1xN,
+    .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int32_t>},
-    .sequence_generation_param{sequence_count, 210, 210},
-    .one_vs_many = std::true_type{},
+    .sequence_generation_param{aligner::simd_score<int32_t>::size, 210, 210},
 )
 
 DEFINE_TEST_VALUES(equal_size_16,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_matrix_simd_saturated_1xN,
+    .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int16_t>},
-    .sequence_generation_param{sequence_count, 150, 150},
-    .one_vs_many = std::true_type{},
+    .sequence_generation_param{aligner::simd_score<int16_t>::size, 150, 150}
 )
 
 DEFINE_TEST_VALUES(equal_size_8,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_matrix_simd_saturated_1xN,
+    .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int8_t>},
-    .sequence_generation_param{sequence_count, 25, 25},
-    .one_vs_many = std::true_type{},
+    .sequence_generation_param{aligner::simd_score<int8_t>::size, 25, 25},
 )
 
 using equal_size_types =
     ::testing::Types<
-        pairwise_aligner::test::fixture<&equal_size_64>,
-        pairwise_aligner::test::fixture<&equal_size_32>,
-        pairwise_aligner::test::fixture<&equal_size_16>,
+        // pairwise_aligner::test::fixture<&equal_size_64>,
+        // pairwise_aligner::test::fixture<&equal_size_32>,
+        // pairwise_aligner::test::fixture<&equal_size_16>,
         pairwise_aligner::test::fixture<&equal_size_8>
     >;
 // ----------------------------------------------------------------------------
@@ -76,49 +68,45 @@ using equal_size_types =
 
 DEFINE_TEST_VALUES(variable_size_64,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_matrix_simd_saturated_1xN,
+    .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int64_t>},
-    .sequence_generation_param{sequence_count, 75, 93},
-    .one_vs_many = std::true_type{},
+    .sequence_generation_param{aligner::simd_score<int64_t>::size, 75, 93}
 )
 
 DEFINE_TEST_VALUES(variable_size_32,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_matrix_simd_saturated_1xN,
+    .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int32_t>},
-    .sequence_generation_param{sequence_count, 11, 200},
-    .one_vs_many = std::true_type{},
+    .sequence_generation_param{aligner::simd_score<int32_t>::size, 11, 200},
 )
 
 DEFINE_TEST_VALUES(variable_size_16,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_matrix_simd_saturated_1xN,
+    .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int16_t>},
-    .sequence_generation_param{sequence_count, 133, 136},
-    .one_vs_many = std::true_type{},
+    .sequence_generation_param{aligner::simd_score<int16_t>::size, 133, 136}
 )
 
 DEFINE_TEST_VALUES(variable_size_8,
     .base_configurator = base_config,
-    .score_configurator = aligner::cfg::score_model_matrix_simd_saturated_1xN,
+    .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int8_t>},
-    .sequence_generation_param{sequence_count, 10, 15},
-    .one_vs_many = std::true_type{},
+    .sequence_generation_param{aligner::simd_score<int8_t>::size, 10, 15},
 )
 
 using variable_size_types =
     ::testing::Types<
-        pairwise_aligner::test::fixture<&variable_size_64>,
-        pairwise_aligner::test::fixture<&variable_size_32>,
-        pairwise_aligner::test::fixture<&variable_size_16>,
+        // pairwise_aligner::test::fixture<&variable_size_64>,
+        // pairwise_aligner::test::fixture<&variable_size_32>,
+        // pairwise_aligner::test::fixture<&variable_size_16>,
         pairwise_aligner::test::fixture<&variable_size_8>
     >;
-} // global::affine::saturated_simd
+} // global::affine::fixed_simd
 
 INSTANTIATE_TYPED_TEST_SUITE_P(equal_size_test,
                                test_suite,
-                               global::standard::affine::saturated_simd::matrix::equal_size_types,);
+                               global::standard::affine::fixed_simd::matrix::NxN::equal_size_types,);
 
 INSTANTIATE_TYPED_TEST_SUITE_P(variable_size_test,
                                test_suite,
-                               global::standard::affine::saturated_simd::matrix::variable_size_types,);
+                               global::standard::affine::fixed_simd::matrix::NxN::variable_size_types,);

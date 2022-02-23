@@ -98,7 +98,7 @@ protected:
         _dp_vector.update_offset(new_offset);
     }
 
-    void reset(score_t new_offset) noexcept
+    void reset(score_t const & new_offset) noexcept
     {
         for (size_t i = 0; i < size(); ++i)
             std::apply([&] (auto & ...values) {

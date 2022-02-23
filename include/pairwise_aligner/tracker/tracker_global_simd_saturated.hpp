@@ -75,12 +75,12 @@ public:
     constexpr explicit type(dp_column_t dp_column,
                             dp_row_t dp_row,
                             sequence1_bulk_t && sequence1_bulk,
-                            sequence2_bulk_t && sequence2_bulk) :
+                            sequence2_bulk_t && sequence2_bulk,
+                            size_t const chink_size) :
         _dp_column{std::forward<dp_column_t>(dp_column)},
-        _dp_row{std::forward<dp_row_t>(dp_row)}
+        _dp_row{std::forward<dp_row_t>(dp_row)},
+        _chunk_size{chink_size}
     {
-        _chunk_size = dp_column.base().chunk_size();
-
         // Determine the maximal column and row size and store the sequence sizes in a simd vector.
         auto get_size = [] (auto && sequence) { return std::ranges::distance(sequence); };
         auto sequence1_sizes = sequence1_bulk | std::views::transform(get_size);
@@ -323,6 +323,7 @@ class _tracker<score_t>::type
 public:
     score_t _padding_score;
     cfg::trailing_end_gap _end_gap;
+    size_t _chunk_size{};
 
     template <typename saturated_score_t>
     constexpr saturated_score_t const & track(saturated_score_t const & score) const noexcept {
@@ -356,7 +357,7 @@ public:
         }
 
         using max_score_finder_t = detail::saturated_max_score_finder<score_t, dp_column_t const &, dp_row_t const &>;
-        max_score_finder_t max_score_finder{dp_column, dp_row, sequences1, sequences2};
+        max_score_finder_t max_score_finder{dp_column, dp_row, sequences1, sequences2, _chunk_size};
 
         score_t best_score{std::numeric_limits<typename score_t::value_type>::lowest()};
         if (_end_gap.last_column == cfg::end_gap::free) {
@@ -461,9 +462,10 @@ struct _factory<score_t>::type
     // params for free end-gaps.
     score_t _padding_score{};
     cfg::trailing_end_gap _end_gap{};
+    size_t _chunk_size{};
 
     constexpr auto make_tracker() const noexcept {
-        return tracker<score_t>{_padding_score, _end_gap};
+        return tracker<score_t>{_padding_score, _end_gap, _chunk_size};
     }
 };
 
