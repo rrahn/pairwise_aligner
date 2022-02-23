@@ -49,7 +49,6 @@ public:
     constexpr void update_offset() noexcept
     {
         score_t new_offset = (*this)[is_row_cell_v<value_type>].score();
-        assert(base_t::check_saturated_arithmetic(new_offset));
         update_offset_impl(new_offset);
     }
 
@@ -67,15 +66,18 @@ protected:
     constexpr void update_offset_impl(score_t const & new_offset) noexcept
     {
         // 1. get absolute values
-        using regular_score_t = std::remove_cvref_t<decltype(base_t::base().local_zero_offset())>;
+        using regular_cell_t = typename dp_vector_t::value_type;
+        using regular_score_t = typename regular_cell_t::score_type;
 
         regular_score_t new_offset_regular{new_offset};
-        auto absolute_values = base_t::base().offset() + new_offset_regular - base_t::base().local_zero_offset();
+        regular_score_t absolute_values = base_t::base().offset() + new_offset_regular - base_t::base().local_zero_offset();
+
         // 2. compare with threshold
         auto is_local = absolute_values.lt(base_t::base().threshold());
         _is_local = saturated_mask_t{is_local};
 
         // 3. set global_offsets and local offsets
+        assert(base_t::check_saturated_arithmetic(blend(_is_local, base_t::base().saturated_zero_offset(), new_offset)));
         base_t::reset(blend(_is_local, base_t::base().saturated_zero_offset(), new_offset));
 
         // 4. update global offset

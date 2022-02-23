@@ -19,6 +19,7 @@
 #include <pairwise_aligner/affine/affine_gap_model.hpp>
 #include <pairwise_aligner/affine/affine_initialisation_strategy.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_attorney.hpp>
+#include <pairwise_aligner/utility/add_cpo.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -171,9 +172,9 @@ protected:
         best = max(max(best, cache.second), get<1>(column_cell));
         cache.first = get<0>(column_cell); // cache next diagonal score!
         get<0>(column_cell) = tracker.track(best); // get<0>(column_cell) = best;
-        best += (this->gap_open_score + this->gap_extension_score);
-        cache.second = max(static_cast<score_t>(cache.second + this->gap_extension_score), best);
-        get<1>(column_cell) = max(static_cast<score_t>(get<1>(column_cell) + this->gap_extension_score), best);
+        best = add(best, (this->gap_open_score + this->gap_extension_score));
+        cache.second = max(add(cache.second, this->gap_extension_score), best);
+        get<1>(column_cell) = max(add(get<1>(column_cell), this->gap_extension_score), best);
     }
 };
 

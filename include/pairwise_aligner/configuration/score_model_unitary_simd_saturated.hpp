@@ -52,24 +52,29 @@ struct traits
 
     // Offer the score type here.
     using score_type = simd_score<int8_t>;
-    using original_score_type = simd_score<score_t, score_type::size>;
+
+    template <bool is_local>
+    using score_type_sat_t = std::conditional_t<is_local, simd_score_saturated<int8_t>, simd_score<int8_t>>;
+
+    template <bool is_local>
+    using original_score_t = std::conditional_t<is_local,
+                                                simd_score_saturated<score_t, score_type::size>,
+                                                simd_score<score_t, score_type::size>>;
 
     // result_factory configurator
-    using result_factory_type = tracker::global_simd_saturated::factory<original_score_type>;
+    // using result_factory_type = tracker::global_simd_saturated::factory<original_score_type>;
     using block_handler_t = detail::saturated_block_handler;
 
     template <typename configuration_t>
     constexpr auto configure_substitution_policy([[maybe_unused]] configuration_t const & configuration) const noexcept
     {
+        using _score_type = score_type_sat_t<configuration_t::is_local>;
         if constexpr (configuration_t::is_local) {
-            int8_t local_zero = block_handler_t::lowest_viable_local_score(configuration._gap_open_score,
-                                                                           configuration._gap_extension_score);
-            return score_model_unitary_local<score_type>{static_cast<score_type>(_match_score),
-                                                         static_cast<score_type>(_mismatch_score),
-                                                         static_cast<score_type>(local_zero)};
+            return score_model_unitary_local<_score_type>{static_cast<_score_type>(_match_score),
+                                                          static_cast<_score_type>(_mismatch_score)};
         } else {
-            return score_model_unitary<score_type>{static_cast<score_type>(_match_score),
-                                                   static_cast<score_type>(_mismatch_score)};
+            return pairwise_aligner::score_model_unitary<_score_type>{static_cast<_score_type>(_match_score),
+                                                                      static_cast<_score_type>(_mismatch_score)};
         }
     }
 
@@ -77,8 +82,11 @@ struct traits
     constexpr auto configure_result_factory_policy([[maybe_unused]] configuration_t const & configuration)
         const noexcept
     {
+        using _original_score_type = original_score_t<configuration_t::is_local>;
+
         if constexpr (configuration_t::is_local) {
-            return tracker::local_simd_saturated::factory<score_type, original_score_type>{};
+            using _score_type = score_type_sat_t<configuration_t::is_local>;
+            return tracker::local_simd_saturated::factory<_score_type, _original_score_type>{};
         } else {
             auto [global_zero, max_block_size] =
             block_handler_t::compute_max_block_size(_match_score,
@@ -86,8 +94,8 @@ struct traits
                                                     configuration._gap_open_score,
                                                     configuration._gap_extension_score);
 
-            return tracker::global_simd_saturated::factory<original_score_type>{
-                static_cast<original_score_type>(_match_score),
+            return tracker::global_simd_saturated::factory<_original_score_type>{
+                static_cast<_original_score_type>(_match_score),
                 configuration.trailing_gap_setting(),
                 max_block_size
             };
@@ -97,17 +105,21 @@ struct traits
     template <typename configuration_t>
     constexpr auto configure_dp_vector_policy(configuration_t const & configuration) const
     {
-        using column_cell_t = typename configuration_t::dp_cell_column_type<score_type>;
-        using original_column_cell_t = typename configuration_t::dp_cell_column_type<original_score_type>;
+        // auto [zero_offset, max_block_size] = compute_max_block_size(configuration);
+        using _score_type = score_type_sat_t<configuration_t::is_local>;
+        using _original_score_type = original_score_t<configuration_t::is_local>;
 
-        constexpr score_type padding_symbol_column{static_cast<int8_t>(1ull << 7)};
-        constexpr score_type padding_symbol_row{padding_symbol_column + configuration_t::is_local};
+        using column_cell_t = typename configuration_t::dp_cell_column_type<_score_type>;
+        using original_column_cell_t = typename configuration_t::dp_cell_column_type<_original_score_type>;
+
+        constexpr _score_type padding_symbol_column{static_cast<int8_t>(1ull << 7)};
+        constexpr _score_type padding_symbol_row{padding_symbol_column + configuration_t::is_local};
 
         auto column_vector =
             configure_dp_vector<column_cell_t, original_column_cell_t>(configuration, padding_symbol_column);
 
-        using row_cell_t = typename configuration_t::dp_cell_row_type<score_type>;
-        using original_row_cell_t = typename configuration_t::dp_cell_row_type<original_score_type>;
+        using row_cell_t = typename configuration_t::dp_cell_row_type<_score_type>;
+        using original_row_cell_t = typename configuration_t::dp_cell_row_type<_original_score_type>;
 
         auto row_vector = configure_dp_vector<row_cell_t, original_row_cell_t>(configuration, padding_symbol_row);
 
@@ -139,8 +151,18 @@ struct traits
 
 private:
 
-    template <typename saturated_cell_t, typename regular_cell_t, typename configuration_t>
-    auto configure_dp_vector(configuration_t const & configuration, score_type padding_symbol) const noexcept
+    template <typename configuration_t>
+    auto lowest_viable_local_score([[maybe_unused]] configuration_t const & configuration) const noexcept
+    {
+        static_assert(configuration_t::is_local);
+
+        return std::numeric_limits<int8_t>::lowest();
+        //  - configuration._gap_open_score -
+        //             (2 * configuration._gap_extension_score);
+    }
+
+    template <typename saturated_cell_t, typename regular_cell_t, typename configuration_t, typename _score_t>
+    auto configure_dp_vector(configuration_t const & configuration, _score_t padding_symbol) const noexcept
     {
         auto [global_zero, max_block_size] =
             block_handler_t::compute_max_block_size(_match_score,
@@ -150,8 +172,8 @@ private:
 
         auto saturated_dp_vector = [&] () {
             if constexpr (configuration_t::is_local) {
-                int8_t local_zero = block_handler_t::lowest_viable_local_score(configuration._gap_open_score,
-                                                                               configuration._gap_extension_score);
+                int8_t local_zero = lowest_viable_local_score(configuration._gap_open_score,
+                                                              configuration._gap_extension_score);
                 int8_t threshold = std::numeric_limits<int8_t>::max() - (max_block_size * _match_score);
                 return dp_vector_saturated_local_factory<regular_cell_t>(dp_vector_single<saturated_cell_t>{},
                                                                          local_zero,
