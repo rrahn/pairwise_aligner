@@ -13,6 +13,7 @@
 #pragma once
 
 #include <pairwise_aligner/matrix/dp_matrix_block_cached_profile.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_column_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column.hpp>
 
 namespace seqan::pairwise_aligner
@@ -54,6 +55,8 @@ class substitution_model_profile_lane_cache
 
 public:
 
+    using score_type = typename substitution_model_t::score_type;
+
     template <size_t _lane_width>
         requires (_lane_width == lane_width)
     using profile_type = std::add_lvalue_reference_t<cached_profile_t const>;
@@ -72,15 +75,12 @@ public:
         return _substitution_model.score(std::forward<args_t>(args)...);
     }
 
-    template <typename sequence_t>
-    constexpr cached_profile_t const & initialise_profile(size_t const index,
-                                                          sequence_t && sequence,
-                                                          strip_width_t<lane_width> const & lane_width_param) noexcept
+    template <typename ...args_t>
+    constexpr cached_profile_t const & initialise_profile(size_t const index, args_t && ...args) noexcept
     {
         assert(index < _cached_profiles.size());
         if (!_cached_profiles[index])
-            _cached_profiles[index] = _substitution_model.initialise_profile(std::forward<sequence_t>(sequence),
-                                                                             lane_width_param);
+            _cached_profiles[index] = _substitution_model.initialise_profile(std::forward<args_t>(args)...);
 
         assert(_cached_profiles[index]); // profile must be initialised
         return _cached_profiles[index];
@@ -89,22 +89,29 @@ public:
 
 } // namespace detail
 
-template <typename block_closure_t, typename ...dp_data_t>
+template <bool is_local, typename block_closure_t, typename ...dp_data_t>
 struct _column_cached_profiles
 {
     class type;
 };
 
 template <typename block_closure_t, typename ...dp_data_t>
-using column_cached_profiles_t = typename _column_cached_profiles<block_closure_t, dp_data_t...>::type;
+using column_cached_profiles_t = typename _column_cached_profiles<false, block_closure_t, dp_data_t...>::type;
 
 template <typename block_closure_t, typename ...dp_data_t>
-class _column_cached_profiles<block_closure_t, dp_data_t...>::type :
-    public dp_matrix::column_t<block_closure_t, dp_data_t...>
+using column_cached_profiles_local_t = typename _column_cached_profiles<true, block_closure_t, dp_data_t...>::type;
+
+template <bool is_local, typename block_closure_t, typename ...dp_data_t>
+class _column_cached_profiles<is_local, block_closure_t, dp_data_t...>::type :
+    public std::conditional_t<is_local,
+                              dp_matrix::column_local_t<block_closure_t, dp_data_t...>,
+                              dp_matrix::column_t<block_closure_t, dp_data_t...>>
 {
 protected:
+    using base_t = std::conditional_t<is_local,
+                              dp_matrix::column_local_t<block_closure_t, dp_data_t...>,
+                              dp_matrix::column_t<block_closure_t, dp_data_t...>>;
 
-    using base_t = dp_matrix::column_t<block_closure_t, dp_data_t...>;
     using typename base_t::substitution_model_type;
     using cached_profiles_t =
         detail::substitution_model_profile_lane_cache<substitution_model_type, base_t::lane_width_v>;
@@ -133,6 +140,7 @@ public:
                                          base_t::lane_width());
     }
 
+    // overwrites substitution model!?
     constexpr cached_profiles_t & substitution_model() noexcept
     {
         return _cached_profiles;
@@ -144,26 +152,26 @@ public:
     }
 };
 
-namespace cpo {
-template <typename block_closure_t = dp_matrix::cpo::_block_cached_profile_closure<>>
-struct _column_cached_profiles_closure
-{
-    block_closure_t block_closure{};
+// namespace cpo {
+// template <typename block_closure_t = dp_matrix::cpo::_block_cached_profile_closure<>>
+// struct _column_cached_profiles_closure
+// {
+//     block_closure_t block_closure{};
 
-    // One of the other columns need to be set as the derived class from this.
-    // Then they invoke
-    template <typename ...dp_data_t>
-    constexpr auto operator()(dp_data_t && ...dp_data) const noexcept {
-        using dp_column_t = dp_matrix::column_cached_profiles_t<block_closure_t, dp_data_t...>;
+//     // One of the other columns need to be set as the derived class from this.
+//     // Then they invoke
+//     template <typename ...dp_data_t>
+//     constexpr auto operator()(dp_data_t && ...dp_data) const noexcept {
+//         using dp_column_t = dp_matrix::column_cached_profiles_t<block_closure_t, dp_data_t...>;
 
-        return dp_column_t{block_closure, std::forward<dp_data_t>(dp_data)...};
-    }
-};
+//         return dp_column_t{block_closure, std::forward<dp_data_t>(dp_data)...};
+//     }
+// };
 
-} // namespace cpo
+// } // namespace cpo
 } // namespace dp_matrix
 
-inline constexpr dp_matrix::cpo::_column_cached_profiles_closure<> dp_matrix_column_cached_profiles{};
+// inline constexpr dp_matrix::cpo::_column_cached_profiles_closure<> dp_matrix_column_cached_profiles{};
 
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner

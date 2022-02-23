@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <pairwise_aligner/matrix/dp_matrix_column_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 
@@ -83,7 +84,6 @@ protected:
 };
 } // namespace detail
 
-
 template <template <typename ...> typename column_base_t, typename block_closure_t, typename ...dp_data_t>
 struct _column_saturated_local
 {
@@ -113,7 +113,7 @@ public:
         // we have regular simd local tracker and we wrap it into a local wrapper.
         return base_t::make_matrix_block(std::move(saturated_column),
                                          base_t::row(),
-                                         base_t::substitution_model().block_scheme(base_t::row().is_local()), // maybe wrap it here!
+                                         base_t::substitution_model(base_t::row().is_local()),
                                          base_t::tracker().in_block_tracker([&](auto const & in_block_score) {
                                              return base_t::row().to_regular_score(in_block_score);
                                          }),
@@ -125,7 +125,7 @@ public:
 namespace cpo {
 
 template <typename block_closure_t = dp_matrix::cpo::_block_closure<>,
-          template <typename ...> typename column_base_t = dp_matrix::column_t>
+          template <typename ...> typename column_base_t = dp_matrix::column_local_t>
 struct _column_saturated_local_closure
 {
     block_closure_t block_closure{};

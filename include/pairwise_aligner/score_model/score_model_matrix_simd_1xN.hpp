@@ -48,6 +48,7 @@ private:
     struct _interleaved_substitution_profile;
 
     std::array<rank_map_t, dimension> _matrix{};
+    score_t _zero{};
 
 public:
 
@@ -62,7 +63,7 @@ public:
     type() = default;
 
     template <typename substitution_matrix_t> // TODO: does this remain scalar?
-    constexpr explicit type(substitution_matrix_t const & matrix)
+    constexpr explicit type(substitution_matrix_t const & matrix, score_t zero = score_t{}) : _zero{zero}
     {
         constexpr size_t chunk_size = (dimension_v - 1 + index_type::size) / index_type::size;
         for (size_t symbol_rank = 0; symbol_rank < dimension_v; ++symbol_rank) { // we move over the substitution_matrix
@@ -73,6 +74,11 @@ public:
             }
             _matrix[symbol_rank] = simd_rank_selector_t::initialise_rank_map(tmp);
         }
+    }
+
+    constexpr score_t const & zero() const noexcept
+    {
+        return _zero;
     }
 
     template <typename strip_t, size_t width_v>

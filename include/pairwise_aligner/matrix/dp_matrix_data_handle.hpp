@@ -14,14 +14,11 @@
 
 #include <tuple>
 
-#include <pairwise_aligner/matrix/dp_matrix_block.hpp>
-
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
 namespace dp_matrix {
-
 namespace detail {
 
 template <typename ...dp_data_t>

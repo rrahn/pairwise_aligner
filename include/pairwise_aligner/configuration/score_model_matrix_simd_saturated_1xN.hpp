@@ -24,7 +24,9 @@
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/interface/interface_one_to_many_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_block_cached_profile.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_column_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_cached_profiles.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_column_saturated_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane_profile.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
@@ -33,12 +35,13 @@
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_rank_transformation.hpp>
+#include <pairwise_aligner/matrix/dp_vector_saturated_local.hpp>
 #include <pairwise_aligner/matrix/dp_vector_saturated.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
 
 #include <pairwise_aligner/score_model/score_model_matrix_simd_1xN.hpp>
 #include <pairwise_aligner/tracker/tracker_global_simd_saturated.hpp>
-#include <pairwise_aligner/tracker/tracker_local_simd_fixed.hpp>
+#include <pairwise_aligner/tracker/tracker_local_simd_saturated.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 #include <pairwise_aligner/utility/type_list.hpp>
 #include <pairwise_aligner/simd/simd_score_type.hpp>
@@ -79,10 +82,7 @@ struct traits
     score_t _match_padding_score{1};
     score_t _mismatch_padding_score{-1};
 
-    template <bool is_local>
-    using score_model_type = std::conditional_t<is_local,
-                                                score_model_matrix_simd_1xN<score_type, dimension_v>,
-                                                score_model_matrix_simd_1xN<score_type, dimension_v>>;
+    using score_model_type = score_model_matrix_simd_1xN<score_type, dimension_v>;
 
     template <typename cell_t>
     using buffer_t = std::vector<cell_t, seqan3::aligned_allocator<cell_t, alignof(cell_t)>>;
@@ -108,7 +108,9 @@ struct traits
         });
 
         // We need to select the profile!
-        return score_model_type<configuration_t::is_local>{tmp};
+        int8_t local_zero = block_handler_t::lowest_viable_local_score(configuration._gap_open_score,
+                                                                       configuration._gap_extension_score);
+        return score_model_type{tmp, static_cast<score_type>(local_zero)};
     }
 
     template <typename configuration_t>
@@ -116,7 +118,7 @@ struct traits
         const noexcept
     {
         if constexpr (configuration_t::is_local) {
-            return tracker::local_simd_fixed::factory<score_type>{};
+            return tracker::local_simd_saturated::factory<score_type, original_score_type>{};
         } else {
             return tracker::global_simd_saturated::factory<original_score_type>{
                 static_cast<original_score_type>(_match_padding_score),
@@ -159,18 +161,36 @@ struct traits
         // Initialise the scale for the column sequence map.
         alphabet_rank_map_simd<index_type> rank_map{std::move(extended_symbol_list)};
 
+        auto saturated_vector = [&] (auto original_cell_type, auto && base_vector)
+        {
+            using orginal_cell_t = typename decltype(original_cell_type)::type;
+            using base_vector_t = decltype(base_vector);
+            if constexpr (configuration_t::is_local) {
+                int8_t local_zero = block_handler_t::lowest_viable_local_score(configuration._gap_open_score,
+                                                                               configuration._gap_extension_score);
+                int8_t threshold = std::numeric_limits<int8_t>::max() - (max_block_size * _match_padding_score);
+                return dp_vector_saturated_local_factory<orginal_cell_t>(std::forward<base_vector_t>(base_vector),
+                                                                         local_zero,
+                                                                         global_zero,
+                                                                         threshold);
+            } else {
+                return dp_vector_saturated_factory<orginal_cell_t>(std::forward<base_vector_t>(base_vector),
+                                                                   global_zero);
+            }
+        };
+
         return dp_vector_policy{
                     dp_vector_rank_transformation_factory(
                         dp_vector_chunk_factory(
-                            dp_vector_saturated_factory<original_column_cell_t>(dp_vector_single<column_cell_t>{},
-                                                                                global_zero),
+                            saturated_vector(std::type_identity<original_column_cell_t>{},
+                                             dp_vector_single<column_cell_t>{}),
                             max_block_size),
                         rank_map),
                     dp_vector_bulk_factory(
                         dp_vector_rank_transformation_factory(
                             dp_vector_chunk_factory(
-                                dp_vector_saturated_factory<original_row_cell_t>(dp_vector_single<row_cell_t>{},
-                                                                                 global_zero),
+                                saturated_vector(std::type_identity<original_row_cell_t>{},
+                                                 dp_vector_single<row_cell_t>{}),
                                 max_block_size),
                             rank_map),
                         index_type{padding_symbol})
@@ -180,18 +200,27 @@ struct traits
     template <typename configuration_t, typename ...policies_t>
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
-        using dp_matrix_column_t =
-            dp_matrix::cpo::_column_saturated_closure<
-                dp_matrix::cpo::_block_cached_profile_closure<>,
-                dp_matrix::column_cached_profiles_t>;
-        using dp_matrix_policies_t = dp_matrix_policies<dp_matrix_column_t>;
+        auto make_dp_matrix_policy = [&] () constexpr {
+            if constexpr (configuration_t::is_local) {
+
+                return dp_matrix::cpo::_column_saturated_local_closure<
+                            dp_matrix::cpo::_block_cached_profile_closure<>,
+                            dp_matrix::column_cached_profiles_local_t>{};
+            } else {
+                return dp_matrix::cpo::_column_saturated_closure<
+                            dp_matrix::cpo::_block_cached_profile_closure<>,
+                            dp_matrix::column_cached_profiles_t>{};
+            }
+        };
+
+        using dp_matrix_policy_t = dp_matrix_policies<std::invoke_result_t<decltype(make_dp_matrix_policy)>>;
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
-                                                                     dp_matrix_policies_t,
+                                                                     dp_matrix_policy_t,
                                                                      lane_width_policy<>,
                                                                      std::remove_cvref_t<policies_t>...>;
 
         return interface_one_to_many_bulk<algorithm_t, score_type::size>{
-                algorithm_t{dp_matrix_policies_t{}, lane_width_policy<>{}, std::move(policies)...}};
+                algorithm_t{dp_matrix_policy_t{}, lane_width_policy<>{}, std::move(policies)...}};
     }
 };
 

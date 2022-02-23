@@ -21,6 +21,7 @@
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_single.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_column_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
 #include <pairwise_aligner/matrix/dp_matrix.hpp>
@@ -110,15 +111,23 @@ struct traits
     template <typename configuration_t, typename ...policies_t>
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
-        using dp_matrix_policies_t = dp_matrix_policies<decltype(dp_matrix_column)>;
+        auto make_dp_matrix_policy = [&] () constexpr {
+            if constexpr (configuration_t::is_local)
+                return dp_matrix_column_local;
+            else
+                return dp_matrix_column;
+        };
+
+        using dp_matrix_policy_t = dp_matrix_policies<std::invoke_result_t<decltype(make_dp_matrix_policy)>>;
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
-                                                                     dp_matrix_policies_t,
+                                                                     dp_matrix_policy_t,
                                                                      lane_width_policy<>,
                                                                      std::remove_cvref_t<policies_t>...>;
 
         return interface_one_to_one_single<algorithm_t>{
-                algorithm_t{dp_matrix_policies_t{dp_matrix_column}, lane_width_policy<>{}, std::move(policies)...}
-        };
+                algorithm_t{dp_matrix_policy_t{make_dp_matrix_policy()},
+                            lane_width_policy<>{},
+                            std::move(policies)...}};
     }
 };
 
