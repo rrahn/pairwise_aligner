@@ -23,6 +23,7 @@
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/interface/interface_one_to_many_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_block.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_column_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane_profile.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
@@ -151,15 +152,29 @@ struct traits
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
         using block_closure_t = dp_matrix::cpo::_block_closure<dp_matrix::cpo::_lane_profile_closure>;
-        using dp_matrix_column_t = dp_matrix::cpo::_column_closure<block_closure_t>;
-        using dp_matrix_policies_t = dp_matrix_policies<dp_matrix_column_t>;
+        // using dp_matrix_column_t = dp_matrix::cpo::_column_closure<block_closure_t>;
+
+
+        // using dp_matrix_policies_t = dp_matrix_policies<dp_matrix_column_t>;
+
+        auto make_dp_matrix_policy = [&] () constexpr {
+            if constexpr (configuration_t::is_local)
+                return dp_matrix::cpo::_column_local_closure<block_closure_t>{};
+            else
+                return dp_matrix::cpo::_column_closure<block_closure_t>{};
+        };
+
+        using dp_matrix_policy_t = dp_matrix_policies<std::invoke_result_t<decltype(make_dp_matrix_policy)>>;
+
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
-                                                                     dp_matrix_policies_t,
+                                                                     dp_matrix_policy_t,
                                                                      lane_width_policy<>,
                                                                      std::remove_cvref_t<policies_t>...>;
 
         return interface_one_to_many_bulk<algorithm_t, score_type::size>{
-                algorithm_t{dp_matrix_policies_t{dp_matrix_column_t{block_closure_t{}}}, lane_width_policy<>{}, std::move(policies)...}};
+                algorithm_t{dp_matrix_policy_t{make_dp_matrix_policy()},
+                            lane_width_policy<>{},
+                            std::move(policies)...}};
     }
 };
 

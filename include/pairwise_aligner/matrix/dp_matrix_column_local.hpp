@@ -6,7 +6,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides seqan::pairwise_aligner::dp_matrix_column.
+ * \brief Provides seqan::pairwise_aligner::dp_matrix_column_local.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
@@ -14,7 +14,7 @@
 
 #include <pairwise_aligner/matrix/dp_matrix_block.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_base.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_data_handle.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_data_handle_local.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -23,39 +23,34 @@ inline namespace v1
 namespace dp_matrix {
 
 template <typename block_closure_t, typename ...dp_data_t>
-struct _column
+struct _column_local
 {
     class type;
 };
 
 template <typename block_closure_t, typename ...dp_data_t>
-using column_t = typename _column<block_closure_t, dp_data_t...>::type;
+using column_local_t = typename _column_local<block_closure_t, dp_data_t...>::type;
 
 template <typename block_closure_t, typename ...dp_data_t>
-class _column<block_closure_t, dp_data_t...>::type :
-    public detail::column_base_t<block_closure_t, detail::dp_matrix_data_handle<dp_data_t...>>
+class _column_local<block_closure_t, dp_data_t...>::type :
+    public detail::column_base_t<block_closure_t, detail::dp_matrix_data_handle_local<dp_data_t...>>
 {
 protected:
-
-    using base_t = detail::column_base_t<block_closure_t, detail::dp_matrix_data_handle<dp_data_t...>>;
+    using base_t = detail::column_base_t<block_closure_t, detail::dp_matrix_data_handle_local<dp_data_t...>>;
 public:
     using base_t::base_t;
-// public:
-//     type() = delete;
-//     constexpr explicit type(block_closure_t block_closure, dp_data_t ...dp_data) noexcept :
-//         base_t{std::move(block_closure), std::forward<dp_data_t>(dp_data)...}
-//     {}
 };
 
 namespace cpo {
+
 template <typename block_closure_t = dp_matrix::cpo::_block_closure<>>
-struct _column_closure
+struct _column_local_closure
 {
     block_closure_t block_closure{};
 
     template <typename ...dp_data_t>
     constexpr auto operator()(dp_data_t && ...dp_data) const noexcept {
-        using dp_column_t = dp_matrix::column_t<block_closure_t, dp_data_t...>;
+        using dp_column_t = dp_matrix::column_local_t<block_closure_t, dp_data_t...>;
 
         return dp_column_t{block_closure, std::forward<dp_data_t>(dp_data)...};
     }
@@ -64,7 +59,7 @@ struct _column_closure
 } // namespace cpo
 } // namespace dp_matrix
 
-inline constexpr dp_matrix::cpo::_column_closure<> dp_matrix_column{};
+inline constexpr dp_matrix::cpo::_column_local_closure<> dp_matrix_column_local{};
 
-} // inline namespace v1
-}  // namespace seqan::pairwise_aligner
+} // namespace v1
+} // namespace seqan::pairwise_aligner

@@ -125,7 +125,9 @@ struct traits
                                                                      std::remove_cvref_t<policies_t>...>;
 
         return interface_one_to_one_bulk<algorithm_t, score_type::size>{
-                algorithm_t{dp_matrix_policy_t{make_dp_matrix_policy()}, lane_width_policy<>{}, std::move(policies)...}};
+                algorithm_t{dp_matrix_policy_t{make_dp_matrix_policy()},
+                                               lane_width_policy<>{},
+                                               std::move(policies)...}};
     }
 
 private:

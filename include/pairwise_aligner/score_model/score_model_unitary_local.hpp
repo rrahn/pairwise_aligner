@@ -33,19 +33,6 @@ private:
     score_t _match_score{};
     score_t _mismatch_score{};
     score_t _zero{};
-
-    struct _block_scheme
-    {
-        score_t _match_score{};
-        score_t _mismatch_score{};
-        score_t _zero{};
-
-        score_t score(score_t const & last_diagonal, score_t const & value1, score_t const & value2) const noexcept
-        {
-            return max(blend(value1.eq(value2), _match_score, _mismatch_score) + last_diagonal, _zero);
-        }
-    };
-
 public:
 
     using score_type = score_t;
@@ -57,13 +44,9 @@ public:
         _zero{std::move(zero)}
     {}
 
-    template <typename mask_t>
-    constexpr _block_scheme block_scheme(mask_t const & is_local) const noexcept
+    constexpr score_t const & zero() const noexcept
     {
-        constexpr score_t global_zero{std::numeric_limits<typename score_t::value_type>::lowest()};
-        return _block_scheme{_match_score,
-                             _mismatch_score,
-                             blend(is_local, _zero, global_zero)};
+        return _zero;
     }
 
     template <typename value1_t, typename value2_t>
@@ -72,8 +55,7 @@ public:
                   value1_t const & value1,
                   value2_t const & value2) const noexcept
     {
-        using std::max;
-        return max<score_t>(last_diagonal + ((value1 == value2) ? _match_score : _mismatch_score), 0);
+        return last_diagonal + ((value1 == value2) ? _match_score : _mismatch_score);
     }
 
     template <std::integral scalar_score_t, size_t bulk_size>
@@ -83,7 +65,7 @@ public:
     {
         static_assert(std::same_as<score_t, simd_score<scalar_score_t, bulk_size>>,
                       "The simd score type does not match the score type of this score class.");
-        return max(blend(value1.eq(value2), _match_score, _mismatch_score) + last_diagonal, _zero);
+        return blend(value1.eq(value2), _match_score, _mismatch_score) + last_diagonal;
     }
 
     // TODO: Refactor into separate factory CPO.
