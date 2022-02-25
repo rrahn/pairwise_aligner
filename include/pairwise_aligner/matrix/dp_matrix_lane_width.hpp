@@ -25,9 +25,24 @@ namespace dp_matrix {
 template <std::size_t width>
 using lane_width_t = std::integral_constant<std::size_t, width>;
 
-template <std::size_t width>
-inline constexpr lane_width_t<width> lane_width_v;
+template <std::size_t width = (seqan::pairwise_aligner::detail::max_simd_size == 64 ? 8 : 4)>
+inline constexpr lane_width_t<width> lane_width;
 
+namespace detail {
+
+template <typename width_t, bool is_dynamic>
+struct lane_tag : public std::bool_constant<is_dynamic>
+{
+    static constexpr size_t width = width_t::value;
+};
+
+template <typename width_t>
+inline constexpr lane_tag<width_t, false> static_lane{};
+
+template <typename width_t>
+inline constexpr lane_tag<width_t, true> dynamic_lane{};
+
+} // mamespace detail
 } // namespace dp_matrix
 
 template <size_t width = ((seqan::pairwise_aligner::detail::max_simd_size == 64) ? 8 : 4)>
@@ -35,8 +50,9 @@ struct lane_width_policy
 {
     constexpr dp_matrix::lane_width_t<width> make_lane_width() const noexcept
     {
-        return dp_matrix::lane_width_v<width>;
+        return dp_matrix::lane_width<width>;
     }
 };
+
 } // inline namespace v1
 } // namespace seqan::pairwise_aligner

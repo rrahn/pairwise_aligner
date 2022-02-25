@@ -14,8 +14,9 @@
 
 #include <iosfwd>
 
-#include <pairwise_aligner/matrix/dp_matrix_block.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_column.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_column_base.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_state_handle.hpp>
+#include <pairwise_aligner/utility/type_list.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 
 namespace seqan::pairwise_aligner
@@ -23,11 +24,10 @@ namespace seqan::pairwise_aligner
 inline namespace v1
 {
 namespace dp_matrix {
-
-namespace detail {
+namespace _column_saturated {
 
 template <typename dp_vector_t> // saturated vector
-class saturated_wrapper
+class _wrapper
 {
 public:
 
@@ -44,8 +44,8 @@ private:
 
 public:
 
-    saturated_wrapper() = delete;
-    explicit saturated_wrapper(dp_vector_t & dp_vector) : _dp_vector{dp_vector}
+    _wrapper() = delete;
+    explicit _wrapper(dp_vector_t & dp_vector) : _dp_vector{dp_vector}
     {}
 
     reference operator[](size_t const pos) noexcept
@@ -88,6 +88,11 @@ public:
         score_t new_offset = (*this)[is_row_cell_v<value_type>].score();
         assert(check_saturated_arithmetic(new_offset));
         update_offset_impl(new_offset);
+    }
+
+    constexpr decltype(auto) offset() const noexcept
+    {
+        return base().offset();
     }
 
 protected:
@@ -159,73 +164,98 @@ protected:
         return test;
     }
 };
-} // namespace detail
 
-template <template <typename ...> typename column_base_t, typename block_closure_t, typename ...dp_data_t>
-struct _column_saturated
+template <typename lazy_wrapper_t, typename block_fn_t, typename ...dp_state_t>
+class _type : public dp_matrix::detail::column_base<block_fn_t, dp_state_t...>
 {
-    class type;
-};
-
-template <template <typename ...> typename column_base_t, typename block_closure_t, typename ...dp_data_t>
-using column_saturated_t = typename _column_saturated<column_base_t, block_closure_t, dp_data_t...>::type;
-
-template <template <typename ...> typename column_base_t, typename block_closure_t, typename ...dp_data_t>
-class _column_saturated<column_base_t, block_closure_t, dp_data_t...>::type :
-    public column_base_t<block_closure_t, dp_data_t...>
-{
-    using base_t = column_base_t<block_closure_t, dp_data_t...>;
+    using base_t = dp_matrix::detail::column_base<block_fn_t, dp_state_t...>;
+    using dp_inner_column_t = std::remove_reference_t<decltype(std::declval<_type &>().dp_column()[0])>;
+    using dp_wrapper_t = instantiate_t<lazy_wrapper_t, dp_inner_column_t>;
 
 public:
-
     using base_t::base_t;
 
-    constexpr auto operator[](size_t const index) noexcept
+    constexpr auto row_at(std::ptrdiff_t const index) noexcept
+        -> decltype(std::declval<_type &>().make_matrix_block(dp_wrapper_t{base_t::dp_column()[index]},
+                                                              base_t::dp_row(),
+                                                              base_t::column_slice_at(index),
+                                                              base_t::row_sequence(),
+                                                              base_t::substitution_model(),
+                                                              base_t::tracker().in_block_tracker(base_t::dp_row().offset())))
     {
-        assert(index < base_t::size());
+        assert(index < base_t::row_count());
 
-        detail::saturated_wrapper saturated_column{base_t::column()[index]};
+        dp_wrapper_t saturated_column{base_t::dp_column()[index]};
         saturated_column.update_offset();
-        base_t::row().update_offset();
+        base_t::dp_row().update_offset();
         return base_t::make_matrix_block(std::move(saturated_column),
-                                         base_t::row(),
-                                         base_t::substitution_model(),
-                                         base_t::tracker(),
+                                         base_t::dp_row(),
+                                         base_t::column_slice_at(index),
                                          base_t::row_sequence(),
-                                         base_t::lane_width());
+                                         base_t::substitution_model(),
+                                         base_t::tracker().in_block_tracker(base_t::dp_row().offset()));
     }
 };
 
-namespace cpo {
-
-template <typename block_closure_t = dp_matrix::cpo::_block_closure<>,
-          template <typename ...> typename column_base_t = dp_matrix::column_t>
-struct _column_saturated_closure
+template <typename lazy_wrapper_t>
+struct _fn
 {
-    block_closure_t block_closure{};
+    template <typename dp_block_fn_t>
+    constexpr auto operator()(dp_block_fn_t && dp_block_fn) const noexcept
+    {
+        std::tuple<dp_block_fn_t> tmp{std::forward<dp_block_fn_t>(dp_block_fn)};
+        return [fwd_capture = std::move(tmp)] (auto && ...dp_state) {
+            constexpr size_t idx =
+                dp_matrix::detail::dp_state_accessor_id_v<dp_matrix::detail::dp_state_accessor::id_dp_row>;
 
-    template <typename dp_column_t, typename dp_row_t, typename ...remaining_dp_data_t>
-    constexpr auto operator()(dp_column_t && dp_column,
-                              dp_row_t & dp_row,
-                              remaining_dp_data_t && ...remaining_dp_data) const noexcept {
-        using dp_saturated_column_t =
-            dp_matrix::column_saturated_t<column_base_t,
-                                          block_closure_t,
-                                          dp_column_t,
-                                          detail::saturated_wrapper<dp_row_t>,
-                                          remaining_dp_data_t...>;
+            using dp_row_t = std::remove_reference_t<seqan3::pack_traits::at<idx, decltype(dp_state)...>>;
+            using modified_pack_list_t =
+                    seqan3::list_traits::transform<remove_rvalue_reference_t,
+                        seqan3::pack_traits::replace_at<instantiate_t<lazy_wrapper_t, dp_row_t>,
+                                                        idx,
+                                                        decltype(dp_state)...
+                        >
+                    >;
 
-        return dp_saturated_column_t{block_closure,
-                                     std::forward<dp_column_t>(dp_column),
-                                     detail::saturated_wrapper{dp_row},
-                                     std::forward<remaining_dp_data_t>(remaining_dp_data)...};
+            using fwd_dp_block_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
+
+            using column_t = apply_t<_column_saturated::_type,
+                                     concat_type_lists_t<type_list<lazy_wrapper_t, fwd_dp_block_fn_t>,
+                                                         modified_pack_list_t>>;
+
+            return std::apply([] (auto && ...args) { return column_t{std::forward<decltype(args)>(args)...}; },
+                        std::tuple_cat(fwd_capture,
+                                       _fn::convert_dp_row<idx>(std::forward<decltype(dp_state)>(dp_state)...)));
+        };
+    }
+
+private:
+    template <size_t idx, typename ...args_t>
+    static constexpr auto convert_dp_row(args_t && ...args) noexcept
+    {
+        auto tmp = std::forward_as_tuple(std::forward<args_t>(args)...);
+        using dp_row_t = std::tuple_element_t<idx, decltype(tmp)>;
+        using saturated_dp_row_t = instantiate_t<lazy_wrapper_t, std::remove_cvref_t<dp_row_t>>;
+        return std::tuple_cat(extract_args<0>(tmp, std::make_index_sequence<idx>()),
+                              std::tuple{saturated_dp_row_t{std::forward<dp_row_t>(std::get<idx>(tmp))}},
+                              extract_args<idx + 1>(tmp, std::make_index_sequence<sizeof...(args) - (idx + 1)>()));
+    }
+
+    template <size_t start_idx, typename tuple_t, size_t ...idx>
+    static constexpr auto extract_args(tuple_t && tpl, std::index_sequence<idx...> const &) noexcept
+    {
+        using base_tuple_t = std::remove_reference_t<tuple_t>;
+        static_assert(start_idx + (sizeof...(idx) - 1) < std::tuple_size_v<base_tuple_t>);
+
+        return std::forward_as_tuple(std::forward<std::tuple_element_t<start_idx + idx, base_tuple_t>>(std::get<start_idx + idx>(tpl))...);
     }
 };
+} // namespace _column_saturated
 
-} // namespace cpo
+inline namespace _cpo {
+inline constexpr dp_matrix::_column_saturated::_fn<lazy_type<_column_saturated::_wrapper>> column_saturated{};
+
+} // inline namespace _cpo
 } // namespace dp_matrix
-
-inline constexpr dp_matrix::cpo::_column_saturated_closure<> dp_matrix_column_saturated{};
-
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner

@@ -6,15 +6,13 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides seqan::pairwise_aligner::score_model_unitary.
+ * \brief Provides seqan::pairwise_aligner::score_model_unitary_simd_local.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
 #pragma once
 
-#include <seqan3/std/concepts>
-#include <seqan3/std/type_traits>
-
+#include <pairwise_aligner/simd/concept.hpp>
 #include <pairwise_aligner/utility/math.hpp>
 
 namespace seqan::pairwise_aligner
@@ -23,39 +21,43 @@ inline namespace v1
 {
 
 template <typename score_t>
-struct _score_model_unitary
+struct _score_model_unitary_simd_local
 {
     class type;
 };
 
-template <typename score_t>
-    requires (std::is_arithmetic_v<score_t>)
-using  score_model_unitary = typename _score_model_unitary<score_t>::type;
+template <simd::simd_type score_t>
+using  score_model_unitary_simd_local = typename _score_model_unitary_simd_local<score_t>::type;
 
 template <typename score_t>
-class _score_model_unitary<score_t>::type
+class _score_model_unitary_simd_local<score_t>::type
 {
 private:
     score_t _match_score{};
     score_t _mismatch_score{};
+    score_t _zero{};
 
 public:
 
     using score_type = score_t;
 
     type() = default;
-    explicit type(score_t match_score, score_t mismatch_score) :
+    explicit type(score_t match_score, score_t mismatch_score, score_t zero = {}) :
         _match_score{std::move(match_score)},
-        _mismatch_score{std::move(mismatch_score)}
+        _mismatch_score{std::move(mismatch_score)},
+        _zero{std::move(zero)}
     {}
 
-    template <typename value1_t, typename value2_t>
-        requires (std::equality_comparable_with<value1_t, value2_t>)
-    score_t score(score_t const & last_diagonal,
-                  value1_t const & value1,
-                  value2_t const & value2) const noexcept
+    constexpr score_t const & zero() const noexcept
     {
-        return add(last_diagonal, ((value1 == value2) ? _match_score : _mismatch_score));
+        return _zero;
+    }
+
+    template <simd::simd_type value_t>
+        requires (std::same_as<typename score_type::mask_type, typename value_t::mask_type>)
+    score_type score(score_type const & last_diagonal, value_t const & value1, value_t const & value2) const noexcept
+    {
+        return add(blend(value1.eq(value2), _match_score, _mismatch_score), last_diagonal);
     }
 
     // TODO: Refactor into separate factory CPO.

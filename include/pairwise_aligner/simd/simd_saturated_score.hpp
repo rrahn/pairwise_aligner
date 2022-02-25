@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include <pairwise_aligner/simd/add_saturated.hpp>
+#include <pairwise_aligner/simd/math.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -52,6 +52,32 @@ public:
         _derived_t tmp{};
         as_derived().apply([] (auto & result, auto const & a, auto const & b) {
             result = simd::add_saturated(a, b);
+        }, tmp.values, as_derived().values, _derived_t{rhs}.values);
+        return tmp;
+    }
+
+    template <typename _derived_t = derived_t>
+        requires requires (typename _derived_t::simd_type::value_type const & v) {
+            { simd::subtract_saturated(v, v) } -> std::same_as<typename _derived_t::simd_type::value_type>;
+        }
+    constexpr _derived_t subtract(_derived_t const & rhs) const noexcept
+    {
+        _derived_t tmp{};
+        as_derived().apply([] (auto & result, auto const & a, auto const & b) {
+            result = simd::subtract_saturated(a, b);
+        }, tmp.values, as_derived().values, rhs.values);
+        return tmp;
+    }
+
+    template <typename _derived_t = derived_t>
+        requires requires (typename _derived_t::simd_type::value_type const & v) {
+            { simd::subtract_saturated(v, v) } -> std::same_as<typename _derived_t::simd_type::value_type>;
+        }
+    constexpr _derived_t subtract(typename _derived_t::value_type const & rhs) const noexcept
+    {
+        _derived_t tmp{};
+        as_derived().apply([] (auto & result, auto const & a, auto const & b) {
+            result = simd::subtract_saturated(a, b);
         }, tmp.values, as_derived().values, _derived_t{rhs}.values);
         return tmp;
     }

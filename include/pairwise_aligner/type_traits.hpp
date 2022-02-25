@@ -15,6 +15,7 @@
 #include <cstdint>
 
 #include <seqan3/std/concepts>
+#include <seqan3/std/type_traits>
 
 namespace seqan::pairwise_aligner
 {
@@ -51,6 +52,28 @@ inline constexpr bool is_column_cell_v<dp_cell_t> = true;
 
 template <typename rule_t, template <typename...> typename tuple_t>
 using configurator_types_t = typename rule_t::template configurator_types<tuple_t>;
+
+template <typename t>
+struct remove_rvalue_reference : std::type_identity<t>
+{};
+
+template <typename t>
+    requires (std::is_rvalue_reference_v<t>)
+struct remove_rvalue_reference<t> : std::type_identity<std::remove_reference_t<t>>
+{};
+
+template <typename t>
+using remove_rvalue_reference_t = typename remove_rvalue_reference<t>::type;
+
+template <template <typename> typename deferred_t>
+struct lazy_type
+{
+    template <typename ...types>
+    using type = deferred_t<types...>;
+};
+
+template <typename lazy_type, typename ...types>
+using instantiate_t = typename lazy_type::type<types...>;
 
 } // inline namespace v1
 }  // namespace seqan::pairwise_aligner

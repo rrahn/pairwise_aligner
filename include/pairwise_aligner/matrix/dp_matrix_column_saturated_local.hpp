@@ -12,23 +12,20 @@
 
 #pragma once
 
-#include <pairwise_aligner/matrix/dp_matrix_column_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated.hpp>
-#include <pairwise_aligner/type_traits.hpp>
 
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
 namespace dp_matrix {
-
-namespace detail {
+namespace _column_saturated_local {
 
 template <typename dp_vector_t> // saturated vector
-class saturated_wrapper_local : public saturated_wrapper<dp_vector_t>
+class _wrapper : public dp_matrix::_column_saturated::_wrapper<dp_vector_t>
 {
 private:
-    using base_t = saturated_wrapper<dp_vector_t>;
+    using base_t = dp_matrix::_column_saturated::_wrapper<dp_vector_t>;
 
     using score_t = typename base_t::value_type::score_type;
     using saturated_mask_t = typename score_t::mask_type;
@@ -42,8 +39,8 @@ public:
     using typename base_t::reference;
     using typename base_t::const_reference;
 
-    saturated_wrapper_local() = delete;
-    explicit saturated_wrapper_local(dp_vector_t & dp_vector) : base_t{dp_vector}
+    _wrapper() = delete;
+    explicit _wrapper(dp_vector_t & dp_vector) : base_t{dp_vector}
     {}
 
     constexpr void update_offset() noexcept
@@ -84,76 +81,14 @@ protected:
         base_t::base().update_offset(new_offset_regular, is_local);
     }
 };
-} // namespace detail
 
-template <template <typename ...> typename column_base_t, typename block_closure_t, typename ...dp_data_t>
-struct _column_saturated_local
-{
-    class type;
-};
+} // namespace _column_saturated_local
 
-template <template <typename ...> typename column_base_t, typename block_closure_t, typename ...dp_data_t>
-using column_saturated_local_t = typename _column_saturated_local<column_base_t, block_closure_t, dp_data_t...>::type;
+inline namespace _cpo {
+inline constexpr dp_matrix::_column_saturated::_fn<lazy_type<_column_saturated_local::_wrapper>>
+    column_saturated_local{};
 
-template <template <typename ...> typename column_base_t, typename block_closure_t, typename ...dp_data_t>
-class _column_saturated_local<column_base_t, block_closure_t, dp_data_t...>::type :
-    public column_base_t<block_closure_t, dp_data_t...>
-{
-    using base_t = column_base_t<block_closure_t, dp_data_t...>;
-
-public:
-
-    using base_t::base_t;
-
-    constexpr auto operator[](size_t const index) noexcept
-    {
-        assert(index < base_t::size());
-
-        detail::saturated_wrapper_local saturated_column{base_t::column()[index]};
-        saturated_column.update_offset();
-        base_t::row().update_offset();
-        // we have regular simd local tracker and we wrap it into a local wrapper.
-        return base_t::make_matrix_block(std::move(saturated_column),
-                                         base_t::row(),
-                                         base_t::substitution_model(base_t::row().is_local()),
-                                         base_t::tracker().in_block_tracker([&](auto const & in_block_score) {
-                                             return base_t::row().to_regular_score(in_block_score);
-                                         }),
-                                         base_t::row_sequence(),
-                                         base_t::lane_width());
-    }
-};
-
-namespace cpo {
-
-template <typename block_closure_t = dp_matrix::cpo::_block_closure<>,
-          template <typename ...> typename column_base_t = dp_matrix::column_local_t>
-struct _column_saturated_local_closure
-{
-    block_closure_t block_closure{};
-
-    template <typename dp_column_t, typename dp_row_t, typename ...remaining_dp_data_t>
-    constexpr auto operator()(dp_column_t && dp_column,
-                              dp_row_t & dp_row,
-                              remaining_dp_data_t && ...remaining_dp_data) const noexcept {
-        using column_saturated_local_t =
-            dp_matrix::column_saturated_local_t<
-                column_base_t,
-                block_closure_t,
-                dp_column_t,
-                detail::saturated_wrapper_local<dp_row_t>, remaining_dp_data_t...>;
-
-        return column_saturated_local_t{std::move(block_closure),
-                                        std::forward<dp_column_t>(dp_column),
-                                        detail::saturated_wrapper_local{dp_row},
-                                        std::forward<remaining_dp_data_t>(remaining_dp_data)...};
-    }
-};
-
-} // namespace cpo
+} // inline namespace _cpo
 } // namespace dp_matrix
-
-inline constexpr dp_matrix::cpo::_column_saturated_local_closure<> dp_matrix_column_saturated_local{};
-
 } // inline namespace v1
-}  // namespace seqan::pairwise_aligner
+} // namespace seqan::pairwise_aligner

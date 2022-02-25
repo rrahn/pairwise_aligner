@@ -370,6 +370,9 @@ public:
         return best_score;
     }
 
+    constexpr type & in_block_tracker(score_t const &) noexcept {
+        return *this;
+    }
     // TODO: optimal_coordinate()
 
 private:

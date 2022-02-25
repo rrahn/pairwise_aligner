@@ -17,6 +17,7 @@
 
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_attorney.hpp>
 #include <pairwise_aligner/result/aligner_result.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_cpo.hpp>
 #include <pairwise_aligner/score_model/strip_width.hpp>
 #include <pairwise_aligner/simd/simd_base.hpp>
 
@@ -65,9 +66,12 @@ protected:
     }
 
     template <typename ...args_t>
-    auto initialise_policies(args_t && ...args) const noexcept
+    auto initialise_dp_matrix(args_t && ...args) const noexcept
     {
-        return algorithm_attorney_t::initialise_policies(as_algorithm(), std::forward<args_t>(args)...);
+        return algorithm_attorney_t::initialise_policies(as_algorithm(),
+                                                         std::forward<args_t>(args)...,
+                                                         initialise_substitution_scheme(),
+                                                         initialise_tracker());
     }
 
     template <typename ...args_t>
@@ -76,180 +80,53 @@ protected:
         return algorithm_attorney_t::lane_width(as_algorithm(), std::forward<args_t>(args)...);
     }
 
-    template <typename sequence1_t, typename dp_block_t>
-    void compute_block(sequence1_t && sequence1, dp_block_t && dp_block) const noexcept
+    template <typename dp_block_t>
+    void compute_block(dp_block_t && dp_block) const noexcept
     {
         // Initialise bulk_cache array.
-        constexpr std::ptrdiff_t lane_width = std::remove_cvref_t<dp_block_t>::lane_width_v;
-        constexpr auto index_sequence = std::make_index_sequence<lane_width>();
-        std::ptrdiff_t const sequence1_size = std::ranges::distance(sequence1);
+        // constexpr std::ptrdiff_t lane_width = std::remove_cvref_t<dp_block_t>::lane_width_v;
+        // std::ptrdiff_t const sequence1_size = std::ranges::distance(sequence1);
 
-        auto && tracker = dp_block.tracker();
-        auto && scorer = dp_block.substitution_model();
+        constexpr auto index_sequence = std::make_index_sequence<std::remove_reference_t<dp_block_t>::lane_width>();
+        auto && tracker = dp_matrix::tracker(dp_block);
+        auto && scorer = dp_matrix::substitution_model(dp_block);
 
-        for (size_t lane_index = 0; lane_index < dp_block.size() - 1; ++lane_index)
+        // We are moving over the sequences here.
+        for (std::ptrdiff_t lane_index = 0; lane_index < dp_matrix::column_count(dp_block) - 1; ++lane_index)
         {
-            auto dp_lane = dp_block[lane_index];
-            auto && seq2_slice = dp_lane.row_sequence();
+            auto dp_lane = dp_matrix::column_at(dp_block, lane_index);
+            auto && seq2_slice = dp_matrix::row_sequence(dp_lane);
 
             // compute cache many cells in one row for one horizontal value.
-            for (std::ptrdiff_t i = 0; i < sequence1_size; ++i) {
-                auto cacheH = dp_lane.column()[i+1];
-                unroll_loop(dp_lane.row(), cacheH, scorer, tracker, sequence1[i], seq2_slice, index_sequence);
-                dp_lane.column()[i+1] = cacheH;
+            for (std::ptrdiff_t i = 0; i < dp_matrix::row_count(dp_lane); ++i) {
+                auto cacheH = dp_matrix::dp_column(dp_lane)[i+1];
+                unroll_loop(dp_matrix::dp_row(dp_lane),
+                            cacheH,
+                            scorer,
+                            tracker,
+                            dp_matrix::column_sequence(dp_lane)[i],
+                            seq2_slice,
+                            index_sequence);
+                dp_matrix::dp_column(dp_lane)[i+1] = cacheH;
             }
         }
 
         // Compute remaining cells requesting explicitly last lane.
-        auto last_dp_lane = dp_block.last_lane();
-        auto && seq2_slice = last_dp_lane.row_sequence();
-        assert(seq2_slice.size() <= lane_width);
+        auto final_dp_lane = dp_block.final_lane(); // Not a CPO -> last_column/row
+        auto && seq2_slice = dp_matrix::row_sequence(final_dp_lane);
+        // assert(seq2_slice.size() <= lane_width);
 
         // compute cache many cells in one row for one horizontal value.
-        for (std::ptrdiff_t i = 0; i < sequence1_size; ++i) {
-            auto cacheH = last_dp_lane.column()[i+1];
-            unroll_loop(last_dp_lane.row(), cacheH, scorer, tracker, sequence1[i], seq2_slice);
-            last_dp_lane.column()[i+1] = cacheH;
+        for (std::ptrdiff_t i = 0; i < dp_matrix::row_count(final_dp_lane); ++i) {
+            auto cacheH = dp_matrix::dp_column(final_dp_lane)[i+1];
+            unroll_loop(dp_matrix::dp_row(final_dp_lane),
+                        cacheH,
+                        scorer,
+                        tracker,
+                        dp_matrix::column_sequence(final_dp_lane)[i],
+                        seq2_slice);
+            dp_matrix::dp_column(final_dp_lane)[i+1] = cacheH;
         }
-    }
-
-    template <typename sequence1_t,
-              typename sequence2_t,
-              typename dp_column_t,
-              typename dp_row_t,
-              typename scorer_t,
-              typename tracker_t>
-        // requires requires (scorer_t const & sc, sequence2_t && seq)
-        // {
-        //     { sc.initialise_profile(seq, strip_width<1>) };
-        // }
-    void compute_block(sequence1_t && sequence1,
-                       sequence2_t && sequence2,
-                       dp_column_t && dp_column,
-                       dp_row_t && dp_row,
-                       scorer_t && scorer,
-                       tracker_t && tracker)
-        const noexcept
-    {
-        std::ptrdiff_t const sequence1_size = std::ranges::distance(sequence1);
-        std::ptrdiff_t const sequence2_size = std::ranges::distance(sequence2);
-
-        // Precompute the offsets for the row of this block
-        // using s1_value_t = typename std::ranges::range_value_t<sequence1_t>;
-        // using uvalue_t = detail::make_unsigned_t<s1_value_t>;
-
-        // auto profile_init = scorer.initialise_profile(std::span{sequence2.begin(), 1}, strip_width<1>);
-        // std::vector<uvalue_t> tmp{};
-        // tmp.resize(sequence1_size);
-        // for (size_t i = 0; i < tmp.size(); ++i) {
-        //     tmp[i] = profile_init.to_offset(sequence1[i]);
-        // }
-
-        using value_t = typename std::remove_cvref_t<dp_row_t>::value_type;
-
-        // Store score of first row cell in first column cell.
-        // Note the first column/row is not computed again, as they were already initialised.
-        dp_column[0].score() = dp_row[0].score();
-
-        // Initialise bulk_cache array.
-        constexpr std::ptrdiff_t cache_size = (detail::max_simd_size == 64) ? 8 : 4;
-        std::array<value_t, cache_size> bulk_cache{};
-
-        std::ptrdiff_t j = 0;
-        for (; j < sequence2_size - (cache_size - 1); j += cache_size)
-        {
-            // copy values into cache.
-            std::span seq2_slice{sequence2.begin() + j, sequence2.begin() + j + cache_size};
-
-            unroll_load(bulk_cache, dp_row, j + 1, std::make_index_sequence<cache_size>());
-            auto profile = scorer.initialise_profile(seq2_slice, strip_width<cache_size>); // initialise_profile<cache_size>(scorer, seq2_slice);
-
-            // compute cache many cells in one row for one horizontal value.
-            for (std::ptrdiff_t i = 0; i < sequence1_size; ++i) {
-                auto cacheH = dp_column[i+1];
-                auto profile_scores = profile.scores_for(sequence1[i]);
-
-                unroll_loop(bulk_cache,
-                            cacheH,
-                            scorer,
-                            tracker,
-                            sequence1[i],
-                            profile_scores,
-                            std::make_index_sequence<cache_size>());
-
-                dp_column[i+1] = cacheH;
-            }
-
-            // store results of cache back in vector.
-            unroll_store(dp_row, bulk_cache, j + 1, std::make_index_sequence<cache_size>());
-        }
-
-        // Compute remaining cells.
-        // Run last block with less than 4/8 cached values.
-        std::span seq2_slice{sequence2.begin() + j, sequence2.end()};
-        assert(seq2_slice.size() <= cache_size);
-
-        // unroll_load
-        for (std::ptrdiff_t k = 0 ; k < std::ranges::ssize(seq2_slice); ++k) {
-            bulk_cache[k] = dp_row[j + k + 1];
-        }
-
-        // auto profile = scorer.initialise_profile(seq2_slice, strip_width<cache_size>);
-
-        // compute cache many cells in one row for one horizontal value.
-        for (std::ptrdiff_t i = 0; i < sequence1_size; ++i) {
-            auto cacheH = dp_column[i+1];
-            // auto profile_scores = profile.scores_for(sequence1[i]);
-
-            for (std::ptrdiff_t k = 0; k < std::ranges::ssize(seq2_slice); ++k) {
-                algorithm_attorney_t::compute_cell(as_algorithm(),
-                                                bulk_cache[k],
-                                                cacheH,
-                                                scorer,
-                                                tracker,
-                                                sequence1[i],
-                                                seq2_slice[k]);
-            }
-
-            dp_column[i+1] = cacheH;
-        }
-
-        // unroll_store
-        for (std::ptrdiff_t k = 0 ; k < std::ranges::ssize(seq2_slice); ++k) {
-            dp_row[j + k + 1] = bulk_cache[k];
-        }
-        // Store score of last column in first cell of row.
-        dp_row[0].score() = dp_column[dp_column.size() - 1].score();
-    }
-
-    template <typename dp_row_t>
-    constexpr void rotate_row_scores_right(dp_row_t && dp_row) const noexcept
-    {
-        size_t const dp_row_size = dp_row.size() - 1;
-        // cache score of last cell.
-        auto tmp = std::move(dp_row[dp_row_size].score());
-
-        // rotate scores right.
-        for (size_t j = dp_row_size; j > 0; --j)
-            dp_row[j].score() = dp_row[j - 1].score();
-
-        // store last value in first cell.
-        dp_row[0].score() = std::move(tmp);
-    }
-
-    template <typename dp_row_t>
-    constexpr void rotate_row_scores_left(dp_row_t && dp_row) const noexcept
-    {
-        size_t const dp_row_size = dp_row.size() - 1;
-        // cache score of first cell.
-        auto tmp = std::move(dp_row[0].score());
-
-        // rotate scores left.
-        for (size_t j = 0; j < dp_row_size; ++j)
-            dp_row[j].score() = dp_row[j + 1].score();
-
-        // store cached score in last cell.
-        dp_row[dp_row_size].score() = std::move(tmp);
     }
 
     template <typename tracker_t, typename ...args_t>
@@ -306,24 +183,6 @@ private:
                                                seq1_value,
                                                seq2_values[idx]);
         }
-    }
-
-    template <typename cache_t, typename row_vector_t, size_t ...idx>
-    constexpr void unroll_load(cache_t & bulk_cache,
-                               row_vector_t const & row_vector,
-                               size_t const offset,
-                               [[maybe_unused]] std::index_sequence<idx...> const & indices) const noexcept
-    {
-        ((bulk_cache[idx] = row_vector[offset + idx]), ...);
-    }
-
-    template <typename row_vector_t, typename cache_t, size_t ...idx>
-    constexpr void unroll_store(row_vector_t & row_vector,
-                                cache_t const & bulk_cache,
-                                size_t const offset,
-                                [[maybe_unused]] std::index_sequence<idx...> const & indices) const noexcept
-    {
-        ((row_vector[offset + idx] = bulk_cache[idx]), ...);
     }
 
     constexpr algorithm_impl_t const & as_algorithm() const noexcept
