@@ -19,16 +19,17 @@
 #include <pairwise_aligner/configuration/rule_score_model.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/interface/interface_one_to_one_bulk.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_column_local.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_block.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_lane.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_policy.hpp>
 #include <pairwise_aligner/matrix/dp_vector_single.hpp>
-#include <pairwise_aligner/score_model/score_model_unitary_local.hpp>
-#include <pairwise_aligner/score_model/score_model_unitary.hpp>
+#include <pairwise_aligner/score_model/score_model_unitary_simd_local.hpp>
+#include <pairwise_aligner/score_model/score_model_unitary_simd.hpp>
 #include <pairwise_aligner/tracker/tracker_global_simd_fixed.hpp>
 #include <pairwise_aligner/tracker/tracker_local_simd_fixed.hpp>
 #include <pairwise_aligner/type_traits.hpp>
@@ -59,8 +60,8 @@ struct traits
 
     template <bool is_local>
     using score_model_type = std::conditional_t<is_local,
-                                                score_model_unitary_local<score_type>,
-                                                pairwise_aligner::score_model_unitary<score_type>>;
+                                                seqan::pairwise_aligner::score_model_unitary_simd_local<score_type>,
+                                                seqan::pairwise_aligner::score_model_unitary_simd<score_type>>;
 
     template <typename dp_vector_t>
     using dp_vector_column_type = dp_vector_bulk<dp_vector_t, score_type>;
@@ -113,22 +114,25 @@ struct traits
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
         auto make_dp_matrix_policy = [&] () constexpr {
+
+            auto default_column = [] () {
+                return dp_matrix::column(dp_matrix::block(dp_matrix::lane));
+            };
+
             if constexpr (configuration_t::is_local)
-                return dp_matrix_column_local;
+                return dp_matrix::matrix_local(default_column());
             else
-                return dp_matrix_column;
+                return dp_matrix::matrix(default_column());
         };
 
-        using dp_matrix_policy_t = dp_matrix_policies<std::invoke_result_t<decltype(make_dp_matrix_policy)>>;
+        using dp_matrix_policy_t =
+                dp_matrix_policies<std::remove_reference_t<std::invoke_result_t<decltype(make_dp_matrix_policy)>>>;
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
                                                                      dp_matrix_policy_t,
-                                                                     lane_width_policy<>,
                                                                      std::remove_cvref_t<policies_t>...>;
 
         return interface_one_to_one_bulk<algorithm_t, score_type::size>{
-                algorithm_t{dp_matrix_policy_t{make_dp_matrix_policy()},
-                                               lane_width_policy<>{},
-                                               std::move(policies)...}};
+                algorithm_t{dp_matrix_policy_t{make_dp_matrix_policy()}, std::move(policies)...}};
     }
 };
 

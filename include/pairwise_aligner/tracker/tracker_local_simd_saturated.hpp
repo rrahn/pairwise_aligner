@@ -34,36 +34,33 @@ class _tracker<saturated_score_t, regular_score_t>::type
 {
 private:
 
-
     regular_score_t _max_score{std::numeric_limits<typename regular_score_t::value_type>::lowest()};
 
-    template <typename score_converter_t>
     struct _in_block_tracker : public local_simd_fixed::tracker<saturated_score_t>
     {
     private:
         using base_t = local_simd_fixed::tracker<saturated_score_t>;
+
         type & _parent_tracker;
-        score_converter_t _score_converter;
+        regular_score_t const & _score_offset;
 
     public:
         _in_block_tracker() = delete;
-        _in_block_tracker(type & parent_tracker, score_converter_t score_converter) noexcept :
+        _in_block_tracker(type & parent_tracker, regular_score_t const & score_offset) noexcept :
             base_t{},
             _parent_tracker{parent_tracker},
-            _score_converter{std::forward<score_converter_t>(score_converter)}
+            _score_offset{score_offset}
         {} // initialising the local tracker
         ~_in_block_tracker() noexcept
         {
-            _parent_tracker.track(std::invoke(std::forward<score_converter_t>(_score_converter),
-                                              base_t::max_score()));
+            _parent_tracker.track(regular_score_t{base_t::max_score()} + _score_offset);
         }
     };
 
 public:
 
-    template <typename score_converter_t>
-    constexpr auto in_block_tracker(score_converter_t && score_converter) noexcept {
-        return _in_block_tracker<score_converter_t>{*this, std::forward<score_converter_t>(score_converter)};
+    constexpr auto in_block_tracker(regular_score_t const & score_offset) noexcept {
+        return _in_block_tracker{*this, score_offset};
     }
 
     constexpr void track(regular_score_t const & in_block_score) noexcept {

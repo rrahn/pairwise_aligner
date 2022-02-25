@@ -17,9 +17,10 @@
 #include <pairwise_aligner/configuration/score_model_unitary_simd.hpp>
 #include <pairwise_aligner/configuration/saturated_block_handler.hpp>
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_lane.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_block.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
 #include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
@@ -41,6 +42,7 @@ namespace _score_model_unitary_simd_saturated
 // ----------------------------------------------------------------------------
 // traits
 // ----------------------------------------------------------------------------
+
 
 template <typename score_t>
 struct traits
@@ -70,11 +72,11 @@ struct traits
     {
         using _score_type = score_type_sat_t<configuration_t::is_local>;
         if constexpr (configuration_t::is_local) {
-            return score_model_unitary_local<_score_type>{static_cast<_score_type>(_match_score),
-                                                          static_cast<_score_type>(_mismatch_score)};
+            return score_model_unitary_simd_local<_score_type>{static_cast<_score_type>(_match_score),
+                                                               static_cast<_score_type>(_mismatch_score)};
         } else {
-            return pairwise_aligner::score_model_unitary<_score_type>{static_cast<_score_type>(_match_score),
-                                                                      static_cast<_score_type>(_mismatch_score)};
+            return pairwise_aligner::score_model_unitary_simd<_score_type>{static_cast<_score_type>(_match_score),
+                                                                           static_cast<_score_type>(_mismatch_score)};
         }
     }
 
@@ -131,12 +133,13 @@ struct traits
     {
         auto make_dp_matrix_policy = [&] () constexpr {
             if constexpr (configuration_t::is_local)
-                return dp_matrix_column_saturated_local;
+                return dp_matrix::matrix(dp_matrix::column_saturated_local(dp_matrix::block(dp_matrix::lane)));
             else
-                return dp_matrix_column_saturated;
+                return dp_matrix::matrix(dp_matrix::column_saturated(dp_matrix::block(dp_matrix::lane)));
         };
 
-        using dp_matrix_policy_t = dp_matrix_policies<std::invoke_result_t<decltype(make_dp_matrix_policy)>>;
+        using dp_matrix_policy_t =
+                dp_matrix_policies<std::remove_reference_t<std::invoke_result_t<decltype(make_dp_matrix_policy)>>>;
 
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
                                                                      dp_matrix_policy_t,
@@ -172,8 +175,7 @@ private:
 
         auto saturated_dp_vector = [&] () {
             if constexpr (configuration_t::is_local) {
-                int8_t local_zero = lowest_viable_local_score(configuration._gap_open_score,
-                                                              configuration._gap_extension_score);
+                int8_t local_zero = lowest_viable_local_score(configuration);
                 int8_t threshold = std::numeric_limits<int8_t>::max() - (max_block_size * _match_score);
                 return dp_vector_saturated_local_factory<regular_cell_t>(dp_vector_single<saturated_cell_t>{},
                                                                          local_zero,

@@ -37,7 +37,6 @@ struct simd_score_base;
 
 } // namespace detail
 
-
 template <std::integral score_t, size_t simd_size = detail::max_simd_size / sizeof(score_t)>
 using simd_score = detail::simd_score_base<score_t, simd_size>;
 

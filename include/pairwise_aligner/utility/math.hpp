@@ -25,15 +25,15 @@ constexpr auto add(...) noexcept = delete;
 struct _fn
 {
     template <typename t1, typename t2>
-    constexpr auto operator()(t1 const & a, t2 const & b, pairwise_aligner::detail::priority_tag<0> const &)
+    constexpr auto operator()(t1 && a, t2 && b, pairwise_aligner::detail::priority_tag<0> const &)
         const noexcept(noexcept(a + b))
-        -> decltype (a + b)
+        -> decltype(a + b)
     {
         return a + b;
     }
 
     template <typename t1, typename t2>
-    constexpr auto operator()(t1 const & a, t2 const & b, pairwise_aligner::detail::priority_tag<1> const &)
+    constexpr auto operator()(t1 && a, t2 && b, pairwise_aligner::detail::priority_tag<1> const &)
         const noexcept(noexcept(add(a, b)))
         -> decltype (add(a, b))
     {
@@ -41,7 +41,7 @@ struct _fn
     }
 
     template <typename t1, typename t2>
-    constexpr auto operator()(t1 const & a, t2 const & b, pairwise_aligner::detail::priority_tag<2> const &)
+    constexpr auto operator()(t1 && a, t2 && b, pairwise_aligner::detail::priority_tag<2> const &)
         const noexcept(noexcept(a.add(b)))
         -> decltype (a.add(b))
     {
@@ -59,6 +59,50 @@ inline constexpr auto add = [] (auto const & a, auto const & b)
     -> std::invoke_result_t<_add::_fn, decltype(a), decltype(b), pairwise_aligner::detail::priority_tag<2>>
 {
     return std::invoke(_add::_fn{}, a, b, pairwise_aligner::detail::priority_tag<2>{});
+};
+} // inline namespace _cpo
+
+namespace _subtract {
+
+constexpr auto subtract(...) noexcept = delete;
+
+struct _fn
+{
+    template <typename t1, typename t2>
+    constexpr auto operator()(t1 && a, t2 && b, pairwise_aligner::detail::priority_tag<0> const &)
+        const noexcept(noexcept(a - b))
+        -> decltype(a - b)
+    {
+        return a - b;
+    }
+
+    template <typename t1, typename t2>
+    constexpr auto operator()(t1 && a, t2 && b, pairwise_aligner::detail::priority_tag<1> const &)
+        const noexcept(noexcept(subtract(a, b)))
+        -> decltype (subtract(a, b))
+    {
+        return subtract(a, b);
+    }
+
+    template <typename t1, typename t2>
+    constexpr auto operator()(t1 && a, t2 && b, pairwise_aligner::detail::priority_tag<2> const &)
+        const noexcept(noexcept(a.subtract(b)))
+        -> decltype (a.subtract(b))
+    {
+        return a.subtract(b);
+    }
+};
+
+} // namespace _subtract
+
+inline namespace _cpo
+{
+
+inline constexpr auto subtract = [] (auto const & a, auto const & b)
+    noexcept(noexcept(std::invoke(_subtract::_fn{}, a, b, pairwise_aligner::detail::priority_tag<2>{})))
+    -> std::invoke_result_t<_subtract::_fn, decltype(a), decltype(b), pairwise_aligner::detail::priority_tag<2>>
+{
+    return std::invoke(_subtract::_fn{}, a, b, pairwise_aligner::detail::priority_tag<2>{});
 };
 } // inline namespace _cpo
 } // inline namespace v1
