@@ -15,6 +15,8 @@
 #include <string>
 #include <vector>
 
+#include <seqan3/core/debug_stream.hpp>
+
 #include <pairwise_aligner/configuration/configure_aligner.hpp>
 #include <pairwise_aligner/configuration/score_model_matrix.hpp>
 #include <pairwise_aligner/configuration/score_model_unitary.hpp>
@@ -165,7 +167,9 @@ private:
 
         for (size_t i = 0; i < sequence_collection1.size(); ++i) {
             generate_sequence(sequence_collection1[i]);
+            seqan3::debug_stream << "seq1 = " << sequence_collection1[i] << "\n";
             generate_sequence(sequence_collection2[i]);
+            seqan3::debug_stream << "seq2 = " << sequence_collection2[i] << "\n";
         }
     }
 };

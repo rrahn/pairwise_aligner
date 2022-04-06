@@ -20,6 +20,7 @@
 #include <seqan3/utility/simd/simd_traits.hpp>
 #include <seqan3/utility/simd/simd.hpp>
 
+#include <pairwise_aligner/simd/concept.hpp>
 #include <pairwise_aligner/simd/simd_base.hpp>
 #include <pairwise_aligner/simd/simd_convert.hpp>
 #include <pairwise_aligner/simd/simd_mask_type.hpp>
@@ -310,6 +311,14 @@ public:
     }
 
     constexpr type operator>>(uint32_t const shift) const noexcept
+        requires (sizeof(score_t) == 1)
+    {
+        type tmp{};
+        apply([shift] (native_simd_t & res, native_simd_t const & left) { res = left >> shift; }, tmp.values, values);
+        return tmp;
+    }
+
+    constexpr type operator>>(uint32_t const shift) const noexcept
     {
         type tmp{};
         apply([shift] (native_simd_t & res, native_simd_t const & left) { res = left >> shift; },
@@ -317,13 +326,16 @@ public:
         return tmp;
     }
 
-    // constexpr type operator>>(value_type const right_constant) const noexcept
-    // {
-    //     type tmp{};
-    //     apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left >> right; },
-    //           tmp.values, values, type{right_constant}.values);
-    //     return tmp;
-    // }
+    constexpr type operator<<(uint32_t const shift) const noexcept
+        requires (sizeof(score_t) == 1)
+    {
+        using native_simd_epu16_t = seqan3::simd::simd_type_t<uint16_t>;
+        type tmp{};
+        apply([shift] (native_simd_t & res, native_simd_t const & left) {
+            res = reinterpret_cast<native_simd_t>(reinterpret_cast<native_simd_epu16_t const &>(left) << shift);
+        }, tmp.values, values);
+        return tmp;
+    }
 
     constexpr type operator<<(uint32_t const shift) const noexcept
     {
@@ -332,14 +344,6 @@ public:
               tmp.values, values);
         return tmp;
     }
-
-    // constexpr type operator<<(value_type const right_constant) const noexcept
-    // {
-    //     type tmp{};
-    //     apply([] (native_simd_t & res, native_simd_t const & left, native_simd_t const & right) { res = left << right; },
-    //           tmp.values, values, type{right_constant}.values);
-    //     return tmp;
-    // }
 
     constexpr friend type max(type const & left, type const & right) noexcept
     {
@@ -450,6 +454,21 @@ public:
         return tmp;
     }
 
+    template <typename stream_t>
+    constexpr stream_t & print(stream_t & ostream) const
+    {
+        size_t width = 4;
+        ostream << "\nidx:";
+        for (size_t i = 0; i < size - 1; ++i)
+            ostream << std::setw(width) << (int32_t) i;
+        ostream << std::setw(width) << size - 1 << "\nval:";
+        for (size_t i = 0; i < size - 1; ++i)
+            ostream << std::setw(width) << (int32_t) (*this)[i]; // << ", ";
+
+        ostream << std::setw(width) << (int32_t) (*this)[size - 1] << "\n";
+        return ostream;
+    }
+
 private:
 
     constexpr auto to_local_position(size_t const position) const noexcept
@@ -471,12 +490,10 @@ private:
 // Stream operator
 // ----------------------------------------------------------------------------
 
-template <typename stream_t, typename simd_score_t>
-    requires requires {
-        std::remove_cvref_t<simd_score_t>::size;
-        typename std::remove_cvref_t<simd_score_t>::simd_type;
-    }
-inline stream_t & operator<<(stream_t & ostream, simd_score_t && simd_score)
+template <typename char_t, typename char_traits_t,
+          typename score_t, size_t size, template <typename...> typename policy_t>
+inline std::basic_ostream<char_t, char_traits_t> & operator<<(std::basic_ostream<char_t, char_traits_t> & ostream,
+                                                              detail::simd_score_base<score_t, size, policy_t> const & simd_score)
 {
     size_t width = 4;
     ostream << "\nidx:";

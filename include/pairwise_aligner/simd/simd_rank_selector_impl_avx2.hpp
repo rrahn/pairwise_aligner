@@ -91,7 +91,7 @@ private:
         // First, select all low indices, then select the high indices.
         key_t local_index_lo = blend(local_index.lt(key_t{static_cast<scalar_t>(16)}), local_index, mask);
         key_t local_index_hi = (local_index_lo ^ mask) | local_index;
-        return std::tuple{index >> key_t{bit_index}, local_index_lo, local_index_hi};
+        return std::tuple{index >> bit_index, local_index_lo, local_index_hi};
     }
 
     static key_t select_rank_for_impl(split_key_t const & ranks, key_t const & key_low, key_t const & key_high)

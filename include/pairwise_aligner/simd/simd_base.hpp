@@ -15,6 +15,7 @@
 #include <seqan3/std/concepts>
 #include <cstdint>
 
+#include <pairwise_aligner/simd/concept.hpp>
 #include <pairwise_aligner/simd/simd_saturated_score.hpp>
 
 namespace seqan::pairwise_aligner
@@ -32,6 +33,12 @@ inline constexpr size_t max_simd_size = 32;
 inline constexpr size_t max_simd_size = 16;
 #endif
 
+template <typename simd_offset_t, typename selector_tag_t>
+struct simd_selector;
+
+template <size_t operand_count, size_t operand_bit_width, size_t simd_bit_width>
+struct selector_tag;
+
 template <typename score_t, size_t simd_size, template <typename > typename ...policies_t>
 struct simd_score_base;
 
@@ -48,19 +55,23 @@ class alignas(detail::max_simd_size) simd_mask;
 
 namespace detail {
 
-template <typename simd_score_t>
+template <typename score_t>
 struct make_unsigned_impl;
 
-template <std::integral simd_score_t>
+template <std::integral score_t>
+struct make_unsigned_impl<score_t> : public std::make_unsigned<score_t>
+{};
+
+template <simd::simd_type simd_score_t>
 struct make_unsigned_impl<simd_score_t>
 {
-    using type = std::make_unsigned_t<simd_score_t>;
+    using type = simd_score<std::make_unsigned_t<typename simd_score_t::value_type>, simd_score_t::size>;
 };
 
-template <std::integral score_t, size_t simd_size_v>
-struct make_unsigned_impl<simd_score<score_t, simd_size_v>>
+template <simd::saturated_simd_type simd_score_t>
+struct make_unsigned_impl<simd_score_t>
 {
-    using type = simd_score<std::make_unsigned_t<score_t>, simd_size_v>;
+    using type = simd_score_saturated<std::make_unsigned_t<typename simd_score_t::value_type>, simd_score_t::size>;
 };
 
 template <typename simd_score_t>

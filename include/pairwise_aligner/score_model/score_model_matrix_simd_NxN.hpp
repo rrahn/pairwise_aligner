@@ -57,11 +57,13 @@ private:
         // unpacking the values to 16-bit packed simd vectors shifting them and packing them pack to 8-bit.
         // It is much faster to just reinterpret the vector as 16-bit packed vector and use the corresponding intrsinic
         // for this.
+        // return rank >> 1;
         if constexpr (simd_rank_t::size == detail::max_simd_size) { // 8-bit packed simd vector.
             using scalar_rank_t = typename simd_rank_t::value_type;
             using scalar_rank_16_t = std::conditional_t<std::is_signed_v<scalar_rank_t>, int16_t, uint16_t>;
             using upcasted_simd_rank_t = simd_score<scalar_rank_16_t>;
-            return reinterpret_cast<simd_rank_t &&>(reinterpret_cast<upcasted_simd_rank_t const &>(rank) >> 1);
+            upcasted_simd_rank_t tmp = reinterpret_cast<upcasted_simd_rank_t const &>(rank) >> 1;
+            return reinterpret_cast<simd_rank_t const &>(tmp);
         } else {
             return rank >> 1;
         }
@@ -128,13 +130,13 @@ private:
     {
         auto && [column_rank, column_offset] = value1;
         auto && [row_rank, row_offset] = value2;
-        auto matrix_offset = min(row_offset, column_offset) + absolut_difference(row_rank, column_rank);
+        auto matrix_offset = min(row_offset, column_offset) + absolute_difference(row_rank, column_rank);
 
         return _data[matrix_offset];
     }
 
     template <typename simd_rank_t>
-    constexpr auto absolut_difference(simd_rank_t const & row_ranks, simd_rank_t const & column_ranks) const noexcept
+    constexpr simd_rank_t absolute_difference(simd_rank_t const & row_ranks, simd_rank_t const & column_ranks) const noexcept
     {
         using signed_simd_rank_t = detail::make_signed_t<simd_rank_t>;
         signed_simd_rank_t tmp = abs(reinterpret_cast<signed_simd_rank_t const &>(row_ranks) -
