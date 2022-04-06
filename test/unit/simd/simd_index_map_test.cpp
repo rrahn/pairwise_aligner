@@ -42,7 +42,7 @@ TYPED_TEST_SUITE(simd_index_map_test, test_types);
 // Test Cases
 // ----------------------------------------------------------------------------
 
-TYPED_TEST(simd_index_map_test, select_in_lane)
+TYPED_TEST(simd_index_map_test, select_size_16)
 {
     using map_t = pa::simd_index_map<typename TestFixture::scalar_value_t, typename TestFixture::scalar_key_t, 5>;
 
@@ -85,7 +85,7 @@ TYPED_TEST(simd_index_map_test, select_in_lane)
         EXPECT_EQ(values[i], i % 5);
 }
 
-TYPED_TEST(simd_index_map_test, select_cross_lane)
+TYPED_TEST(simd_index_map_test, select_simd_size)
 {
     constexpr size_t data_size = pa::detail::max_simd_size;
     std::array<typename TestFixture::scalar_value_t, data_size> data{};
@@ -107,9 +107,9 @@ TYPED_TEST(simd_index_map_test, select_cross_lane)
 
 }
 
-TYPED_TEST(simd_index_map_test, select_2x_cross_lane_single)
+TYPED_TEST(simd_index_map_test, select_size_128)
 {
-    constexpr size_t data_size = pa::detail::max_simd_size * 2;
+    constexpr size_t data_size = 128;
     std::array<typename TestFixture::scalar_value_t, data_size> data{};
     for (size_t i = 0; i < data.size(); ++i)
         data[i] = i;
@@ -128,9 +128,9 @@ TYPED_TEST(simd_index_map_test, select_2x_cross_lane_single)
         EXPECT_EQ(values[i], i % data_size);
 }
 
-TYPED_TEST(simd_index_map_test, select_2x_cross_lane_double)
+TYPED_TEST(simd_index_map_test, select_size_256)
 {
-    constexpr size_t data_size = pa::detail::max_simd_size * 4;
+    constexpr size_t data_size = 256;
     std::array<typename TestFixture::scalar_value_t, data_size> data{};
     for (size_t i = 0; i < data.size(); ++i)
         data[i] = i;
@@ -148,9 +148,9 @@ TYPED_TEST(simd_index_map_test, select_2x_cross_lane_double)
 
     auto values = map[key1];
     for (size_t i = 0; i < key_t::size; ++i)
-        EXPECT_EQ(values[i], i % data_size) << "i = " << i << " values = " << values << "\n";
+        EXPECT_EQ(values[i], i % data_size);
 
     values = map[key2];
     for (size_t i = 0; i < key_t::size; ++i)
-        EXPECT_EQ(values[i], i % data_size + pa::detail::max_simd_size) << "i = " << i << " values = " << values << "\n";
+        EXPECT_EQ(values[i], i % data_size + pa::detail::max_simd_size);
 }

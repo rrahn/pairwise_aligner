@@ -22,7 +22,7 @@
 #include <pairwise_aligner/simd/simd_base.hpp>
 // #include <pairwise_aligner/simd/simd_selector_sse4.hpp>
 // #include <pairwise_aligner/simd/simd_selector_avx2.hpp>
-#include <pairwise_aligner/simd/simd_selector_avx512.hpp>
+#include <pairwise_aligner/simd/simd_selector.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -47,11 +47,7 @@ class _simd_index_map<value_t, key_t, size_v>::type
     using simd_value_t = simd_score<value_t>;
     using simd_key_t = simd_score<key_t>;
 
-    // Handle too wide sizes!
-    static constexpr std::ptrdiff_t max_select_size = detail::max_simd_size * 2;
-    static constexpr std::ptrdiff_t selector_size = std::min(max_select_size, size_v);
-
-    using select_strategy_t = detail::simd_selector_avx512<simd_value_t, simd_key_t, selector_size>;
+    using select_strategy_t = simd_selector<simd_value_t, simd_key_t, size_v>;
 
     static constexpr std::ptrdiff_t elements_per_select = select_strategy_t::elements_per_select;
     static constexpr std::ptrdiff_t select_count = (size_v - 1 + elements_per_select) / elements_per_select;
