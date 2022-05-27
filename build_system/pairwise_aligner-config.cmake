@@ -145,7 +145,7 @@ set (CMAKE_REQUIRED_INCLUDES    ${CMAKE_INCLUDE_PATH} ${PAIRWISE_ALIGNER_INCLUDE
 set (CMAKE_REQUIRED_FLAGS       ${CMAKE_CXX_FLAGS})
 
 # ----------------------------------------------------------------------------
-# thread support (pthread, windows threads)
+# SeqAn3 dependency
 # ----------------------------------------------------------------------------
 
 find_package (SeqAn3 REQUIRED HINTS ${CMAKE_CURRENT_LIST_DIR}/../lib/seqan3/build_system)

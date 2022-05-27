@@ -32,15 +32,19 @@ option (PAIRWISE_ALIGNER_BENCHMARK_ALIGN_LOOPS "Pass -falign-loops=32 to the ben
 
 find_path (SEQAN3_TEST_INCLUDE_DIR NAMES seqan3/test/tmp_filename.hpp HINTS "${CMAKE_CURRENT_LIST_DIR}/../../lib/seqan3/test/include/")
 find_path (PAIRWISE_ALIGNER_TEST_CMAKE_MODULE_DIR NAMES seqan3_test_component.cmake HINTS "${CMAKE_CURRENT_LIST_DIR}/../../lib/seqan3/test/cmake/")
-list(APPEND CMAKE_MODULE_PATH "${PAIRWISE_ALIGNER_TEST_CMAKE_MODULE_DIR}")
+list(APPEND CMAKE_MODULE_PATH "${PAIRWISE_ALIGNER_TEST_CMAKE_MODULE_DIR}" "${CMAKE_CURRENT_LIST_DIR}")
 
-set (SEQAN3_BENCHMARK_CLONE_DIR "${PROJECT_BINARY_DIR}/vendor/benchmark")
-set (SEQAN3_TEST_CLONE_DIR "${PROJECT_BINARY_DIR}/vendor/googletest")
+message (STATUS "[DEBUG] CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")
+
+# set (SEQAN3_BENCHMARK_CLONE_DIR "${PROJECT_BINARY_DIR}/vendor/benchmark")
+# set (SEQAN3_TEST_CLONE_DIR "${PROJECT_BINARY_DIR}/vendor/googletest")
+# set (LIBUNIFEX_CLONE_DIR "${PROJECT_BINARY_DIR}/vendor/libunifex")
 
 # needed for add_library (pairwise_aligner::test::* INTERFACE IMPORTED)
 # see cmake bug https://gitlab.kitware.com/cmake/cmake/issues/15052
-file(MAKE_DIRECTORY ${SEQAN3_BENCHMARK_CLONE_DIR}/include/)
-file(MAKE_DIRECTORY ${SEQAN3_TEST_CLONE_DIR}/googletest/include/)
+# file(MAKE_DIRECTORY ${SEQAN3_BENCHMARK_CLONE_DIR}/include/)
+# file(MAKE_DIRECTORY ${SEQAN3_TEST_CLONE_DIR}/googletest/include/)
+# file(MAKE_DIRECTORY ${LIBUNIFEX_CLONE_DIR}/include/)
 
 # ----------------------------------------------------------------------------
 # Interface targets for the different test modules in pairwise_aligner.
@@ -51,7 +55,7 @@ file(MAKE_DIRECTORY ${SEQAN3_TEST_CLONE_DIR}/googletest/include/)
 if (NOT TARGET seqan::pairwise_aligner::test)
     add_library (pairwise_aligner_test INTERFACE)
     target_compile_options (pairwise_aligner_test INTERFACE "-pedantic"  "-Wall" "-Wextra" "-Werror")
-    target_link_libraries (pairwise_aligner_test INTERFACE "seqan::pairwise_aligner" "pthread")
+    target_link_libraries (pairwise_aligner_test INTERFACE "seqan::pairwise_aligner" "pthread" "unifex")
     target_include_directories (pairwise_aligner_test INTERFACE "${SEQAN3_TEST_INCLUDE_DIR}")
     add_library (seqan::pairwise_aligner::test ALIAS pairwise_aligner_test)
 endif ()
@@ -120,6 +124,8 @@ list (APPEND SEQAN3_EXTERNAL_PROJECT_CMAKE_ARGS "-DCMAKE_VERBOSE_MAKEFILE=${CMAK
 # Commonly used macros for the different test modules in pairwise_aligner.
 # ----------------------------------------------------------------------------
 
+# libunifex is not called
+include (configure_libunifex)
 include (seqan3_test_component)
 include (seqan3_test_files)
 include (seqan3_require_ccache)

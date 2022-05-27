@@ -1,0 +1,2 @@
+pairwise_aligner_test (aligner_as_function_test)
+pairwise_aligner_test (initial_aligner_test)

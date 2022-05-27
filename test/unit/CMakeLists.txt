@@ -29,7 +29,7 @@ macro (pairwise_aligner_test unit_test_cpp)
     seqan3_test_component (target "${unit_test}" TARGET_NAME)
     seqan3_test_component (test_name "${unit_test}" TEST_NAME)
 
-    add_executable (${target} ${unit_test_cpp})
+    add_executable (${target} "${unit_test_cpp}.cpp")
     target_link_libraries (${target} seqan::pairwise_aligner::test::unit)
     add_include_dependencies (${target} "${PAIRWISE_ALIGNER_TEST_CYCLIC_DEPENDING_INCLUDES}")
     collect_used_test (${target})
@@ -46,5 +46,6 @@ endmacro ()
 
 seqan3_require_ccache ()
 seqan3_require_test ()
+configure_libunifex ()
 
 add_subdirectories ()
