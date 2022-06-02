@@ -53,19 +53,21 @@ private:
     struct accessor : _configurations_t...
     {
 
-        template <typename configuration_t, cfg::detail::rule_category target_category>
-        using is_configuration = std::conditional_t<configuration_t::category == target_category,
-                                                    std::true_type,
-                                                    std::false_type>;
+        template <cfg::detail::rule_category target_category>
+        struct is_configuration_t {
 
-        template <typename configuration_t>
-        using is_score_configuration = is_configuration<configuration_t, cfg::detail::rule_category::score_model>;
+            template <typename configuration_t>
+            static constexpr bool invoke = configuration_t::category == target_category;
+        };
 
-        template <typename configuration_t>
-        using is_gap_configuration = is_configuration<configuration_t, cfg::detail::rule_category::gap_model>;
+        // template <typename configuration_t>
+        using is_score_configuration = is_configuration_t<cfg::detail::rule_category::score_model>;
 
-        template <typename configuration_t>
-        using is_method_configuration = is_configuration<configuration_t, cfg::detail::rule_category::method>;
+        // template <typename configuration_t>
+        using is_gap_configuration = is_configuration_t<cfg::detail::rule_category::gap_model>;
+
+        // template <typename configuration_t>
+        using is_method_configuration = is_configuration_t<cfg::detail::rule_category::method>;
 
         // now we need to iterate over list and find_if type
         using substitution_configuration_t =

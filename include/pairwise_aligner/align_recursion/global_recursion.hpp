@@ -6,39 +6,23 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides .
+ * \brief Provides initialisation switch.
  * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
 #pragma once
 
-namespace align
+
+namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
 
-// More thought?
-// Attribute CPOs?
-// inline constexpr query_fn {
-//     template <typename property_t, typename configuration_t>
-//     constexpr auto operator()(property_t const &, configuration_t && configuration) const noexcept
-//         ->
-//     {
-//         return tag_invoke(property_t, )
-//     }
-// } query;
-
-
-
-
-template <typename configuration_t>
-struct dp_traits{
-    using score_type = int; // decltype(align::query(dp_attribute<substituion_cost>, std::declval<configuration_t>()));
-
+template <typename row_initialiser_t, typename column_initialiser_t>
+struct dp_matrix_initialiser {
+    row_initialiser_t row_initialiser;
+    column_initialiser_t column_initialiser;
 };
 
-template <typename configuration_t>
-using dp_traits_t = dp_traits<configuration_t>;
-
 } // inline namespace v1
-} // namespace align
+} // namespace seqan::pairwise_aligner
