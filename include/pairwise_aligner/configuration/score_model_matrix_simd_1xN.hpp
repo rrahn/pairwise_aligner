@@ -68,7 +68,7 @@ struct traits
 
     // simd score typ: use full range?
     using index_type = simd_score<int8_t>; // TODO: should depend on given substitution matrix.
-    using score_type = simd_score<score_t, index_type::size>;
+    using score_type = simd_score<score_t, index_type::size_v>;
 
     substitution_matrix_t _substitution_matrix;
     score_t _match_padding_score{1};
@@ -172,7 +172,7 @@ struct traits
                                                                      lane_width_policy<>,
                                                                      std::remove_cvref_t<policies_t>...>;
 
-        return interface_one_to_many_bulk<algorithm_t, score_type::size>{
+        return interface_one_to_many_bulk<algorithm_t, score_type::size_v>{
                 algorithm_t{dp_matrix_policy_t{make_dp_matrix_policy()},
                             lane_width_policy<>{},
                             std::move(policies)...}};

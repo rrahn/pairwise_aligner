@@ -60,8 +60,8 @@ struct traits
 
     template <bool is_local>
     using original_score_t = std::conditional_t<is_local,
-                                                simd_score_saturated<score_t, score_type::size>,
-                                                simd_score<score_t, score_type::size>>;
+                                                simd_score_saturated<score_t, score_type::size_v>,
+                                                simd_score<score_t, score_type::size_v>>;
 
     // result_factory configurator
     // using result_factory_type = tracker::global_simd_saturated::factory<original_score_type>;
@@ -146,7 +146,7 @@ struct traits
                                                                      lane_width_policy<>,
                                                                      std::remove_cvref_t<policies_t>...>;
 
-        return interface_one_to_one_bulk<algorithm_t, score_type::size>{
+        return interface_one_to_one_bulk<algorithm_t, score_type::size_v>{
                 algorithm_t{dp_matrix_policy_t{make_dp_matrix_policy()},
                                                lane_width_policy<>{},
                                                std::move(policies)...}};

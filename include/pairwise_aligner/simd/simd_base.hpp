@@ -65,13 +65,13 @@ struct make_unsigned_impl<score_t> : public std::make_unsigned<score_t>
 template <simd::simd_type simd_score_t>
 struct make_unsigned_impl<simd_score_t>
 {
-    using type = simd_score<std::make_unsigned_t<typename simd_score_t::value_type>, simd_score_t::size>;
+    using type = simd_score<std::make_unsigned_t<typename simd_score_t::value_type>, simd_score_t::size_v>;
 };
 
 template <simd::saturated_simd_type simd_score_t>
 struct make_unsigned_impl<simd_score_t>
 {
-    using type = simd_score_saturated<std::make_unsigned_t<typename simd_score_t::value_type>, simd_score_t::size>;
+    using type = simd_score_saturated<std::make_unsigned_t<typename simd_score_t::value_type>, simd_score_t::size_v>;
 };
 
 template <typename simd_score_t>

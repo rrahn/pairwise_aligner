@@ -62,7 +62,7 @@ private:
 
 public:
 
-    inline static constexpr size_t size = simd_size;
+    inline static constexpr size_t size_v = simd_size;
     inline static constexpr size_t count = native_simd_count;
 
     using simd_type = std::array<native_simd_t, native_simd_count>;
@@ -133,6 +133,10 @@ public:
     {
         auto [index, offset] = to_local_position(pos);
         return values[index][offset];
+    }
+
+    static constexpr size_t size() noexcept {
+        return simd_size;
     }
 
     constexpr void load(value_type const * mem_address) noexcept
@@ -459,13 +463,13 @@ public:
     {
         size_t width = 4;
         ostream << "\nidx:";
-        for (size_t i = 0; i < size - 1; ++i)
+        for (size_t i = 0; i < size_v - 1; ++i)
             ostream << std::setw(width) << (int32_t) i;
-        ostream << std::setw(width) << size - 1 << "\nval:";
-        for (size_t i = 0; i < size - 1; ++i)
+        ostream << std::setw(width) << size_v - 1 << "\nval:";
+        for (size_t i = 0; i < size_v - 1; ++i)
             ostream << std::setw(width) << (int32_t) (*this)[i]; // << ", ";
 
-        ostream << std::setw(width) << (int32_t) (*this)[size - 1] << "\n";
+        ostream << std::setw(width) << (int32_t) (*this)[size_v - 1] << "\n";
         return ostream;
     }
 
