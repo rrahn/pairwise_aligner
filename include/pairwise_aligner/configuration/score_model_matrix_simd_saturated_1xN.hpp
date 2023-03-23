@@ -26,12 +26,8 @@
 #include <pairwise_aligner/interface/interface_one_to_many_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_block.hpp>
-// #include <pairwise_aligner/matrix/dp_matrix_block_cached_profile.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_column_cached_profiles.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_lane_profile.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
 #include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
@@ -217,6 +213,35 @@ struct traits
     template <typename configuration_t, typename ...policies_t>
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
+        // auto make_dp_matrix_policy = [&] () constexpr {
+        //     if constexpr (configuration_t::is_local)
+        //         return dp_matrix::matrix(dp_matrix::column_saturated_local(dp_matrix::block(dp_matrix::lane)));
+        //     else
+        //         return dp_matrix::matrix(dp_matrix::column_saturated(dp_matrix::block(dp_matrix::lane)));
+        // };
+
+        // // auto make_dp_matrix_policy = [&] () constexpr {
+        // //     if constexpr (configuration_t::is_local) {
+
+        // //         return dp_matrix::cpo::_column_saturated_local_closure<
+        // //                     dp_matrix::cpo::_block_cached_profile_closure<>,
+        // //                     dp_matrix::column_cached_profiles_local_t>{};
+        // //     } else {
+        // //         return dp_matrix::cpo::_column_saturated_closure<
+        // //                     dp_matrix::cpo::_block_cached_profile_closure<>,
+        // //                     dp_matrix::column_cached_profiles_t>{};
+        // //     }
+        // // };
+
+        // using dp_matrix_policy_t = dp_matrix_policies<std::invoke_result_t<decltype(make_dp_matrix_policy)>>;
+        // using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
+        //                                                              dp_matrix_policy_t,
+        //                                                              lane_width_policy<>,
+        //                                                              std::remove_cvref_t<policies_t>...>;
+
+        // return interface_one_to_many_bulk<algorithm_t, score_type::size_v>{
+        //         algorithm_t{dp_matrix_policy_t{}, lane_width_policy<>{}, std::move(policies)...}};
+
         auto make_dp_matrix_policy = [&] () constexpr {
             if constexpr (configuration_t::is_local)
                 return dp_matrix::matrix(dp_matrix::column_saturated_local(dp_matrix::block(dp_matrix::lane)));
@@ -224,27 +249,18 @@ struct traits
                 return dp_matrix::matrix(dp_matrix::column_saturated(dp_matrix::block(dp_matrix::lane)));
         };
 
-        // auto make_dp_matrix_policy = [&] () constexpr {
-        //     if constexpr (configuration_t::is_local) {
+        using dp_matrix_policy_t =
+                dp_matrix_policies<std::remove_reference_t<std::invoke_result_t<decltype(make_dp_matrix_policy)>>>;
 
-        //         return dp_matrix::cpo::_column_saturated_local_closure<
-        //                     dp_matrix::cpo::_block_cached_profile_closure<>,
-        //                     dp_matrix::column_cached_profiles_local_t>{};
-        //     } else {
-        //         return dp_matrix::cpo::_column_saturated_closure<
-        //                     dp_matrix::cpo::_block_cached_profile_closure<>,
-        //                     dp_matrix::column_cached_profiles_t>{};
-        //     }
-        // };
-
-        using dp_matrix_policy_t = dp_matrix_policies<std::invoke_result_t<decltype(make_dp_matrix_policy)>>;
         using algorithm_t = typename configuration_t::algorithm_type<dp_algorithm_template_standard,
                                                                      dp_matrix_policy_t,
                                                                      lane_width_policy<>,
                                                                      std::remove_cvref_t<policies_t>...>;
 
         return interface_one_to_many_bulk<algorithm_t, score_type::size_v>{
-                algorithm_t{dp_matrix_policy_t{}, lane_width_policy<>{}, std::move(policies)...}};
+                algorithm_t{dp_matrix_policy_t{make_dp_matrix_policy()},
+                                               lane_width_policy<>{},
+                                               std::move(policies)...}};
     }
 };
 
