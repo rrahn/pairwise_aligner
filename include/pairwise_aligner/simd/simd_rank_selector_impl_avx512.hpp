@@ -30,18 +30,18 @@ inline namespace v1
 {
 
 template <typename key_t>
-    requires (key_t::size == detail::max_simd_size)
+    requires (key_t::size_v == detail::max_simd_size)
 struct _simd_rank_selector_impl_avx512
 {
     struct type;
 };
 
 template <typename key_t>
-    requires (key_t::size == detail::max_simd_size)
+    requires (key_t::size_v == detail::max_simd_size)
 using simd_rank_selector_impl_avx512 = typename _simd_rank_selector_impl_avx512<key_t>::type;
 
 template <typename key_t>
-    requires (key_t::size == detail::max_simd_size)
+    requires (key_t::size_v == detail::max_simd_size)
 struct _simd_rank_selector_impl_avx512<key_t>::type
 {
 protected:
@@ -51,7 +51,7 @@ protected:
     using rank_map_t = std::vector<split_key_t, seqan3::aligned_allocator<split_key_t, alignof(key_t)>>;
 
     template <std::ranges::random_access_range ranks_t>
-        requires (std::ranges::range_value_t<ranks_t>::size == key_t::size)
+        requires (std::ranges::range_value_t<ranks_t>::size_v == key_t::size_v)
     static rank_map_t initialise_rank_map(ranks_t && ranks) noexcept
     {
         rank_map_t tmp{};

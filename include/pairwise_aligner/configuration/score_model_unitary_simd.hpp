@@ -70,7 +70,7 @@ struct traits
     using dp_vector_row_type = dp_vector_bulk<dp_vector_t, score_type>;
 
     template <typename dp_algorithm_t>
-    using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t, score_type::size>;
+    using dp_interface_type = interface_one_to_one_bulk<dp_algorithm_t, score_type::size_v>;
 
     using result_factory_type = tracker::global_simd_fixed::factory<score_type>;
 
@@ -131,7 +131,7 @@ struct traits
                                                                      dp_matrix_policy_t,
                                                                      std::remove_cvref_t<policies_t>...>;
 
-        return interface_one_to_one_bulk<algorithm_t, score_type::size>{
+        return interface_one_to_one_bulk<algorithm_t, score_type::size_v>{
                 algorithm_t{dp_matrix_policy_t{make_dp_matrix_policy()}, std::move(policies)...}};
     }
 };

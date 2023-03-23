@@ -58,12 +58,12 @@ private:
         // It is much faster to just reinterpret the vector as 16-bit packed vector and use the corresponding intrsinic
         // for this.
         // return rank >> 1;
-        if constexpr (simd_rank_t::size == detail::max_simd_size) { // 8-bit packed simd vector.
+        if constexpr (simd_rank_t::size_v == detail::max_simd_size) { // 8-bit packed simd vector.
             using scalar_rank_t = typename simd_rank_t::value_type;
             using scalar_rank_16_t = std::conditional_t<std::is_signed_v<scalar_rank_t>, int16_t, uint16_t>;
             using upcasted_simd_rank_t = simd_score<scalar_rank_16_t>;
             upcasted_simd_rank_t tmp = reinterpret_cast<upcasted_simd_rank_t const &>(rank) >> 1;
-            return reinterpret_cast<simd_rank_t const &>(tmp);
+            return *reinterpret_cast<simd_rank_t *>(&tmp[0]);
         } else {
             return rank >> 1;
         }
@@ -84,7 +84,7 @@ class _score_model_matrix_simd_NxN<score_t, index_t, dimension>::type
 private:
 
     static constexpr size_t diagonal_matrix_size = ((dimension * (dimension + 1)) / 2);
-    static constexpr size_t data_size_v = (diagonal_matrix_size - 1 + index_t::size) / index_t::size;
+    static constexpr size_t data_size_v = (diagonal_matrix_size - 1 + index_t::size_v) / index_t::size_v;
 
     using scalar_score_t = typename score_t::value_type;
     using scalar_index_t = typename index_t::value_type;
@@ -141,7 +141,7 @@ private:
         using signed_simd_rank_t = detail::make_signed_t<simd_rank_t>;
         signed_simd_rank_t tmp = abs(reinterpret_cast<signed_simd_rank_t const &>(row_ranks) -
                                      reinterpret_cast<signed_simd_rank_t const &>(column_ranks));
-        return reinterpret_cast<simd_rank_t const &>(tmp);
+        return *reinterpret_cast<simd_rank_t *>(&tmp[0]);
     }
 };
 

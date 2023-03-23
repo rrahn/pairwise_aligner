@@ -31,7 +31,7 @@ concept simd_type = requires (simd_t const & a, simd_t const & b, typename simd_
     typename simd_t::simd_type;
     typename simd_t::mask_type;
 
-    requires std::integral<decltype(simd_t::size)>;
+    requires std::integral<decltype(simd_t::size_v)>;
 
     { a + b } -> std::same_as<simd_t>;
     { a + c } -> std::same_as<simd_t>;

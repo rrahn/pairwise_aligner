@@ -100,13 +100,13 @@ public:
         // Load the sequence into a single vector of simd values.
         std::ptrdiff_t sequence_size = std::ranges::distance(sequence);
         std::vector<scalar_rank_t> rank_sequence{};
-        std::ptrdiff_t max_size = (sequence_size - 1 + rank_t::size) / rank_t::size;
-        rank_sequence.reserve(max_size * rank_t::size);
+        std::ptrdiff_t max_size = (sequence_size - 1 + rank_t::size_v) / rank_t::size_v;
+        rank_sequence.reserve(max_size * rank_t::size_v);
         rank_sequence.resize(sequence_size);
 
         if constexpr (std::ranges::contiguous_range<sequence_t>) {
             std::ranges::for_each(std::views::iota(0, max_size), [&] (std::ptrdiff_t i) {
-                std::ptrdiff_t memory_offset = i * rank_t::size;
+                std::ptrdiff_t memory_offset = i * rank_t::size_v;
                 rank_t tmp{};
                 tmp.load(reinterpret_cast<scalar_rank_t const *>(sequence.data()) + memory_offset);
                 tmp = _rank_map[tmp]; // convert the rank.
@@ -114,8 +114,8 @@ public:
             });
         } else {
             std::ranges::for_each(std::views::iota(0, max_size), [&] (std::ptrdiff_t i) {
-                std::ptrdiff_t offset = i * rank_t::size;
-                std::ptrdiff_t offset_end = std::min<std::ptrdiff_t>(rank_t::size, sequence_size);
+                std::ptrdiff_t offset = i * rank_t::size_v;
+                std::ptrdiff_t offset_end = std::min<std::ptrdiff_t>(rank_t::size_v, sequence_size);
                 rank_t tmp{};
                 // load from non-contiguous memory:
                 for (std::ptrdiff_t k = 0; k + offset < offset_end; ++k) {

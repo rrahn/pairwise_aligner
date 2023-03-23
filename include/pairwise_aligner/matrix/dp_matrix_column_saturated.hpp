@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include <iosfwd>
+#include <iostream>
 
 #include <pairwise_aligner/matrix/dp_matrix_column_base.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_state_handle.hpp>
@@ -119,7 +119,7 @@ protected:
         using wide_scalar_score_t = std::conditional_t<std::is_signed_v<scalar_score_t>, int32_t, uint32_t>;
         try {
             for (size_t i = 0; i < size(); ++i) {
-                using large_score_t = simd_score<wide_scalar_score_t, score_t::size>;
+                using large_score_t = simd_score<wide_scalar_score_t, score_t::size_v>;
                 large_score_t expected_score = large_score_t{get<0>(range()[i])} - large_score_t{new_offset};
                 expected_score += large_score_t{_dp_vector.saturated_zero_offset()};
 
@@ -137,7 +137,7 @@ protected:
                                              ", zero_offset: " + std::to_string(_dp_vector.saturated_zero_offset()[k])};
                 };
 
-                for (size_t k = 0; k < score_t::size; ++k) {
+                for (size_t k = 0; k < score_t::size_v; ++k) {
                     if (expected_score[k] != real_score[k])
                         throw_error(k);
                 }
@@ -150,7 +150,7 @@ protected:
                     real_score = get<1>(range()[i]) - new_offset;
                     real_score += _dp_vector.saturated_zero_offset();
 
-                    for (size_t k = 0; k < score_t::size; ++k) {
+                    for (size_t k = 0; k < score_t::size_v; ++k) {
                         if (expected_score[k] != real_score[k])
                             throw_error(k);
                     }

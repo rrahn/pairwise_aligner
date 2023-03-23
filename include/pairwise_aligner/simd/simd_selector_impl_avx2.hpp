@@ -72,7 +72,7 @@ struct simd_selector<simd_offset_t, selector_tag<operand_count, 8, 256>>
     {
         // Check that no value is greater than or equal to 128 (0x80).
         // assert([&](){
-        //     for (size_t i = 0; i < simd_offset_t::size; ++i) {
+        //     for (size_t i = 0; i < simd_offset_t::size_v; ++i) {
         //         if (offsets[i] >= 0x80)
         //             return false;
         //     }
@@ -91,24 +91,24 @@ struct simd_selector<simd_offset_t, selector_tag<operand_count, 8, 256>>
         first_mask = _mm256_or_si256(tmp, reinterpret_cast<__m256i const &>(offsets));
         second_mask = _mm256_xor_si256(first_mask, reinterpret_cast<__m256i const &>(lane_selector));
 
-        std::cout << "offsets = "; offsets.print(std::cout) << "\n";
-        std::cout << "first_mask = "; reinterpret_cast<simd_offset_t const &>(first_mask).print(std::cout) << "\n";
-        std::cout << "second_mask = "; reinterpret_cast<simd_offset_t const &>(second_mask).print(std::cout) << "\n";
+        // std::cout << "offsets = "; offsets.print(std::cout) << "\n";
+        // std::cout << "first_mask = "; reinterpret_cast<simd_offset_t const &>(first_mask).print(std::cout) << "\n";
+        // std::cout << "second_mask = "; reinterpret_cast<simd_offset_t const &>(second_mask).print(std::cout) << "\n";
     }
 
     template <typename value_t>
     constexpr __m256i operator()(address_t<value_t> const & address) const noexcept {
-        std::cout << "address = "; address[0].print(std::cout) << "\n";
+        // std::cout << "address = "; address[0].print(std::cout) << "\n";
         __m256i permuted_address = _mm256_permute4x64_epi64(reinterpret_cast<__m256i const &>(address[0]), 0b0100'1110);
-        std::cout << "permuted address = "; reinterpret_cast<value_t const &>(permuted_address).print(std::cout) << "\n";
+        // std::cout << "permuted address = "; reinterpret_cast<value_t const &>(permuted_address).print(std::cout) << "\n";
 
-        __m256i tmp1 = _mm256_shuffle_epi8(reinterpret_cast<__m256i const &>(address[0]), first_mask);
-        __m256i tmp2 = _mm256_shuffle_epi8(permuted_address, second_mask);
+        // __m256i tmp1 = _mm256_shuffle_epi8(reinterpret_cast<__m256i const &>(address[0]), first_mask);
+        // __m256i tmp2 = _mm256_shuffle_epi8(permuted_address, second_mask);
         __m256i tmp = _mm256_add_epi8(_mm256_shuffle_epi8(reinterpret_cast<__m256i const &>(address[0]), first_mask),
                                        _mm256_shuffle_epi8(permuted_address, second_mask));
-        std::cout << "tmp1 = "; reinterpret_cast<value_t const &>(tmp1).print(std::cout) << "\n";
-        std::cout << "tmp2 = "; reinterpret_cast<value_t const &>(tmp2).print(std::cout) << "\n";
-        std::cout << "tmp = "; reinterpret_cast<value_t const &>(tmp).print(std::cout) << "\n";
+        // std::cout << "tmp1 = "; reinterpret_cast<value_t const &>(tmp1).print(std::cout) << "\n";
+        // std::cout << "tmp2 = "; reinterpret_cast<value_t const &>(tmp2).print(std::cout) << "\n";
+        // std::cout << "tmp = "; reinterpret_cast<value_t const &>(tmp).print(std::cout) << "\n";
         return tmp;
     }
 };
@@ -197,11 +197,6 @@ struct simd_selector<simd_offset_t, selector_tag<operand_count, 8, 256>>
 //         return _mm512_shuffle_epi8(data, to_native(offsets));
 //     }
 // };
-
-// ----------------------------------------------------------------------------
-// epi32
-// ----------------------------------------------------------------------------
-
 } // namespace detail
 } // v1
 } // namespace seqan::pairwise_aligner

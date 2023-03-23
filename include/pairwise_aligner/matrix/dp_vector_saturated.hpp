@@ -28,7 +28,7 @@ class dp_vector_saturated
 {
 private:
     using regular_score_t = typename regular_cell_t::score_type;
-    using saturated_score_t = simd_score<int8_t, regular_score_t::size>;
+    using saturated_score_t = simd_score<int8_t, regular_score_t::size_v>;
 
     template <bool is_const>
     struct _proxy

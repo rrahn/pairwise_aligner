@@ -36,11 +36,11 @@ using score_model_matrix_simd_1xN = typename _score_model_matrix_simd_1xN<score_
 
 template <typename score_t, size_t dimension>
 class _score_model_matrix_simd_1xN<score_t, dimension>::type :
-    protected detail::simd_rank_selector_t<simd_score<int8_t, score_t::size>>
+    protected detail::simd_rank_selector_t<simd_score<int8_t, score_t::size_v>>
 {
 private:
 
-    using index_t = simd_score<int8_t, score_t::size>;
+    using index_t = simd_score<int8_t, score_t::size_v>;
     using simd_rank_selector_t = detail::simd_rank_selector_t<index_t>;
     using typename simd_rank_selector_t::rank_map_t;
 
@@ -65,11 +65,11 @@ public:
     template <typename substitution_matrix_t> // TODO: does this remain scalar?
     constexpr explicit type(substitution_matrix_t const & matrix, score_t zero = score_t{}) : _zero{zero}
     {
-        constexpr size_t chunk_size = (dimension_v - 1 + index_type::size) / index_type::size;
+        constexpr size_t chunk_size = (dimension_v - 1 + index_type::size_v) / index_type::size_v;
         for (size_t symbol_rank = 0; symbol_rank < dimension_v; ++symbol_rank) { // we move over the substitution_matrix
             std::array<index_type, chunk_size> tmp;
             for (size_t i = 0; i < dimension_v; ++i) {
-                auto [index, offset] = std::pair{i / index_type::size, i % index_type::size};
+                auto [index, offset] = std::pair{i / index_type::size_v, i % index_type::size_v};
                 tmp[index][offset] = matrix[symbol_rank][i];
             }
             _matrix[symbol_rank] = simd_rank_selector_t::initialise_rank_map(tmp);

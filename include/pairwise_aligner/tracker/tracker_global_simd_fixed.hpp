@@ -136,7 +136,7 @@ private:
     {
         using scalar_t = typename score_t::value_type;
         using unsigned_scalar_t = std::make_unsigned_t<scalar_t>;
-        using offset_simd_t = simd_score<unsigned_scalar_t, score_t::size>;
+        using offset_simd_t = simd_score<unsigned_scalar_t, score_t::size_v>;
 
         offset_simd_t start_offset_first{};
         offset_simd_t end_offset_first{};
