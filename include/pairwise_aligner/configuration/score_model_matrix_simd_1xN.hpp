@@ -23,10 +23,12 @@
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/interface/interface_one_to_many_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_block.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_column_local.hpp>
+// #include <pairwise_aligner/matrix/dp_matrix_column_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_lane_profile.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_lane.hpp>
+// #include <pairwise_aligner/matrix/dp_matrix_lane_profile.hpp>
+// #include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/matrix/dp_vector_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_vector_chunk.hpp>
@@ -151,17 +153,29 @@ struct traits
     template <typename configuration_t, typename ...policies_t>
     constexpr auto configure_algorithm(configuration_t const &, policies_t && ...policies) const noexcept
     {
-        using block_closure_t = dp_matrix::cpo::_block_closure<dp_matrix::cpo::_lane_profile_closure>;
+        // using block_closure_t = dp_matrix::cpo::_block_closure<dp_matrix::cpo::_lane_profile_closure>;
         // using dp_matrix_column_t = dp_matrix::cpo::_column_closure<block_closure_t>;
 
 
         // using dp_matrix_policies_t = dp_matrix_policies<dp_matrix_column_t>;
 
+        // auto make_dp_matrix_policy = [&] () constexpr {
+        //     if constexpr (configuration_t::is_local)
+        //         return dp_matrix::cpo::_column_local_closure<block_closure_t>{};
+        //     else
+        //         return dp_matrix::cpo::_column_closure<block_closure_t>{};
+        // };
+
         auto make_dp_matrix_policy = [&] () constexpr {
+
+            auto default_column = [] () {
+                return dp_matrix::column(dp_matrix::block(dp_matrix::lane));
+            };
+
             if constexpr (configuration_t::is_local)
-                return dp_matrix::cpo::_column_local_closure<block_closure_t>{};
+                return dp_matrix::matrix_local(default_column());
             else
-                return dp_matrix::cpo::_column_closure<block_closure_t>{};
+                return dp_matrix::matrix(default_column());
         };
 
         using dp_matrix_policy_t = dp_matrix_policies<std::invoke_result_t<decltype(make_dp_matrix_policy)>>;
