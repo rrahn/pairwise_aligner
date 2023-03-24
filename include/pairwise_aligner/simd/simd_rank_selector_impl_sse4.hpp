@@ -49,9 +49,12 @@ protected:
     using native_key_t = typename key_t::native_simd_type;
     using rank_map_t = std::vector<key_t, seqan3::aligned_allocator<key_t, alignof(key_t)>>;
 
-    static rank_map_t const & initialise_rank_map(rank_map_t const & ranks) noexcept
+    template <std::ranges::random_access_range ranks_t>
+        requires (std::ranges::range_value_t<ranks_t>::size_v == key_t::size_v)
+    static rank_map_t initialise_rank_map(ranks_t const & ranks) noexcept
     {
-        return ranks;
+        rank_map_t tmp{std::ranges::begin(ranks), std::ranges::end(ranks)};
+        return tmp;
     }
 
     static key_t select_rank_for(rank_map_t const & rank_map, key_t const & key) noexcept
@@ -73,7 +76,7 @@ private:
         constexpr scalar_t bit_index = std::bit_width(detail::max_simd_size) - 1;
         constexpr key_t modulo_mask{static_cast<scalar_t>((1ull << bit_index) - 1)};
 
-        return std::pair{index >> key_t{bit_index}, index & modulo_mask};
+        return std::pair{index >> bit_index, index & modulo_mask};
     }
 
     static key_t select_rank_for_impl(key_t const & ranks, key_t const & local_key)
