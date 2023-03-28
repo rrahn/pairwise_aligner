@@ -77,8 +77,7 @@ public:
         // For example DNA5 = {A, C, G, N, T} as char only requires range of size (84(T) - 65(A)) + 1 = 20.
         scalar_from_t const max_rank_range = max_rank - min_rank + 1;
 
-        assert(static_cast<int32_t>(std::numeric_limits<scalar_from_t>::max()) >
-               static_cast<int32_t>(max_rank_range));
+        assert(max_rank_range <= std::numeric_limits<scalar_from_t>::max());
 
         // Resize the map to hold all ranks.
         size_t const rank_width = (simd_from_t::size_v + max_rank_range - 1) / simd_from_t::size_v;
