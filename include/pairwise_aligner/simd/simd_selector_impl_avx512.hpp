@@ -171,8 +171,10 @@ struct simd_selector<simd_offset_t, selector_tag<operand_count, 8, 512>>
         offsets_even = _mm512_srli_epi16(reinterpret_cast<__m512i const &>(offsets), 1);
         offsets_uneven = _mm512_srli_epi16(reinterpret_cast<__m512i const &>(offsets), 9);
 
-        shuffle_mask1 = reinterpret_cast<__m512i &&>((offsets & simd_offset_t{static_cast<scalar_offset_t>(1)}) + mask1);
-        shuffle_mask2 = reinterpret_cast<__m512i &&>((offsets & simd_offset_t{static_cast<scalar_offset_t>(1)}) + mask2);
+        auto tmp_mask1 = (offsets & simd_offset_t{static_cast<scalar_offset_t>(1)}) + mask1;
+        auto tmp_mask2 = (offsets & simd_offset_t{static_cast<scalar_offset_t>(1)}) + mask2;
+        shuffle_mask1 = reinterpret_cast<__m512i const &>(tmp_mask1);
+        shuffle_mask2 = reinterpret_cast<__m512i const &>(tmp_mask2);
     }
 
     template <typename value_t>
