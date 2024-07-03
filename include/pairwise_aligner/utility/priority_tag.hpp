@@ -6,23 +6,26 @@
 // -----------------------------------------------------------------------------------------------------
 
 /*!\file
- * \brief Provides initial file.
- * \author name <name [AT] domain>
+ * \brief Provides seqan::pairwise_aligner::detail::priority_tag.
+ * \author Rene Rahn <rahn AT molgen.mpg.de>
  */
 
 #pragma once
-
-#include <iostream>
 
 namespace seqan::pairwise_aligner
 {
 inline namespace v1
 {
+namespace detail {
 
-//!\brief Prints hello!
-inline void hello()
-{
-    std::cout << "Hello!\n";
-}
-}  // inline namespace v1
-}  // namespace seqan::pairwise_aligner
+template <size_t priority>
+struct priority_tag : priority_tag<priority - 1>
+{};
+
+template <>
+struct priority_tag<0>
+{};
+
+} // namespace detail
+} // inline namespace v1
+} // namespace seqan::pairwise_aligner

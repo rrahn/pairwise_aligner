@@ -5,11 +5,25 @@
 // shipped with this file and also available at: https://github.com/rrahn/pairwise_aligner/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
 
-#include <gtest/gtest.h>
+/*!\file
+ * \brief Provides seqan::pairwise_aligner::interleaved_score_profile.
+ * \author Rene Rahn <rahn AT molgen.mpg.de>
+ */
 
-#include <pairwise_aligner/initial.hpp>
+#pragma once
 
-TEST(init_test, hello)
+#include <seqan3/std/type_traits>
+
+namespace seqan::pairwise_aligner
 {
-    seqan::pairwise_aligner::hello();
-}
+inline namespace v1
+{
+
+template <size_t width_v>
+using strip_width_t = std::integral_constant<size_t, width_v>;
+
+template <size_t width_v>
+inline constexpr strip_width_t<width_v> strip_width;
+
+} // inline namespace v1
+} // namespace seqan::pairwise_aligner

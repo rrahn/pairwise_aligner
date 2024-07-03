@@ -1,0 +1,8 @@
+pairwise_aligner_benchmark (simd_add_benchmark.cpp)
+pairwise_aligner_benchmark (simd_subtract_benchmark.cpp)
+pairwise_aligner_benchmark (simd_multiply_benchmark.cpp)
+pairwise_aligner_benchmark (simd_xor_benchmark.cpp)
+pairwise_aligner_benchmark (simd_max_benchmark.cpp)
+pairwise_aligner_benchmark (simd_compare_and_blend_benchmark.cpp)
+pairwise_aligner_benchmark (simd_upcast_benchmark.cpp)
+pairwise_aligner_benchmark (simd_downcast_benchmark.cpp)
