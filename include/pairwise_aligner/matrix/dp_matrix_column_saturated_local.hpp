@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <cassert>
+
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated.hpp>
 
 namespace seqan::pairwise_aligner

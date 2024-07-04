@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <cassert>
+
 #include <pairwise_aligner/matrix/dp_matrix_block_base.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_state_handle.hpp>
 // #include <pairwise_aligner/matrix/dp_matrix_lane.hpp>
@@ -168,7 +170,7 @@ struct _fn
             using block_t = _type<fwd_dp_lane_fn_t,
                                   dp_matrix::lane_width_t<lane_width>,
                                   remove_rvalue_reference_t<decltype(dp_state)>...>;
-            return block_t{std::forward<fwd_dp_lane_fn_t>(get<0>(fwd_capture)),
+            return block_t{std::forward<fwd_dp_lane_fn_t &&>(get<0>(fwd_capture)),
                            std::forward<decltype(dp_state)>(dp_state)...};
         };
     }

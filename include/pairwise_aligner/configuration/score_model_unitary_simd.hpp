@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include <seqan3/std/type_traits>
+#include <type_traits>
 #include <utility>
 
 #include <pairwise_aligner/configuration/initial.hpp>

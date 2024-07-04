@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include <seqan3/std/concepts>
+#include <concepts>
 
 #include <pairwise_aligner/simd/concept.hpp>
 #include <pairwise_aligner/utility/math.hpp>

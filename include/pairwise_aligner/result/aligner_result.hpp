@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include <seqan3/std/ranges>
+#include <ranges>
 
 namespace seqan::pairwise_aligner
 {

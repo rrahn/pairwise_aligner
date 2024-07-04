@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include <seqan3/std/type_traits>
+#include <type_traits>
 
 namespace pairwise_aligner::test {
 // ----------------------------------------------------------------------------

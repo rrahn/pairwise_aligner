@@ -12,7 +12,8 @@
 
 #pragma once
 
-#include <seqan3/std/concepts>
+#include <cassert>
+#include <concepts>
 
 #include <seqan3/utility/container/aligned_allocator.hpp>
 

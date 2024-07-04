@@ -13,7 +13,7 @@
 #pragma once
 
 #include <array>
-#include <seqan3/std/concepts>
+#include <concepts>
 #include <utility>
 
 #include <pairwise_aligner/simd/simd_score_type.hpp>

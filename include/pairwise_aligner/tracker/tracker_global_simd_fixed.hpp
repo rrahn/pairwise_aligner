@@ -12,7 +12,8 @@
 
 #pragma once
 
-#include <seqan3/std/ranges>
+#include <cassert>
+#include <ranges>
 
 #include <pairwise_aligner/configuration/end_gap_policy.hpp>
 #include <pairwise_aligner/simd/simd_base.hpp>

@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <cassert>
+
 #include <pairwise_aligner/matrix/dp_matrix_state_handle.hpp>
 namespace seqan::pairwise_aligner {
 inline namespace v1 {

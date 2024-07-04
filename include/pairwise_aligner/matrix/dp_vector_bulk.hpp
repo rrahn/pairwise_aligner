@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include <seqan3/std/algorithm>
-#include <seqan3/std/ranges>
+#include <algorithm>
+#include <ranges>
 #include <seqan3/utility/container/aligned_allocator.hpp>
 #include <seqan3/utility/simd/views/to_simd.hpp>
 #include <seqan3/alphabet/adaptation/char.hpp>

@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include <seqan3/std/algorithm>
-#include <seqan3/std/ranges>
+#include <algorithm>
+#include <ranges>
 
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_attorney.hpp>
 #include <pairwise_aligner/result/aligner_result.hpp>

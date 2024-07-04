@@ -12,7 +12,8 @@
 
 #pragma once
 
-#include <seqan3/std/concepts>
+#include <cassert>
+#include <concepts>
 
 #include <pairwise_aligner/simd/simd_score_type.hpp>
 

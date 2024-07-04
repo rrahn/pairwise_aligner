@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <cassert>
+
 #include <pairwise_aligner/matrix/dp_matrix_block_cached_profile.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column.hpp>

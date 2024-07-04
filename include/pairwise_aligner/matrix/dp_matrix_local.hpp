@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include <seqan3/std/concepts>
+#include <concepts>
 
 #include <pairwise_aligner/matrix/dp_matrix.hpp>
 #include <pairwise_aligner/utility/type_list.hpp>
