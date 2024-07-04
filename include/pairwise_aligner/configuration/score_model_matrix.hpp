@@ -13,7 +13,7 @@
 #pragma once
 
 #include <array>
-#include <seqan3/std/type_traits>
+#include <type_traits>
 #include <utility>
 
 #include <pairwise_aligner/alphabet_conversion/alphabet_rank_map_scalar.hpp>

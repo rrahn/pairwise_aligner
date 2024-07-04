@@ -8,10 +8,10 @@
 #include <gtest/gtest.h>
 
 #include <array>
-#include <seqan3/std/algorithm>
+#include <algorithm>
 #include <numeric>
 #include <tuple>
-#include <seqan3/std/type_traits>
+#include <type_traits>
 
 #include <pairwise_aligner/score_model/score_model_matrix_simd_1xN.hpp>
 #include <pairwise_aligner/simd/simd_score_type.hpp>

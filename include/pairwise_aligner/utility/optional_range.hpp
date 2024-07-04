@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include <seqan3/std/iterator>
-#include <seqan3/std/ranges>
+#include <iterator>
+#include <ranges>
 #include <optional>
 
 namespace seqan::pairwise_aligner

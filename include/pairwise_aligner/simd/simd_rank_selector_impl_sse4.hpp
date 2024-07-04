@@ -14,8 +14,8 @@
 
 #include <immintrin.h>
 #include <array>
-#include <seqan3/std/bit>
-#include <seqan3/std/ranges>
+#include <bit>
+#include <ranges>
 #include <utility>
 
 #include <seqan3/utility/detail/bits_of.hpp>

@@ -12,9 +12,9 @@
 
 #pragma once
 
-#include <seqan3/std/algorithm>
-#include <seqan3/std/ranges>
-#include <seqan3/std/span>
+#include <algorithm>
+#include <ranges>
+#include <span>
 
 namespace seqan::pairwise_aligner
 {

@@ -7,10 +7,10 @@
 
 #include <gtest/gtest.h>
 
-#include <seqan3/std/algorithm>
-#include <seqan3/std/concepts>
+#include <algorithm>
+#include <concepts>
 #include <random>
-#include <seqan3/std/ranges>
+#include <ranges>
 #include <string_view>
 #include <string>
 #include <vector>

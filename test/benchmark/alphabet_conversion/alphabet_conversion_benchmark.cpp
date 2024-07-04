@@ -7,9 +7,9 @@
 
 #include <benchmark/benchmark.h>
 
-#include <seqan3/std/algorithm>
+#include <algorithm>
 #include <random>
-#include <seqan3/std/ranges>
+#include <ranges>
 #include <string_view>
 #include <tuple>
 

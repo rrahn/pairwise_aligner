@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <cassert>
+
 #include <pairwise_aligner/configuration/end_gap_policy.hpp>
 
 namespace seqan::pairwise_aligner

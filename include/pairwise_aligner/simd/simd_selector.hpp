@@ -13,8 +13,9 @@
 #pragma once
 
 #include <array>
-#include <seqan3/std/concepts>
-#include <seqan3/std/type_traits>
+#include <cassert>
+#include <concepts>
+#include <type_traits>
 
 #include <pairwise_aligner/simd/concept.hpp>
 #include <pairwise_aligner/simd/simd_base.hpp>

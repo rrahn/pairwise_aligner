@@ -12,11 +12,12 @@
 
 #pragma once
 
-#include <seqan3/std/algorithm>
+#include <algorithm>
 #include <array>
+#include <cassert>
 #include <memory>
 #include <optional>
-#include <seqan3/std/ranges>
+#include <ranges>
 
 #include <pairwise_aligner/result/aligner_result_bulk.hpp>
 

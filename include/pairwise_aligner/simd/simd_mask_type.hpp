@@ -13,7 +13,7 @@
 #pragma once
 
 #include <array>
-#include <seqan3/std/concepts>
+#include <concepts>
 
 #include <seqan3/utility/simd/algorithm.hpp>
 #include <seqan3/utility/simd/simd_traits.hpp>

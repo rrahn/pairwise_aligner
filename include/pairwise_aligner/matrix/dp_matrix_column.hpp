@@ -12,6 +12,11 @@
 
 #pragma once
 
+#include <cassert>
+#include <concepts>
+#include <tuple>
+#include <utility>
+
 // #include <pairwise_aligner/matrix/dp_matrix_block.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_base.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_state_handle.hpp>
@@ -98,12 +103,15 @@ struct _fn
     template <typename dp_block_fn_t>
     constexpr auto operator()(dp_block_fn_t && dp_block_fn) const noexcept
     {
-        std::tuple<dp_block_fn_t> tmp{std::forward<dp_block_fn_t>(dp_block_fn)};
-        return [fwd_capture = std::move(tmp)] (auto && ...dp_state) {
+        return [fwd_capture = std::tuple<dp_block_fn_t>(std::forward<dp_block_fn_t>(dp_block_fn))] (auto && ...dp_state) {
             using fwd_dp_block_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
+            // static_assert(std::same_as<fwd_dp_block_fn_t, void>, "fwd_dp_block_fn_t");                         // seqan::pairwise_aligner::v1::dp_matrix::_block::_fn::operator()::._anon_186&&
+            // static_assert(std::same_as<decltype(std::get<0>(fwd_capture)), void>, "std::get<0>(fwd_capture)"); // seqan::pairwise_aligner::v1::dp_matrix::_block::_fn::operator()::._anon_186&
             using column_t = _type<fwd_dp_block_fn_t, remove_rvalue_reference_t<decltype(dp_state)>...>;
-            return column_t{std::forward<fwd_dp_block_fn_t>(get<0>(fwd_capture)),
-                            std::forward<decltype(dp_state)>(dp_state)...};
+            return column_t{
+                std::forward<fwd_dp_block_fn_t>(std::get<0>(fwd_capture)),
+                std::forward<decltype(dp_state)>(dp_state)...
+            };
         };
     }
 };

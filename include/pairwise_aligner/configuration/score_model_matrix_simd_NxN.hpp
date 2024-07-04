@@ -12,9 +12,10 @@
 
 #pragma once
 
-#include <seqan3/std/algorithm>
-#include <seqan3/std/ranges>
-#include <seqan3/std/type_traits>
+#include <algorithm>
+#include <cassert>
+#include <ranges>
+#include <type_traits>
 #include <utility>
 
 #include <pairwise_aligner/configuration/initial.hpp>

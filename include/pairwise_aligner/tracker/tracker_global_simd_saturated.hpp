@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <cassert>
+
 #include <pairwise_aligner/configuration/end_gap_policy.hpp>
 #include <pairwise_aligner/simd/simd_score_type.hpp>
 

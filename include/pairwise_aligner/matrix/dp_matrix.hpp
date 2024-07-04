@@ -12,6 +12,9 @@
 
 #pragma once
 
+#include <cassert>
+#include <tuple>
+
 #include <pairwise_aligner/matrix/dp_matrix_state_handle.hpp>
 #include <pairwise_aligner/type_traits.hpp>
 
@@ -89,12 +92,13 @@ struct _fn
     template <typename dp_column_fn_t>
     constexpr auto operator()(dp_column_fn_t && dp_column_fn) const noexcept
     {
-        std::tuple<dp_column_fn_t> tmp{std::forward<dp_column_fn_t>(dp_column_fn)};
-        return [fwd_capture = std::move(tmp)] (auto && ...dp_state) {
+        return [fwd_capture = std::tuple<dp_column_fn_t>{std::forward<dp_column_fn_t>(dp_column_fn)}] (auto && ...dp_state) {
             using fwd_dp_column_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
             using dp_matrix_t = _type<fwd_dp_column_fn_t, remove_rvalue_reference_t<decltype(dp_state)>...>;
-            return dp_matrix_t{std::forward<fwd_dp_column_fn_t>(get<0>(fwd_capture)),
-                               std::forward<decltype(dp_state)>(dp_state)...};
+            return dp_matrix_t{
+                std::forward<fwd_dp_column_fn_t &&>(get<0>(fwd_capture)),
+                std::forward<decltype(dp_state)>(dp_state)...
+            };
         };
     }
 };

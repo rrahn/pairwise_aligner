@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <iosfwd>
 
 #include <pairwise_aligner/matrix/dp_matrix_column_base.hpp>

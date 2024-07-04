@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include <seqan3/std/concepts>
-#include <seqan3/std/type_traits>
+#include <concepts>
+#include <type_traits>
 
 #include <seqan3/utility/type_pack/traits.hpp>
 #include <seqan3/utility/type_traits/lazy_conditional.hpp>

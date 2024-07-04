@@ -12,9 +12,9 @@
 
 #pragma once
 
-#include <seqan3/std/algorithm>
-#include <seqan3/std/ranges>
-#include <seqan3/std/type_traits>
+#include <algorithm>
+#include <ranges>
+#include <type_traits>
 
 #include <pairwise_aligner/simd/simd_base.hpp>
 

@@ -7,7 +7,7 @@
 
 #include <benchmark/benchmark.h>
 
-#include <seqan3/std/ranges>
+#include <ranges>
 #include <string_view>
 #include <seqan3/utility/simd/all.hpp>
 

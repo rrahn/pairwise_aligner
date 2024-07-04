@@ -12,10 +12,9 @@
 
 #pragma once
 
+#include <concepts>
 #include <cstdint>
-
-#include <seqan3/std/concepts>
-#include <seqan3/std/type_traits>
+#include <type_traits>
 
 namespace seqan::pairwise_aligner
 {
