@@ -23,7 +23,7 @@ namespace pa = seqan::pairwise_aligner;
 
 using score_t = int16_t;
 
-inline constexpr size_t max_sequence_count = pa::simd_score<int8_t>::size;
+inline constexpr size_t max_sequence_count = pa::simd_score<int8_t>::size_v;
 inline constexpr auto base_configurator =
     pa::cfg::gap_model_affine(pa::cfg::score_model_matrix_simd_saturated_NxN(pa::blosum62_standard<score_t>), -10, -1);
 

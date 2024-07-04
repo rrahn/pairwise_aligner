@@ -27,11 +27,15 @@
 void alignment_global_affine(benchmark::State & state)
 {
     size_t sequence_length = aligner::benchmark::sequence_size;
-    auto seq1_tmp = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0) | seqan3::views::to_char;
-    auto seq2_tmp = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 1) | seqan3::views::to_char;
 
-    std::string seq1{std::ranges::begin(seq1_tmp), std::ranges::end(seq1_tmp)};
-    std::string seq2{std::ranges::begin(seq2_tmp), std::ranges::end(seq2_tmp)};
+    auto generated_seq1 = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
+    auto generated_seq2 = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 1);
+
+    auto char_seq1_view = generated_seq1 | seqan3::views::to_char;
+    auto char_seq2_view = generated_seq2 | seqan3::views::to_char;
+
+    std::string seq1{std::ranges::begin(char_seq1_view), std::ranges::end(char_seq1_view)};
+    std::string seq2{std::ranges::begin(char_seq2_view), std::ranges::end(char_seq2_view)};
 
     namespace pa = seqan::pairwise_aligner;
 
@@ -54,3 +58,5 @@ void alignment_global_affine(benchmark::State & state)
 }
 
 BENCHMARK(alignment_global_affine);
+
+BENCHMARK_MAIN();

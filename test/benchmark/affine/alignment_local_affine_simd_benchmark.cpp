@@ -20,7 +20,7 @@ namespace pa = seqan::pairwise_aligner;
 
 using score_t = int16_t;
 
-inline constexpr size_t max_sequence_count = pa::simd_score<score_t>::size;
+inline constexpr size_t max_sequence_count = pa::simd_score<score_t>::size_v;
 inline constexpr auto base_configurator =
     pa::cfg::gap_model_affine(pa::cfg::score_model_unitary_simd(static_cast<score_t>(4), static_cast<score_t>(-5)),
                               -10, -1);
