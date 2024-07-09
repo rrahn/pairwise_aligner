@@ -15,7 +15,7 @@ namespace local::affine::saturated_simd {
 
 namespace aligner = seqan::pairwise_aligner;
 
-inline constexpr size_t sequence_count = aligner::simd_score<int8_t>::size;
+inline constexpr size_t sequence_count = aligner::simd_score<int8_t>::size_v;
 
 inline constexpr auto base_config =
     aligner::cfg::method_local(

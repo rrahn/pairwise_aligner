@@ -31,28 +31,28 @@ DEFINE_TEST_VALUES(equal_size_64,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int64_t>},
-    .sequence_generation_param{aligner::simd_score<int64_t>::size, 93, 93}
+    .sequence_generation_param{aligner::simd_score<int64_t>::size_v, 93, 93}
 )
 
 DEFINE_TEST_VALUES(equal_size_32,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int32_t>},
-    .sequence_generation_param{aligner::simd_score<int32_t>::size, 210, 210},
+    .sequence_generation_param{aligner::simd_score<int32_t>::size_v, 210, 210},
 )
 
 DEFINE_TEST_VALUES(equal_size_16,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int16_t>},
-    .sequence_generation_param{aligner::simd_score<int16_t>::size, 150, 150}
+    .sequence_generation_param{aligner::simd_score<int16_t>::size_v, 150, 150}
 )
 
 DEFINE_TEST_VALUES(equal_size_8,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int8_t>},
-    .sequence_generation_param{aligner::simd_score<int8_t>::size, 25, 25},
+    .sequence_generation_param{aligner::simd_score<int8_t>::size_v, 25, 25},
 )
 
 using equal_size_types =
@@ -70,28 +70,28 @@ DEFINE_TEST_VALUES(variable_size_64,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int64_t>},
-    .sequence_generation_param{aligner::simd_score<int64_t>::size, 75, 93}
+    .sequence_generation_param{aligner::simd_score<int64_t>::size_v, 75, 93}
 )
 
 DEFINE_TEST_VALUES(variable_size_32,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int32_t>},
-    .sequence_generation_param{aligner::simd_score<int32_t>::size, 11, 200},
+    .sequence_generation_param{aligner::simd_score<int32_t>::size_v, 11, 200},
 )
 
 DEFINE_TEST_VALUES(variable_size_16,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int16_t>},
-    .sequence_generation_param{aligner::simd_score<int16_t>::size, 133, 136}
+    .sequence_generation_param{aligner::simd_score<int16_t>::size_v, 133, 136}
 )
 
 DEFINE_TEST_VALUES(variable_size_8,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_matrix_simd_NxN,
     .substitution_scores = alignment::test::simd::matrix_model{aligner::blosum62_standard<int8_t>},
-    .sequence_generation_param{aligner::simd_score<int8_t>::size, 10, 15},
+    .sequence_generation_param{aligner::simd_score<int8_t>::size_v, 10, 15},
 )
 
 using variable_size_types =
@@ -107,6 +107,6 @@ INSTANTIATE_TYPED_TEST_SUITE_P(equal_size_test,
                                test_suite,
                                global::standard::affine::fixed_simd::matrix::NxN::equal_size_types,);
 
-// INSTANTIATE_TYPED_TEST_SUITE_P(variable_size_test,
-//                                test_suite,
-//                                global::standard::affine::fixed_simd::matrix::NxN::variable_size_types,);
+INSTANTIATE_TYPED_TEST_SUITE_P(variable_size_test,
+                               test_suite,
+                               global::standard::affine::fixed_simd::matrix::NxN::variable_size_types,);

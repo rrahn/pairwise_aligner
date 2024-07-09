@@ -17,7 +17,7 @@ namespace global::overlap::affine::saturated_simd {
 
 namespace aligner = seqan::pairwise_aligner;
 
-inline constexpr size_t sequence_count = aligner::simd_score<int8_t>::size;
+inline constexpr size_t sequence_count = aligner::simd_score<int8_t>::size_v;
 
 inline constexpr auto base_config =
     aligner::cfg::method_global(
@@ -41,7 +41,7 @@ DEFINE_TEST_VALUES(equal_size_32,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
     .substitution_scores = alignment::test::simd::unitary_model<int32_t>{4, -5},
-    .sequence_generation_param{sequence_count, 210, 210},
+    .sequence_generation_param{sequence_count, 210, 210}
 )
 
 DEFINE_TEST_VALUES(equal_size_16,
@@ -55,14 +55,14 @@ DEFINE_TEST_VALUES(equal_size_8,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
     .substitution_scores = alignment::test::simd::unitary_model<int8_t>{4, -5},
-    .sequence_generation_param{sequence_count, 25, 25},
+    .sequence_generation_param{sequence_count, 25, 25}
 )
 
 DEFINE_TEST_VALUES(sequence_size_1000_equal_32,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
     .substitution_scores = alignment::test::simd::unitary_model<int32_t>{4, -5},
-    .sequence_generation_param{sequence_count, 1000, 1000},
+    .sequence_generation_param{sequence_count, 1000, 1000}
 )
 
 using equal_size_types =
@@ -88,7 +88,7 @@ DEFINE_TEST_VALUES(variable_size_32,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
     .substitution_scores = alignment::test::simd::unitary_model<int32_t>{4, -5},
-    .sequence_generation_param{sequence_count, 11, 200},
+    .sequence_generation_param{sequence_count, 11, 200}
 )
 
 DEFINE_TEST_VALUES(variable_size_16,
@@ -102,14 +102,14 @@ DEFINE_TEST_VALUES(variable_size_8,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
     .substitution_scores = alignment::test::simd::unitary_model<int8_t>{4, -5},
-    .sequence_generation_param{sequence_count, 10, 15},
+    .sequence_generation_param{sequence_count, 10, 15}
 )
 
 DEFINE_TEST_VALUES(sequence_size_1000_variable_32,
     .base_configurator = base_config,
     .score_configurator = aligner::cfg::score_model_unitary_simd_saturated,
     .substitution_scores = alignment::test::simd::unitary_model<int32_t>{4, -5},
-    .sequence_generation_param{sequence_count, 900, 1100},
+    .sequence_generation_param{sequence_count, 900, 1100}
 )
 
 using variable_size_types =

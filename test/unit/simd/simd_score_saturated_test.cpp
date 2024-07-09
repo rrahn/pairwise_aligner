@@ -31,7 +31,7 @@ TYPED_TEST(saturated_simd_test, add_above)
 
     simd_score_t c = seqan::pairwise_aligner::add(a, b);
 
-    for (size_t i = 0; i < simd_score_t::size; ++i)
+    for (size_t i = 0; i < simd_score_t::size_v; ++i)
         EXPECT_EQ(c[i], std::numeric_limits<scalar_t>::max());
 }
 
@@ -43,7 +43,7 @@ TYPED_TEST(saturated_simd_test, add_above_scalar)
     simd_score_t a{std::numeric_limits<scalar_t>::max()};
 
     simd_score_t c = seqan::pairwise_aligner::add(a, 1);
-    for (size_t i = 0; i < simd_score_t::size; ++i)
+    for (size_t i = 0; i < simd_score_t::size_v; ++i)
         EXPECT_EQ(c[i], std::numeric_limits<scalar_t>::max());
 }
 
@@ -64,7 +64,7 @@ TYPED_TEST(saturated_simd_test, add_below)
             return std::numeric_limits<scalar_t>::max();
     };
 
-    for (size_t i = 0; i < simd_score_t::size; ++i)
+    for (size_t i = 0; i < simd_score_t::size_v; ++i)
         EXPECT_EQ(c[i], expected());
 }
 
@@ -84,7 +84,7 @@ TYPED_TEST(saturated_simd_test, add_below_scalar)
             return std::numeric_limits<scalar_t>::max();
     };
 
-    for (size_t i = 0; i < simd_score_t::size; ++i)
+    for (size_t i = 0; i < simd_score_t::size_v; ++i)
         EXPECT_EQ(c[i], expected());
 }
 
@@ -105,7 +105,7 @@ TYPED_TEST(saturated_simd_test, subtract_above)
             return std::numeric_limits<scalar_t>::lowest();
     };
 
-    for (size_t i = 0; i < simd_score_t::size; ++i)
+    for (size_t i = 0; i < simd_score_t::size_v; ++i)
         EXPECT_EQ(c[i], expected());
 }
 
@@ -124,7 +124,7 @@ TYPED_TEST(saturated_simd_test, subtract_above_scalar)
             return std::numeric_limits<scalar_t>::lowest();
     };
 
-    for (size_t i = 0; i < simd_score_t::size; ++i)
+    for (size_t i = 0; i < simd_score_t::size_v; ++i)
         EXPECT_EQ(c[i], expected());
 }
 
@@ -138,7 +138,7 @@ TYPED_TEST(saturated_simd_test, subtract_below)
 
     simd_score_t c = seqan::pairwise_aligner::subtract(a, b);
 
-    for (size_t i = 0; i < simd_score_t::size; ++i)
+    for (size_t i = 0; i < simd_score_t::size_v; ++i)
         EXPECT_EQ(c[i], std::numeric_limits<scalar_t>::lowest());
 }
 
@@ -151,6 +151,6 @@ TYPED_TEST(saturated_simd_test, subtract_below_scalar)
 
     simd_score_t c = seqan::pairwise_aligner::subtract(a, 1);
 
-    for (size_t i = 0; i < simd_score_t::size; ++i)
+    for (size_t i = 0; i < simd_score_t::size_v; ++i)
         EXPECT_EQ(c[i], std::numeric_limits<scalar_t>::lowest());
 }
