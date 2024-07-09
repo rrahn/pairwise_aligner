@@ -495,19 +495,19 @@ private:
 // ----------------------------------------------------------------------------
 
 template <typename char_t, typename char_traits_t,
-          typename score_t, size_t size, template <typename...> typename policy_t>
+          typename score_t, size_t size, template <typename> typename ...policies_t>
 inline std::basic_ostream<char_t, char_traits_t> & operator<<(std::basic_ostream<char_t, char_traits_t> & ostream,
-                                                              detail::simd_score_base<score_t, size, policy_t> const & simd_score)
+                                                              detail::simd_score_base<score_t, size, policies_t...> const & simd_score)
 {
     size_t width = 4;
     ostream << "\nidx:";
-    for (size_t i = 0; i < simd_score.size - 1; ++i)
+    for (size_t i = 0; i < simd_score.size() - 1; ++i)
         ostream << std::setw(width) << (int32_t) i;
-    ostream << std::setw(width) << simd_score.size - 1 << "\nval:";
-    for (size_t i = 0; i < simd_score.size - 1; ++i)
+    ostream << std::setw(width) << simd_score.size() - 1 << "\nval:";
+    for (size_t i = 0; i < simd_score.size() - 1; ++i)
         ostream << std::setw(width) << (int32_t) simd_score[i]; // << ", ";
 
-    ostream << std::setw(width) << (int32_t) simd_score[simd_score.size - 1] << "\n";
+    ostream << std::setw(width) << (int32_t) simd_score[simd_score.size() - 1] << "\n";
     return ostream;
 }
 
