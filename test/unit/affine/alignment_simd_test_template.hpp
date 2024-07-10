@@ -172,11 +172,11 @@ private:
 
         for (size_t i = 0; i < count; ++i) {
             generate_sequence(sequence_collection1[i]);
-            seqan3::debug_stream << "seq1 = " << sequence_collection1[i] << "\n";
+            // seqan3::debug_stream << "seq1 = " << sequence_collection1[i] << "\n";
         }
         for (size_t i = 0; i < count; ++i) {
             generate_sequence(sequence_collection2[i]);
-            seqan3::debug_stream << "seq2 = " << sequence_collection2[i] << "\n";
+            // seqan3::debug_stream << "seq2 = " << sequence_collection2[i] << "\n";
         }
     }
 };
