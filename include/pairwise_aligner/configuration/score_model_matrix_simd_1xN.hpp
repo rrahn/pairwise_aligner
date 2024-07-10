@@ -27,7 +27,7 @@
 // #include <pairwise_aligner/matrix/dp_matrix_column_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane.hpp>
-// #include <pairwise_aligner/matrix/dp_matrix_lane_profile.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_lane_profile.hpp>
 // #include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix.hpp>
@@ -170,7 +170,7 @@ struct traits
         auto make_dp_matrix_policy = [&] () constexpr {
 
             auto default_column = [] () {
-                return dp_matrix::column(dp_matrix::block(dp_matrix::lane));
+                return dp_matrix::column(dp_matrix::block(dp_matrix::lane_profile));
             };
 
             if constexpr (configuration_t::is_local)
