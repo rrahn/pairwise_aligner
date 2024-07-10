@@ -30,7 +30,7 @@ option (PAIRWISE_ALIGNER_BENCHMARK_ALIGN_LOOPS "Pass -falign-loops=32 to the ben
 # Paths to folders.
 # ----------------------------------------------------------------------------
 
-find_path (SEQAN3_TEST_INCLUDE_DIR NAMES seqan3/test/tmp_filename.hpp HINTS "${CMAKE_CURRENT_LIST_DIR}/../../lib/seqan3/test/include/")
+find_path (SEQAN3_TEST_INCLUDE_DIR NAMES seqan3/test/tmp_directory.hpp HINTS "${CMAKE_CURRENT_LIST_DIR}/../../lib/seqan3/test/include/")
 find_path (PAIRWISE_ALIGNER_TEST_CMAKE_MODULE_DIR NAMES seqan3_test_component.cmake HINTS "${CMAKE_CURRENT_LIST_DIR}/../../lib/seqan3/test/cmake/")
 list(APPEND CMAKE_MODULE_PATH "${PAIRWISE_ALIGNER_TEST_CMAKE_MODULE_DIR}")
 
@@ -60,7 +60,7 @@ endif ()
 # needed for performance test cases in pairwise_aligner/test/performance
 if (NOT TARGET seqan::pairwise_aligner::test::performance)
     add_library (pairwise_aligner_test_performance INTERFACE)
-    target_link_libraries (pairwise_aligner_test_performance INTERFACE "seqan::pairwise_aligner::test" "gbenchmark")
+    target_link_libraries (pairwise_aligner_test_performance INTERFACE "seqan::pairwise_aligner::test" "benchmark::benchmark")
 
     if (PAIRWISE_ALIGNER_BENCHMARK_ALIGN_LOOPS)
         target_compile_options (pairwise_aligner_test_performance INTERFACE "-falign-loops=32")

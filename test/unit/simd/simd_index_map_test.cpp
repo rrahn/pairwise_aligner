@@ -53,35 +53,35 @@ TYPED_TEST(simd_index_map_test, select_size_16)
     key_t key{};
     auto values = map[key];
 
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         EXPECT_EQ(values[i], 0);
 
     // Set all to one
     key += 1;
     values = map[key];
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         EXPECT_EQ(values[i], 1);
 
     key += 1;
     values = map[key];
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         EXPECT_EQ(values[i], 2);
 
     key += 1;
     values = map[key];
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         EXPECT_EQ(values[i], 3);
 
     key += 1;
     values = map[key];
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         EXPECT_EQ(values[i], 4);
 
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         key[i] = i % 5;
 
     values = map[key];
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         EXPECT_EQ(values[i], i % 5);
 }
 
@@ -98,11 +98,11 @@ TYPED_TEST(simd_index_map_test, select_simd_size)
     using key_t = typename map_t::key_type;
     key_t key{};
 
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         key[i] = i % data_size;
 
     auto values = map[key];
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         EXPECT_EQ(values[i], i % data_size);
 
 }
@@ -120,11 +120,11 @@ TYPED_TEST(simd_index_map_test, select_size_128)
     using key_t = typename map_t::key_type;
     key_t key{};
 
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         key[i] = i % data_size;
 
     auto values = map[key];
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         EXPECT_EQ(values[i], i % data_size);
 }
 
@@ -141,16 +141,16 @@ TYPED_TEST(simd_index_map_test, select_size_256)
     using key_t = typename map_t::key_type;
     key_t key1{};
 
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         key1[i] = i % data_size;
 
     key_t key2 = key1 + pa::detail::max_simd_size;
 
     auto values = map[key1];
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         EXPECT_EQ(values[i], i % data_size);
 
     values = map[key2];
-    for (size_t i = 0; i < key_t::size; ++i)
+    for (size_t i = 0; i < key_t::size_v; ++i)
         EXPECT_EQ(values[i], i % data_size + pa::detail::max_simd_size);
 }

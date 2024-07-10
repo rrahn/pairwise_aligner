@@ -29,8 +29,11 @@
 void alignment_global_affine(benchmark::State & state)
 {
     size_t sequence_length = aligner::benchmark::sequence_size;
-    auto seq1_tmp = seqan3::test::generate_sequence<seqan3::aa20>(sequence_length, 0, 0) | seqan3::views::to_char;
-    auto seq2_tmp = seqan3::test::generate_sequence<seqan3::aa20>(sequence_length, 0, 1) | seqan3::views::to_char;
+
+    auto [generated_seq1, generated_seq2] = seqan3::test::generate_sequence_pairs<seqan3::aa20>(sequence_length, 1, 0)[0];
+
+    auto seq1_tmp = generated_seq1 | seqan3::views::to_char;
+    auto seq2_tmp = generated_seq2 | seqan3::views::to_char;
 
     std::string seq1{std::ranges::begin(seq1_tmp), std::ranges::end(seq1_tmp)};
     std::string seq2{std::ranges::begin(seq2_tmp), std::ranges::end(seq2_tmp)};
@@ -58,3 +61,5 @@ void alignment_global_affine(benchmark::State & state)
 }
 
 BENCHMARK(alignment_global_affine);
+
+BENCHMARK_MAIN();

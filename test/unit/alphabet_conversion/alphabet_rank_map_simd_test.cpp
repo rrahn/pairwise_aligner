@@ -34,7 +34,7 @@ struct fixture : public fixture_t
 {
     using simd_t = seqan::pairwise_aligner::simd_score<int8_t>;
 
-    static constexpr size_t simd_size = simd_t::size;
+    static constexpr size_t simd_size = simd_t::size_v;
 
     using alphabet_rank_map_t = seqan::pairwise_aligner::alphabet_rank_map_simd<simd_t>;
     using key_t = typename alphabet_rank_map_t::key_type;

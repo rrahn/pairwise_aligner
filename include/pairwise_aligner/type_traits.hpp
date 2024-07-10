@@ -64,7 +64,7 @@ struct remove_rvalue_reference<t> : std::type_identity<std::remove_reference_t<t
 template <typename t>
 using remove_rvalue_reference_t = typename remove_rvalue_reference<t>::type;
 
-template <template <typename> typename deferred_t>
+template <template <typename ...> typename deferred_t>
 struct lazy_type
 {
     template <typename ...types>

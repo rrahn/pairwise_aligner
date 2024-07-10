@@ -77,11 +77,10 @@ public:
         // For example DNA5 = {A, C, G, N, T} as char only requires range of size (84(T) - 65(A)) + 1 = 20.
         scalar_from_t const max_rank_range = max_rank - min_rank + 1;
 
-        assert(static_cast<int32_t>(std::numeric_limits<scalar_from_t>::max()) >
-               static_cast<int32_t>(max_rank_range));
+        assert(max_rank_range <= std::numeric_limits<scalar_from_t>::max());
 
         // Resize the map to hold all ranks.
-        size_t const rank_width = (simd_from_t::size + max_rank_range - 1) / simd_from_t::size;
+        size_t const rank_width = (simd_from_t::size_v + max_rank_range - 1) / simd_from_t::size_v;
         std::vector<simd_from_t, seqan3::aligned_allocator<simd_from_t, alignof(simd_from_t)>> ranks{};
         ranks.resize(rank_width, simd_from_t{static_cast<scalar_from_t>(-1)});
 
@@ -96,21 +95,21 @@ public:
     }
 
     // Now it looks like a map.
-    constexpr value_type operator[](key_type const & key) const noexcept
+    constexpr value_type operator[](key_type const & keys) const noexcept
     {
-        return simd_rank_selector_t::select_rank_for(*_rank_map_ptr, normalise_key(key));
+        return simd_rank_selector_t::select_rank_for(*_rank_map_ptr, normalise_keys(keys));
     }
 
 private:
-    constexpr key_type normalise_key(key_type const & key) const noexcept
+    constexpr key_type normalise_keys(key_type const & keys) const noexcept
     {
-        return key - _min_rank_offset;
+        return keys - _min_rank_offset;
     }
 
     constexpr std::pair<scalar_from_t, scalar_from_t> key_offset(scalar_from_t key) const noexcept
     {
         scalar_from_t normalised_key = key - _min_rank_offset[0];
-        return {normalised_key / simd_from_t::size, normalised_key % simd_from_t::size};
+        return {normalised_key / simd_from_t::size_v, normalised_key % simd_from_t::size_v};
     }
 };
 

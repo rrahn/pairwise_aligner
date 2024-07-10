@@ -58,3 +58,5 @@ void alignment_global_affine(benchmark::State & state)
 }
 
 BENCHMARK(alignment_global_affine);
+
+BENCHMARK_MAIN();

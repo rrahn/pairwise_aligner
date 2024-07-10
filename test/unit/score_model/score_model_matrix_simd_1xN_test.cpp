@@ -35,9 +35,9 @@ struct score_model_matrix_simd_test : public testing::Test
     using simd_score_t = typename score_model_t::score_type;
     using simd_index_t = typename score_model_t::index_type;
 
-    static_assert(simd_score_t::size == simd_index_t::size);
+    static_assert(simd_score_t::size_v == simd_index_t::size_v);
 
-    static constexpr int8_t simd_size = simd_score_t::size;
+    static constexpr int8_t simd_size = simd_score_t::size_v;
 
     score_model_t matrix;
 

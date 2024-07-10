@@ -30,18 +30,18 @@ inline namespace v1
 {
 
 template <typename key_t>
-    requires (key_t::size == detail::max_simd_size)
+    requires (key_t::size_v == detail::max_simd_size)
 struct _simd_rank_selector_impl_avx2
 {
     struct type;
 };
 
 template <typename key_t>
-    requires (key_t::size == detail::max_simd_size)
+    requires (key_t::size_v == detail::max_simd_size)
 using simd_rank_selector_impl_avx2 = typename _simd_rank_selector_impl_avx2<key_t>::type;
 
 template <typename key_t>
-    requires (key_t::size == detail::max_simd_size)
+    requires (key_t::size_v == detail::max_simd_size)
 struct _simd_rank_selector_impl_avx2<key_t>::type
 {
 protected:

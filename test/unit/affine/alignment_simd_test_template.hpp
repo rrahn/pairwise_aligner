@@ -27,8 +27,11 @@
 // Helper macro to define test values
 // ----------------------------------------------------------------------------
 
-#define DEFINE_TEST_VALUES(name, ...)  \
-static auto name = [](){ return alignment::test::simd::values{__VA_ARGS__}; }();
+#define DEFINE_TEST_VALUES(name, ...) \
+    inline static auto name = [](){ \
+        return alignment::test::simd::values{__VA_ARGS__}; \
+    }();
+
 
 namespace alignment::test::simd {
 
@@ -71,6 +74,8 @@ struct matrix_model{
     }
 };
 
+using sequence_generation_param_t = std::tuple<std::size_t, std::size_t, std::size_t>;
+
 template <typename base_configurator_t, typename score_configurator_t, typename score_model_t, typename bool_t = std::false_type>
 struct values
 {
@@ -79,7 +84,7 @@ struct values
     base_configurator_t base_configurator;
     score_configurator_t score_configurator;
     score_model_t substitution_scores;
-    std::tuple<std::size_t, std::size_t, std::size_t> sequence_generation_param;
+    sequence_generation_param_t sequence_generation_param;
     bool_t one_vs_many{};
     unsigned seed{42};
 
@@ -165,11 +170,13 @@ private:
             std::ranges::generate(sequence, [&] () { return symbol_table[symbol_distribution(random_engine)]; });
         };
 
-        for (size_t i = 0; i < sequence_collection1.size(); ++i) {
+        for (size_t i = 0; i < count; ++i) {
             generate_sequence(sequence_collection1[i]);
-            seqan3::debug_stream << "seq1 = " << sequence_collection1[i] << "\n";
+            // seqan3::debug_stream << "seq1 = " << sequence_collection1[i] << "\n";
+        }
+        for (size_t i = 0; i < count; ++i) {
             generate_sequence(sequence_collection2[i]);
-            seqan3::debug_stream << "seq2 = " << sequence_collection2[i] << "\n";
+            // seqan3::debug_stream << "seq2 = " << sequence_collection2[i] << "\n";
         }
     }
 };
@@ -207,9 +214,11 @@ TYPED_TEST_P(test_suite, score)
     // );
 
     auto simd_results = simd_aligner.compute(this->sequence1(), this->sequence2());
+
     size_t index = 0;
     for (auto result : simd_results) {
-        EXPECT_EQ(result.score(), (scalar_aligner.compute(result.sequence1(), result.sequence2()).score()))
+        EXPECT_EQ(static_cast<int32_t>(result.score()),
+                  static_cast<int32_t>(scalar_aligner.compute(result.sequence1(), result.sequence2()).score()))
             << "index: " << index << "\n"
             << "s1: (" << result.sequence1().size() << ") " << result.sequence1() << "\n"
             << "s2: (" << result.sequence2().size() << ") " << result.sequence2() << "\n";

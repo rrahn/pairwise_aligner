@@ -28,6 +28,33 @@ namespace seqan::pairwise_aligner
 inline namespace v1
 {
 
+namespace detail {
+// ----------------------------------------------------------------------------
+// Default
+// ----------------------------------------------------------------------------
+template <typename simd_offset_t, size_t element_count, size_t simd_lane_width, size_t simd_register_width>
+struct simd_selector<simd_offset_t, selector_tag<element_count, simd_lane_width, simd_register_width>>
+{
+    // Note: element count can not be larger than maximal value range of operand type.
+    static constexpr bool in_lane_shuffle = false;
+    static constexpr size_t max_operand_count = element_count;
+
+    template <typename simd_t> // expected to be simd value type
+    using address_t = std::array<std::array<typename simd_t::value_type, element_count>, 1>;
+
+    simd_offset_t const & offsets;
+
+    template <typename value_t>
+    constexpr simd_offset_t operator()(std::array<std::array<value_t, element_count>, 1> const & data) const noexcept {
+        simd_offset_t tmp{};
+        for (std::ptrdiff_t i = 0; i < static_cast<std::ptrdiff_t>(simd_offset_t::size_v); ++i) {
+            tmp[i] = data[0][offsets[i]];
+        }
+        return tmp;
+    }
+};
+
+} // namespace detail
 template <typename simd_value_t, typename simd_offset_t, size_t size_v>
 struct _simd_selector
 {
@@ -48,9 +75,9 @@ private:
                   "The offset type is too small to access all elements in the range.");
 
     using selector_impl_t = detail::simd_selector<simd_offset_t,
-                                                  detail::selector_tag<size_v,
-                                                                       sizeof(offset_t) * 8,
-                                                                       detail::max_simd_size * 8>>;
+                                                  detail::selector_tag<size_v, // what is size_v: 231 -> matrix size
+                                                                       sizeof(offset_t) * 8, // int32_t -> 32bit
+                                                                       detail::max_simd_size * 8>>; // 256 bit
 
 public:
 
@@ -60,7 +87,6 @@ public:
     template <std::ranges::forward_range data_slice_t>
     static constexpr address_t load(data_slice_t && data_slice) noexcept
     {
-        constexpr size_t elements_per_offset = simd_offset_t::size;
         assert(std::ranges::distance(data_slice) <= elements_per_select);
 
         using address_value_t = typename address_t::value_type;
@@ -70,10 +96,10 @@ public:
             address_value_t & values = address[idx];
 
             auto data_it = std::ranges::next(std::ranges::begin(data_slice),
-                                             idx * elements_per_offset,
+                                             idx * values.size(),
                                              std::ranges::end(data_slice));
             auto data_end = std::ranges::next(std::ranges::begin(data_slice),
-                                              (idx + 1) * elements_per_offset,
+                                              (idx + 1) * values.size(),
                                               std::ranges::end(data_slice));
 
             for (size_t data_idx = 0; data_it != data_end; ++data_it, ++data_idx)
@@ -81,7 +107,7 @@ public:
 
             // Handle in lane shuffle by copying the data of the first lane in all following lanes.
             if constexpr (selector_impl_t::in_lane_shuffle) {
-                for (size_t simd_idx = selector_impl_t::max_operand_count; simd_idx < simd_value_t::size; ++simd_idx) {
+                for (size_t simd_idx = selector_impl_t::max_operand_count; simd_idx < simd_value_t::size_v; ++simd_idx) {
                     values[simd_idx] = values[simd_idx % selector_impl_t::max_operand_count];
                 }
             }
