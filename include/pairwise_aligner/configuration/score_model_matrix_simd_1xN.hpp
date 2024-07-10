@@ -26,7 +26,6 @@
 #include <pairwise_aligner/matrix/dp_matrix_block.hpp>
 // #include <pairwise_aligner/matrix/dp_matrix_column_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column.hpp>
-#include <pairwise_aligner/matrix/dp_matrix_lane.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane_profile.hpp>
 // #include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_local.hpp>
