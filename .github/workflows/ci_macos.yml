@@ -1,111 +1,90 @@
-# name: CI on macOS
+# SPDX-FileCopyrightText: 2006-2024 Knut Reinert & Freie Universität Berlin
+# SPDX-FileCopyrightText: 2016-2024 Knut Reinert & MPI für molekulare Genetik
+# SPDX-License-Identifier: CC0-1.0
 
-# on:
-#   push:
-#     branches:
-#       # Push events to branches matching refs/heads/master
-#       - 'master'
-#   pull_request:
+name: Unit macOS
 
-# env:
-#   CMAKE_VERSION: 3.10.3
-#   SEQAN3_NO_VERSION_CHECK: 1
-#   TZ: Europe/Berlin
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+  workflow_dispatch:
 
-# defaults:
-#   run:
-#     shell: bash -ex {0}
+concurrency:
+  group: macos-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 
-# jobs:
-#   build:
-#     name: ${{ matrix.name }}
-#     runs-on: macos-10.15
-#     timeout-minutes: 120
-#     strategy:
-#       fail-fast: true
-#       matrix:
-#         include:
-#           - name: "gcc11"
-#             cxx: "g++-11"
-#             cc: "gcc-11"
-#             build_type: Release
+env:
+  SEQAN3_NO_VERSION_CHECK: 1
+  TZ: Europe/Berlin
 
-#           - name: "gcc10"
-#             cxx: "g++-10"
-#             cc: "gcc-10"
-#             build_type: Release
+defaults:
+  run:
+    shell: bash -Eexuo pipefail {0}
 
-#           - name: "gcc9 (c++2a)"
-#             cxx: "g++-9"
-#             cc: "gcc-9"
-#             build_type: Release
-#             cxx_flags: "-std=c++2a"
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: macos-12
+    timeout-minutes: 120
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          # - name: "clang17"
+          #   compiler: "clang-17"
+          #   build: unit
+          #   build_type: RelWithDebInfo
+          #   cxx_flags: "-stdlib=libc++" # For verbosity. This is already the default.
 
-#     steps:
-#       - name: Set repository name
-#         run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+          - name: "gcc13"
+            compiler: "gcc-13"
+            build_type: RelWithDebInfo
+            cxx_flags: "-std=c++23"
 
-#       - name: Checkout
-#         uses: actions/checkout@v2
-#         with:
-#           path: ${{ env.REPOSITORY_NAME }}
-#           fetch-depth: 2
-#           submodules: recursive
+          - name: "gcc12"
+            compiler: "gcc-12"
+            build_type: RelWithDebInfo
 
-#       - name: Configure Homebrew
-#         uses: Homebrew/actions/setup-homebrew@master
+          - name: "gcc11"
+            compiler: "gcc-11"
+            build_type: RelWithDebInfo
 
-#       - name: Install CMake
-#         run: bash ./${{ env.REPOSITORY_NAME }}/lib/seqan3/.github/workflows/scripts/install_cmake.sh
+    steps:
+      - name: Checkout SeqAn3
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-#       - name: Install ccache
-#         run: bash ./${{ env.REPOSITORY_NAME }}/lib/seqan3/.github/workflows/scripts/install_via_brew.sh ccache
+      - name: Setup toolchain
+        uses: seqan/actions/setup-toolchain@main
+        with:
+          compiler: ${{ matrix.compiler }}
+          ccache_size: 75M
 
-#       - name: Install compiler ${{ matrix.cxx }}
-#         env:
-#           CXX: ${{ matrix.cxx }}
-#         run: bash ./${{ env.REPOSITORY_NAME }}/lib/seqan3/.github/workflows/scripts/install_via_brew.sh gcc ${CXX/g++-/}
+      - name: Install CMake
+        uses: seqan/actions/setup-cmake@main
+        with:
+          cmake: 3.16.9
 
-#       - name: Load ccache
-#         uses: actions/cache@v2
-#         with:
-#           path: .ccache
-#           key: ${{ runner.os }}-${{ matrix.name }}-ccache-${{ github.ref }}-${{ github.run_number }}
-#           # Restoring: From current branch, otherwise from base branch, otherwise from any branch.
-#           restore-keys: |
-#             ${{ runner.os }}-${{ matrix.name }}-ccache-${{ github.ref }}
-#             ${{ runner.os }}-${{ matrix.name }}-ccache-${{ github.base_ref }}
-#             ${{ runner.os }}-${{ matrix.name }}-ccache-
+      - name: Configure tests
+        run: |
+          mkdir build
+          cd build
+          cmake ../test/unit -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+                             -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}" \
+                             -DSEQAN3_VERBOSE_TESTS=OFF
+          make -j3 gtest_build
 
-#       - name: Tool versions
-#         run: |
-#           env cmake --version
-#           env ${{ matrix.cxx }} --version
+      - name: Build tests
+        run: |
+          ccache -z
+          cd build
+          make -k -j3
+          ccache -sv
 
-#       - name: Configure tests
-#         env:
-#           CXX: ${{ matrix.cxx }}
-#           CC: ${{ matrix.cc }}
-#         run: |
-#           mkdir build
-#           cd build
-#           cmake ../${{ env.REPOSITORY_NAME }}/test/unit -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-#                                                         -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}"
-
-#       - name: Build tests
-#         env:
-#           CCACHE_BASEDIR: ${{ github.workspace }}
-#           CCACHE_DIR: ${{ github.workspace }}/.ccache
-#           CCACHE_COMPRESS: true
-#           CCACHE_COMPRESSLEVEL: 6
-#           CCACHE_MAXSIZE: 500M
-#         run: |
-#           ccache -p || true
-#           cd build
-#           make -k -j3
-#           ccache -s || true
-
-#       - name: Run tests
-#         run: |
-#           cd build
-#           ctest . -j3 --output-on-failure
+      - name: Run tests
+        run: |
+          cd build
+          ctest . -j3 --output-on-failure
