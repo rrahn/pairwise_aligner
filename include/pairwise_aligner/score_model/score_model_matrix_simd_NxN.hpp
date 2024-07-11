@@ -56,10 +56,10 @@ private:
     {
         // There is no `shift right` intrinsic for 8-bit packed simd vectors and the compiler seems to emulate this by
         // unpacking the values to 16-bit packed simd vectors shifting them and packing them pack to 8-bit.
-        // It is much faster to just reinterpret the vector as 16-bit packed vector and use the corresponding intrsinic
+        // It is much faster to just reinterpret the vector as 16-bit packed vector and use the corresponding intrinsic
         // for this.
         // return rank >> 1;
-        if constexpr (simd_rank_t::size_v == detail::max_simd_size) { // 8-bit packed simd vector.
+        if constexpr (detail::max_simd_size != 1 && simd_rank_t::size_v == detail::max_simd_size) { // 8-bit packed simd vector.
             using scalar_rank_t = typename simd_rank_t::value_type;
             using scalar_rank_16_t = std::conditional_t<std::is_signed_v<scalar_rank_t>, int16_t, uint16_t>;
             using upcasted_simd_rank_t = simd_score<scalar_rank_16_t>;

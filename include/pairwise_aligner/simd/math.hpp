@@ -56,7 +56,16 @@ protected:
 struct add_saturated : protected converter
 {
     template <typename simd_t, size_t size, size_t width>
-        requires ((size == width) || (size == (width >> 1)))
+        requires ((width == 1) && (size == width))
+    simd_t operator()(simd_t const & a, simd_t const & b, host_simd_tag<size, width> const &) const noexcept
+    {
+        using scalar_t = typename seqan3::simd::simd_traits<simd_t>::scalar_type;
+        using operation_result_t = decltype(a[0] + b[0]);
+        return simd_t{static_cast<scalar_t>(std::clamp<operation_result_t>(a[0] + b[0], std::numeric_limits<scalar_t>::lowest(), std::numeric_limits<scalar_t>::max()))};
+    }
+
+    template <typename simd_t, size_t size, size_t width>
+        requires ((width != 1) && (size == width) || (size == (width >> 1)))
     simd_t operator()(simd_t const & a, simd_t const & b, host_simd_tag<size, width> const & tag) const noexcept
     {
         using scalar_t = typename seqan3::simd::simd_traits<simd_t>::scalar_type;
@@ -162,7 +171,16 @@ namespace detail {
 struct subtract_saturated : protected converter
 {
     template <typename simd_t, size_t size, size_t width>
-        requires ((size == width) || (size == (width >> 1)))
+        requires ((width == 1) && (size == width))
+    simd_t operator()(simd_t const & a, simd_t const & b, host_simd_tag<size, width> const &) const noexcept
+    {
+        using scalar_t = typename seqan3::simd::simd_traits<simd_t>::scalar_type;
+        using operation_result_t = decltype(a[0] + b[0]);
+        return simd_t{static_cast<scalar_t>(std::clamp<operation_result_t>(a[0] - b[0], std::numeric_limits<scalar_t>::lowest(), std::numeric_limits<scalar_t>::max()))};
+    }
+
+    template <typename simd_t, size_t size, size_t width>
+        requires ((width != 1) && (size == width) || (size == (width >> 1)))
     simd_t operator()(simd_t const & a, simd_t const & b, host_simd_tag<size, width> const & tag) const noexcept
     {
         using scalar_t = typename seqan3::simd::simd_traits<simd_t>::scalar_type;
