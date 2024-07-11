@@ -114,7 +114,7 @@ class _score_model_matrix_simd_1xN<score_t, dimension>::type::_interleaved_subst
     using simd_score_t = score_type;
     using scalar_index_t = typename index_t::value_type;
 
-    using interleaved_scores_t = std::array<index_t, strip_width_v>;
+    using interleaved_scores_t = std::vector<index_t, seqan3::aligned_allocator<index_t, alignof(index_t)>>;
     using profile_t = std::vector<interleaved_scores_t,
                                   seqan3::aligned_allocator<interleaved_scores_t, alignof(index_t)>>;
 
@@ -139,12 +139,12 @@ public:
     explicit _interleaved_substitution_profile(matrix_t const & matrix, sequence_slice_t && sequence) noexcept
     {
         _size = std::ranges::distance(sequence);
-        assert(_size <= strip_width_v); // can't be larger, but smaller.
 
         // Initialise profile: - go over all symbols in range [0..sigma)
         _interleaved_profile.resize(dimension);
         for_each_symbol([&] (scalar_index_t const rank) {
             interleaved_scores_t & profile = _interleaved_profile[rank]; // fill profile for current symbol!
+            profile.resize(_size);
             for (size_t index = 0; index < _size; ++index) { // for every symbol in sequence
                 profile[index] |= simd_rank_selector_t::select_rank_for(matrix[rank], sequence[index]);
             }
