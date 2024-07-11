@@ -17,7 +17,6 @@
 
 #include <seqan3/utility/container/aligned_allocator.hpp>
 
-#include <pairwise_aligner/score_model/strip_width.hpp>
 #include <pairwise_aligner/simd/simd_base.hpp>
 #include <pairwise_aligner/simd/simd_rank_selector.hpp>
 
@@ -45,7 +44,6 @@ private:
     using simd_rank_selector_t = detail::simd_rank_selector_t<index_t>;
     using typename simd_rank_selector_t::rank_map_t;
 
-    template <size_t width>
     struct _interleaved_substitution_profile;
 
     std::array<rank_map_t, dimension> _matrix{};
@@ -58,8 +56,7 @@ public:
     using index_type = index_t;
     using offset_type = std::pair<int32_t, index_t>;
 
-    template <size_t width>
-    using profile_type = _interleaved_substitution_profile<width>;
+    using profile_type = _interleaved_substitution_profile;
 
     type() = default;
 
@@ -82,11 +79,11 @@ public:
         return _zero;
     }
 
-    template <typename strip_t, size_t width_v>
+    template <typename strip_t>
         requires (std::same_as<std::ranges::range_value_t<strip_t>, index_type>)
-    constexpr auto initialise_profile(strip_t && sequence_strip, strip_width_t<width_v> const &) const noexcept
+    constexpr auto initialise_profile(strip_t && sequence_strip) const noexcept
     {
-        return profile_type<width_v>{_matrix, std::forward<strip_t>(sequence_strip)};
+        return profile_type{_matrix, std::forward<strip_t>(sequence_strip)};
     }
 
     template <typename value1_t, typename interleaved_profile_t>
@@ -106,7 +103,6 @@ public:
 };
 
 template <typename score_t, size_t dimension>
-template <size_t strip_width_v>
 class _score_model_matrix_simd_1xN<score_t, dimension>::type::_interleaved_substitution_profile
 {
     static constexpr size_t alphabet_size_v = dimension;

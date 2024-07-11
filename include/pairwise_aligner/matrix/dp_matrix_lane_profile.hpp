@@ -16,7 +16,6 @@
 
 #include <pairwise_aligner/matrix/dp_matrix_lane.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
-#include <pairwise_aligner/score_model/strip_width.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -31,8 +30,7 @@ class _type : public wrappee_t
 {
     using base_t = wrappee_t;
     using substitution_model_t = typename base_t::substitution_model_type;
-    using last_lane_tag_t = typename base_t::last_lane_tag_type;
-    using profile_t = typename substitution_model_t::template profile_type<last_lane_tag_t::width>;
+    using profile_t = typename substitution_model_t::profile_type;
 
     profile_t _profile;
 
@@ -41,8 +39,7 @@ public:
     _type() = delete;
     _type(wrappee_t wrappee) noexcept :
         base_t{std::move(wrappee)},
-        _profile{base_t::substitution_model().initialise_profile(base_t::row_sequence(),
-                                                                 strip_width<last_lane_tag_t::width>)}
+        _profile{base_t::substitution_model().initialise_profile(base_t::row_sequence())}
     {}
 
     using base_t::base_t;
