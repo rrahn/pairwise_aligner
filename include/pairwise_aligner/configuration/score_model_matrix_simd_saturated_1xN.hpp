@@ -25,6 +25,7 @@
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_template_standard.hpp>
 #include <pairwise_aligner/interface/interface_one_to_many_bulk.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane_profile.hpp>
+#include <pairwise_aligner/matrix/dp_matrix_lane.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_block.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated_local.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_column_saturated.hpp>
@@ -244,9 +245,9 @@ struct traits
 
         auto make_dp_matrix_policy = [&] () constexpr {
             if constexpr (configuration_t::is_local)
-                return dp_matrix::matrix(dp_matrix::column_saturated_local(dp_matrix::block(dp_matrix::lane_profile)));
+                return dp_matrix::matrix(dp_matrix::column_saturated_local(dp_matrix::block(dp_matrix::lane_profile(dp_matrix::lane))));
             else
-                return dp_matrix::matrix(dp_matrix::column_saturated(dp_matrix::block(dp_matrix::lane_profile)));
+                return dp_matrix::matrix(dp_matrix::column_saturated(dp_matrix::block(dp_matrix::lane_profile(dp_matrix::lane))));
         };
 
         using dp_matrix_policy_t =

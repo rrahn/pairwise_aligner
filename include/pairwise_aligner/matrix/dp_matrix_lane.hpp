@@ -178,6 +178,9 @@ class _type : public dp_matrix::detail::state_handle<dp_state_t...>
 
     cached_row_t _cached_row;
     std::ptrdiff_t _row_offset;
+protected:
+
+    using last_lane_tag_type = last_lane_tag_t;
 
 public:
 
