@@ -27,17 +27,17 @@ inline namespace v1
 namespace detail {
 
 template <typename key_t>
-    requires (key_t::size_v != detail::max_simd_size)
+    requires ((detail::max_simd_size == 1) || (key_t::size_v != detail::max_simd_size))
 struct simd_rank_selector_default
 {
 protected:
     using rank_map_t = std::vector<key_t, seqan3::aligned_allocator<key_t, alignof(key_t)>>;
 
     template <std::ranges::random_access_range ranks_t>
-        requires (std::same_as<std::remove_cvref_t<ranks_t>, rank_map_t>)
+        requires (std::constructible_from<key_t, std::ranges::range_reference_t<ranks_t>>)
     static rank_map_t initialise_rank_map(ranks_t && ranks) noexcept
     {
-        return ranks;
+        return rank_map_t{std::ranges::begin(ranks), std::ranges::end(ranks)};
     }
 
     static key_t select_rank_for(rank_map_t const & rank_map, key_t const & keys) noexcept
@@ -59,7 +59,11 @@ using eight_bit_rank_selector_t = seqan3::detail::lazy_conditional_t<
                                     seqan3::detail::lazy_conditional_t<
                                         detail::max_simd_size == 32,
                                         seqan3::detail::lazy<simd_rank_selector_impl_avx2, index_t>,
-                                        seqan3::detail::lazy<simd_rank_selector_impl_sse4, index_t>
+                                        seqan3::detail::lazy_conditional_t<
+                                            detail::max_simd_size == 16,
+                                            seqan3::detail::lazy<simd_rank_selector_impl_sse4, index_t>,
+                                            seqan3::detail::lazy<simd_rank_selector_default, index_t>
+                                        >
                                     >
                                 >;
 

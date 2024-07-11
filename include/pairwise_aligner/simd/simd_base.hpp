@@ -29,8 +29,10 @@ namespace detail
 inline constexpr size_t max_simd_size = 64;
 #elif defined(__AVX2__)
 inline constexpr size_t max_simd_size = 32;
-#else
+#elif defined(__SSE4_1__) && defined(__SSE4_2__)
 inline constexpr size_t max_simd_size = 16;
+#else // scalar only
+inline constexpr size_t max_simd_size = 1;
 #endif
 
 template <typename simd_offset_t, typename selector_tag_t>
@@ -42,15 +44,19 @@ struct selector_tag;
 template <typename score_t, size_t simd_size, template <typename > typename ...policies_t>
 struct simd_score_base;
 
+template <typename score_t>
+inline constexpr size_t simd_score_size_v = (detail::max_simd_size > sizeof(score_t)) ?
+                                                detail::max_simd_size / sizeof(score_t) :
+                                                1;
 } // namespace detail
 
-template <std::integral score_t, size_t simd_size = detail::max_simd_size / sizeof(score_t)>
+template <std::integral score_t, size_t simd_size = detail::simd_score_size_v<score_t>>
 using simd_score = detail::simd_score_base<score_t, simd_size>;
 
-template <std::integral score_t, size_t simd_size = detail::max_simd_size / sizeof(score_t)>
+template <std::integral score_t, size_t simd_size = detail::simd_score_size_v<score_t>>
 using simd_score_saturated = detail::simd_score_base<score_t, simd_size, saturated_score>;
 
-template <std::unsigned_integral score_t, size_t simd_size = detail::max_simd_size / sizeof(score_t)>
+template <std::unsigned_integral score_t, size_t simd_size = detail::simd_score_size_v<score_t>>
 class alignas(detail::max_simd_size) simd_mask;
 
 namespace detail {
