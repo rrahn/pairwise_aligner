@@ -27,7 +27,6 @@ inline namespace v1
 namespace detail {
 
 template <typename key_t>
-    requires ((detail::max_simd_size == 1) || (key_t::size_v != detail::max_simd_size))
 struct simd_rank_selector_default
 {
 protected:

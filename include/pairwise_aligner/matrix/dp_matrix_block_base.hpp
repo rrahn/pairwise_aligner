@@ -20,10 +20,10 @@ inline namespace v1
 {
 namespace dp_matrix::detail {
 
-template <typename lane_fn_t, typename lane_width_t, typename ...dp_state_t>
-class block_base : public state_handle<dp_state_t...>
+template <typename lane_fn_t, typename lane_width_t, typename dp_state_t>
+class block_base : public dp_state_t
 {
-    using base_t = state_handle<dp_state_t...>;
+    using base_t = dp_state_t;
 
     lane_fn_t _lane_fn;
 
@@ -32,8 +32,8 @@ public:
     static constexpr std::ptrdiff_t lane_width = lane_width_t::value;
 
     block_base() = delete;
-    constexpr explicit block_base(lane_fn_t lane_fn, dp_state_t ...dp_state) noexcept :
-        base_t{std::forward<dp_state_t>(dp_state)...},
+    constexpr explicit block_base(lane_fn_t lane_fn, dp_state_t && dp_state) noexcept :
+        base_t{std::move(dp_state)},
         _lane_fn{std::move(lane_fn)}
     {
         // Note the first column/row is not computed again, as they were already initialised.

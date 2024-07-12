@@ -26,11 +26,12 @@ namespace dp_matrix {
 
 namespace _lane_profile {
 
-template <typename last_lane_tag_t, typename ...dp_state_t>
-class _type : public dp_matrix::_lane::_type<last_lane_tag_t, dp_state_t...>
+template <typename wrappee_t>
+class _type : public wrappee_t
 {
-    using base_t = dp_matrix::_lane::_type<last_lane_tag_t, dp_state_t...>;
+    using base_t = wrappee_t;
     using substitution_model_t = typename base_t::substitution_model_type;
+    using last_lane_tag_t = typename base_t::last_lane_tag_type;
     using profile_t = typename substitution_model_t::template profile_type<last_lane_tag_t::width>;
 
     profile_t _profile;
@@ -38,8 +39,8 @@ class _type : public dp_matrix::_lane::_type<last_lane_tag_t, dp_state_t...>
 public:
 
     _type() = delete;
-    _type(std::ptrdiff_t const offset, dp_state_t ...dp_state) noexcept :
-        base_t{offset, std::forward<dp_state_t>(dp_state)...},
+    _type(wrappee_t wrappee) noexcept :
+        base_t{std::move(wrappee)},
         _profile{base_t::substitution_model().initialise_profile(base_t::row_sequence(),
                                                                  strip_width<last_lane_tag_t::width>)}
     {}
@@ -54,12 +55,17 @@ public:
 
 struct _fn
 {
-    template <typename last_lane_tag_t, typename ...dp_state_t>
-    constexpr auto operator()(last_lane_tag_t const &, std::ptrdiff_t const offset, dp_state_t && ...dp_state)
-        const noexcept
+    template <typename wrappee_fn_t>
+    constexpr auto operator()(wrappee_fn_t && wrappee_fn) const noexcept
     {
-        using lane_profile_t = _type<last_lane_tag_t, dp_state_t...>;
-        return lane_profile_t{offset, std::forward<decltype(dp_state)>(dp_state)...};
+        std::tuple<wrappee_fn_t> tmp{std::forward<wrappee_fn_t>(wrappee_fn)};
+        return [fwd_capture = std::move(tmp)] (auto && ...args) {
+            using fwd_wrappee_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
+            auto wrappee = std::invoke(std::forward<fwd_wrappee_fn_t &&>(get<0>(fwd_capture)),
+                                       std::forward<decltype(args)>(args)...);
+
+            return _type{std::move(wrappee)};
+        };
     }
 };
 } // namespace _lane_profile

@@ -107,10 +107,10 @@ namespace dp_matrix {
 
 namespace _block {
 
-template <typename lane_fn_t, typename lane_width_t, typename ...dp_state_t>
-class _type : public dp_matrix::detail::block_base<lane_fn_t, lane_width_t, dp_state_t...>
+template <typename lane_fn_t, typename lane_width_t, typename dp_state_t>
+class _type : public dp_matrix::detail::block_base<lane_fn_t, lane_width_t, dp_state_t>
 {
-    using base_t = dp_matrix::detail::block_base<lane_fn_t, lane_width_t, dp_state_t...>;
+    using base_t = dp_matrix::detail::block_base<lane_fn_t, lane_width_t, dp_state_t>;
 
 public:
     using base_t::base_t;
@@ -118,44 +118,51 @@ public:
     constexpr auto column_at(std::ptrdiff_t const index) noexcept
         -> decltype(base_t::make_lane(dp_matrix::detail::static_lane<lane_width_t>,
                                       base_t::lane_offset(index),
-                                      base_t::dp_column(),
-                                      base_t::dp_row(),
-                                      base_t::column_sequence(),
-                                      base_t::row_slice_at(index),
-                                      base_t::substitution_model(),
-                                      base_t::tracker()))
+                                      dp_matrix::detail::make_dp_state(
+                                        base_t::dp_column(),
+                                        base_t::dp_row(),
+                                        base_t::column_sequence(),
+                                        base_t::row_slice_at(index),
+                                        base_t::substitution_model(),
+                                        base_t::tracker()
+                                      )))
     {
         assert(index < base_t::column_count());
 
         return base_t::make_lane(dp_matrix::detail::static_lane<lane_width_t>,
                                  base_t::lane_offset(index),
-                                 base_t::dp_column(),
-                                 base_t::dp_row(),
-                                 base_t::column_sequence(),
-                                 base_t::row_slice_at(index),
-                                 base_t::substitution_model(),
-                                 base_t::tracker());
+                                 dp_matrix::detail::make_dp_state(
+                                    base_t::dp_column(),
+                                    base_t::dp_row(),
+                                    base_t::column_sequence(),
+                                    base_t::row_slice_at(index),
+                                    base_t::substitution_model(),
+                                    base_t::tracker()
+                                ));
     }
 
     constexpr auto final_lane() noexcept
         -> decltype(base_t::make_lane((dp_matrix::detail::dynamic_lane<lane_width_t>),
                                       (base_t::lane_offset(base_t::column_count() - 1)),
-                                      (base_t::dp_column()),
-                                      (base_t::dp_row()),
-                                      (base_t::column_sequence()),
-                                      (base_t::row_slice_at(0)),
-                                      (base_t::substitution_model()),
-                                      (base_t::tracker())))
+                                      dp_matrix::detail::make_dp_state(
+                                        (base_t::dp_column()),
+                                        (base_t::dp_row()),
+                                        (base_t::column_sequence()),
+                                        (base_t::row_slice_at(0)),
+                                        (base_t::substitution_model()),
+                                        (base_t::tracker())
+                                       )))
     {
         std::ptrdiff_t const last_index = base_t::column_count() - 1;
         return base_t::make_lane(dp_matrix::detail::dynamic_lane<lane_width_t>,
                                  base_t::lane_offset(last_index),
-                                 base_t::dp_column(),
-                                 base_t::dp_row(),
-                                 base_t::column_sequence(),
-                                 base_t::row_slice_at(last_index),
-                                 base_t::substitution_model(),
-                                 base_t::tracker());
+                                 dp_matrix::detail::make_dp_state(
+                                    base_t::dp_column(),
+                                    base_t::dp_row(),
+                                    base_t::column_sequence(),
+                                    base_t::row_slice_at(last_index),
+                                    base_t::substitution_model(),
+                                    base_t::tracker()));
     }
 };
 
@@ -165,13 +172,10 @@ struct _fn
     constexpr auto operator()(dp_lane_fn_t && dp_lane_fn, dp_matrix::lane_width_t<lane_width> const &) const noexcept
     {
         std::tuple<dp_lane_fn_t> tmp{std::forward<dp_lane_fn_t>(dp_lane_fn)};
-        return [fwd_capture = std::move(tmp)] (auto && ...dp_state) {
+        return [fwd_capture = std::move(tmp)] <typename dp_state_t>(dp_state_t && dp_state) {
             using fwd_dp_lane_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
-            using block_t = _type<fwd_dp_lane_fn_t,
-                                  dp_matrix::lane_width_t<lane_width>,
-                                  remove_rvalue_reference_t<decltype(dp_state)>...>;
-            return block_t{std::forward<fwd_dp_lane_fn_t &&>(get<0>(fwd_capture)),
-                           std::forward<decltype(dp_state)>(dp_state)...};
+            using block_t = _type<fwd_dp_lane_fn_t, dp_matrix::lane_width_t<lane_width>, dp_state_t>;
+            return block_t{std::forward<fwd_dp_lane_fn_t &&>(get<0>(fwd_capture)), std::move(dp_state)};
         };
     }
 

@@ -169,21 +169,24 @@ namespace dp_matrix {
 // } // namespace cpo
 namespace _lane {
 
-template <typename last_lane_tag_t, typename ...dp_state_t>
-class _type : public dp_matrix::detail::state_handle<dp_state_t...>
+template <typename last_lane_tag_t, typename dp_state_t>
+class _type : public dp_state_t
 {
-    using base_t = dp_matrix::detail::state_handle<dp_state_t...>;
+    using base_t = dp_state_t;
     using dp_row_value_t = typename base_t::dp_row_type::value_type;
     using cached_row_t = std::array<dp_row_value_t, last_lane_tag_t::width>;
 
     cached_row_t _cached_row;
     std::ptrdiff_t _row_offset;
+protected:
+
+    using last_lane_tag_type = last_lane_tag_t;
 
 public:
 
     _type() = delete;
-    _type(std::ptrdiff_t const offset, dp_state_t ...dp_state) noexcept :
-        base_t{std::forward<dp_state_t>(dp_state)...},
+    _type(std::ptrdiff_t const offset, dp_state_t dp_state) noexcept :
+        base_t{std::move(dp_state)},
         _row_offset{std::max<std::ptrdiff_t>(offset, 0) + 1}
     {
         if constexpr (!last_lane_tag_t::value) {
@@ -249,12 +252,12 @@ private:
 
 struct _fn
 {
-    template <typename last_lane_tag_t, typename ...dp_state_t>
-    constexpr auto operator()(last_lane_tag_t const &, std::ptrdiff_t const offset, dp_state_t && ...dp_state)
+    template <typename last_lane_tag_t, typename dp_state_t>
+    constexpr auto operator()(last_lane_tag_t const &, std::ptrdiff_t const offset, dp_state_t dp_state)
         const noexcept
     {
-        using lane_t = _type<last_lane_tag_t, dp_state_t...>;
-        return lane_t{offset, std::forward<decltype(dp_state)>(dp_state)...};
+        using lane_t = _type<last_lane_tag_t, dp_state_t>;
+        return lane_t{offset, std::move(dp_state)};
     }
 };
 } // namespace _lane
