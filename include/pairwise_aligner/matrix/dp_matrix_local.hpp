@@ -55,24 +55,23 @@ struct _fn
     constexpr auto operator()(dp_column_fn_t && dp_column_fn) const noexcept
     {
         std::tuple<dp_column_fn_t> tmp{std::forward<dp_column_fn_t>(dp_column_fn)};
-        return [fwd_capture = std::move(tmp)] (auto && ...dp_state) {
-            constexpr size_t idx =
-                dp_matrix::detail::dp_state_accessor_id_v<dp_matrix::detail::dp_state_accessor::id_substitution_model>;
+        return [fwd_capture = std::move(tmp)] <typename dp_state_t>(dp_state_t && dp_state) {
 
-            using substitution_model_t = std::remove_reference_t<seqan3::pack_traits::at<idx, decltype(dp_state)...>>;
-            using modified_pack_list_t =
-                    seqan3::list_traits::transform<remove_rvalue_reference_t,
-                        seqan3::pack_traits::replace_at<detail::local_substitution_model<substitution_model_t>,
-                                                        idx,
-                                                        decltype(dp_state)...
-                        >
-                    >;
+            using original_substitution_model_t = typename dp_state_t::substitution_model_type;
+            using local_substitution_model_t = detail::local_substitution_model<original_substitution_model_t>;
+
+            auto modified_state = dp_matrix::detail::make_dp_state(
+                std::forward<dp_state_t>(dp_state).dp_column(),
+                std::forward<dp_state_t>(dp_state).dp_row(),
+                std::forward<dp_state_t>(dp_state).column_sequence(),
+                std::forward<dp_state_t>(dp_state).row_sequence(),
+                local_substitution_model_t{std::forward<dp_state_t>(dp_state).substitution_model()},
+                std::forward<dp_state_t>(dp_state).tracker()
+            );
 
             using fwd_dp_column_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
-            using dp_matrix_t = apply_t<_dp_matrix::_type,
-                                        concat_type_lists_t<type_list<fwd_dp_column_fn_t>, modified_pack_list_t>>;
-            return dp_matrix_t{std::forward<fwd_dp_column_fn_t>(get<0>(fwd_capture)),
-                               std::forward<decltype(dp_state)>(dp_state)...};
+            using dp_matrix_t = _dp_matrix::_type<fwd_dp_column_fn_t, decltype(modified_state)>;
+            return dp_matrix_t{std::forward<fwd_dp_column_fn_t>(get<0>(fwd_capture)), std::move(modified_state)};
         };
     }
 };

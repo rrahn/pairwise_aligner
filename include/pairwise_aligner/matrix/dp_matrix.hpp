@@ -39,27 +39,27 @@ struct _dp_matrix_policies<dp_matrix_column_closure_t>::type
 
     template <typename ...args_t>
     constexpr auto make_policies(args_t && ...args) const noexcept {
-        return std::invoke(dp_matrix_column_closure, std::forward<args_t>(args)...);
+        return std::invoke(dp_matrix_column_closure, dp_matrix::detail::make_dp_state(std::forward<args_t>(args)...));
     }
 };
 
 namespace dp_matrix {
 
 namespace _dp_matrix {
-template <typename dp_column_fn_t, typename ...dp_state_t>
-class _type : public dp_matrix::detail::state_handle<dp_state_t...>
+template <typename dp_column_fn_t, typename dp_state_t>
+class _type : public dp_state_t
 {
 private:
 
-    using base_t = dp_matrix::detail::state_handle<dp_state_t...>;
+    using base_t = dp_state_t;
 
     dp_column_fn_t _dp_column_fn;
 
 public:
 
     _type() = default;
-    _type(dp_column_fn_t dp_column_fn, dp_state_t ...dp_state) noexcept :
-        base_t{std::forward<dp_state_t>(dp_state)...},
+    _type(dp_column_fn_t dp_column_fn, dp_state_t && dp_state) noexcept :
+        base_t{std::move(dp_state)},
         _dp_column_fn{std::forward<dp_column_fn_t>(dp_column_fn)}
     {}
 
@@ -95,13 +95,11 @@ struct _fn
     template <typename dp_column_fn_t>
     constexpr auto operator()(dp_column_fn_t && dp_column_fn) const noexcept
     {
-        return [fwd_capture = std::tuple<dp_column_fn_t>{std::forward<dp_column_fn_t>(dp_column_fn)}] (auto && ...dp_state) {
+        return [fwd_capture = std::tuple<dp_column_fn_t>{std::forward<dp_column_fn_t>(dp_column_fn)}]
+               <typename dp_state_t> (dp_state_t && dp_state) {
             using fwd_dp_column_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
-            using dp_matrix_t = _type<fwd_dp_column_fn_t, remove_rvalue_reference_t<decltype(dp_state)>...>;
-            return dp_matrix_t{
-                std::forward<fwd_dp_column_fn_t &&>(get<0>(fwd_capture)),
-                std::forward<decltype(dp_state)>(dp_state)...
-            };
+            using dp_matrix_t = _type<fwd_dp_column_fn_t, dp_state_t>;
+            return dp_matrix_t{std::forward<fwd_dp_column_fn_t &&>(get<0>(fwd_capture)), std::move(dp_state)};
         };
     }
 };
