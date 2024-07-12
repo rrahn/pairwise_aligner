@@ -73,64 +73,124 @@ public:
         _dp_state_as_tuple{std::forward<dp_state_t>(dp_data)...}
     {}
 
-    constexpr dp_row_type & dp_row() noexcept
+    constexpr dp_row_type & dp_row() & noexcept
     {
         return get<dp_state_accessor_id_v<dp_state_accessor::id_dp_row>>(_dp_state_as_tuple);
     }
 
-    constexpr dp_row_type const & dp_row() const noexcept
+    constexpr dp_row_type const & dp_row() const & noexcept
     {
         return get<dp_state_accessor_id_v<dp_state_accessor::id_dp_row>>(_dp_state_as_tuple);
     }
 
-    constexpr dp_column_type & dp_column() noexcept
+    constexpr fwd_dp_row_t && dp_row() && noexcept
+    {
+        return get<dp_state_accessor_id_v<dp_state_accessor::id_dp_row>>(std::move(_dp_state_as_tuple));
+    }
+
+    constexpr fwd_dp_row_t const && dp_row() const && noexcept
+    {
+        return get<dp_state_accessor_id_v<dp_state_accessor::id_dp_row>>(std::move(_dp_state_as_tuple));
+    }
+
+    constexpr dp_column_type & dp_column() & noexcept
     {
         return get<dp_state_accessor_id_v<dp_state_accessor::id_dp_column>>(_dp_state_as_tuple);
     }
 
-    constexpr dp_column_type const & dp_column() const noexcept
+    constexpr dp_column_type const & dp_column() const & noexcept
     {
         return get<dp_state_accessor_id_v<dp_state_accessor::id_dp_column>>(_dp_state_as_tuple);
     }
 
-    constexpr column_sequence_type & column_sequence() noexcept
+    constexpr fwd_dp_column_t && dp_column() && noexcept
+    {
+        return get<dp_state_accessor_id_v<dp_state_accessor::id_dp_column>>(std::move(_dp_state_as_tuple));
+    }
+
+    constexpr fwd_dp_column_t const && dp_column() const && noexcept
+    {
+        return get<dp_state_accessor_id_v<dp_state_accessor::id_dp_column>>(std::move(_dp_state_as_tuple));
+    }
+
+    constexpr column_sequence_type & column_sequence() & noexcept
     {
         return get<dp_state_accessor_id_v<dp_state_accessor::id_column_sequence>>(_dp_state_as_tuple);
     }
 
-    constexpr column_sequence_type const & column_sequence() const noexcept
+    constexpr column_sequence_type const & column_sequence() const & noexcept
     {
         return get<dp_state_accessor_id_v<dp_state_accessor::id_column_sequence>>(_dp_state_as_tuple);
     }
 
-    constexpr row_sequence_type & row_sequence() noexcept
+    constexpr fwd_column_sequence_t && column_sequence() && noexcept
+    {
+        return get<dp_state_accessor_id_v<dp_state_accessor::id_column_sequence>>(std::move(_dp_state_as_tuple));
+    }
+
+    constexpr fwd_column_sequence_t const && column_sequence() const && noexcept
+    {
+        return get<dp_state_accessor_id_v<dp_state_accessor::id_column_sequence>>(std::move(_dp_state_as_tuple));
+    }
+
+    constexpr row_sequence_type & row_sequence() & noexcept
     {
         return get<dp_state_accessor_id_v<dp_state_accessor::id_row_sequence>>(_dp_state_as_tuple);
     }
 
-    constexpr row_sequence_type const & row_sequence() const noexcept
+    constexpr row_sequence_type const & row_sequence() const & noexcept
     {
         return get<dp_state_accessor_id_v<dp_state_accessor::id_row_sequence>>(_dp_state_as_tuple);
     }
 
-    constexpr substitution_model_type & substitution_model() noexcept
+    constexpr fwd_row_sequence_t && row_sequence() && noexcept
+    {
+        return get<dp_state_accessor_id_v<dp_state_accessor::id_row_sequence>>(std::move(_dp_state_as_tuple));
+    }
+
+    constexpr fwd_row_sequence_t const && row_sequence() const && noexcept
+    {
+        return get<dp_state_accessor_id_v<dp_state_accessor::id_row_sequence>>(std::move(_dp_state_as_tuple));
+    }
+
+    constexpr substitution_model_type & substitution_model() & noexcept
     {
         return get<dp_state_accessor_id_v<dp_state_accessor::id_substitution_model>>(_dp_state_as_tuple);
     }
 
-    constexpr substitution_model_type const & substitution_model() const noexcept
+    constexpr substitution_model_type const & substitution_model() const & noexcept
     {
         return get<dp_state_accessor_id_v<dp_state_accessor::id_substitution_model>>(_dp_state_as_tuple);
     }
 
-    constexpr tracker_type & tracker() noexcept
+    constexpr fwd_substitution_model_t && substitution_model() && noexcept
+    {
+        return get<dp_state_accessor_id_v<dp_state_accessor::id_substitution_model>>(std::move(_dp_state_as_tuple));
+    }
+
+    constexpr fwd_substitution_model_t const && substitution_model() const && noexcept
+    {
+        return get<dp_state_accessor_id_v<dp_state_accessor::id_substitution_model>>(std::move(_dp_state_as_tuple));
+    }
+
+    constexpr tracker_type & tracker() & noexcept
     {
         return get<dp_state_accessor_id_v<dp_state_accessor::id_tracker>>(_dp_state_as_tuple);
     }
 
-    constexpr tracker_type const & tracker() const noexcept
+    constexpr tracker_type const & tracker() const & noexcept
     {
         return get<dp_state_accessor_id_v<dp_state_accessor::id_tracker>>(_dp_state_as_tuple);
+    }
+
+    constexpr fwd_tracker_t && tracker() && noexcept
+    {
+        return get<dp_state_accessor_id_v<dp_state_accessor::id_tracker>>(std::move(_dp_state_as_tuple));
+    }
+
+    constexpr fwd_tracker_t const && tracker() const && noexcept
+    {
+        return get<dp_state_accessor_id_v<dp_state_accessor::id_tracker>>(std::move(_dp_state_as_tuple));
     }
 
     constexpr std::ptrdiff_t column_count() const noexcept
