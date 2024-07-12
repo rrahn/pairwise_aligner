@@ -144,6 +144,12 @@ public:
     }
 };
 
+template <typename ...args_t>
+inline constexpr auto make_dp_state(args_t && ...args) -> state_handle<args_t...>
+{
+    return state_handle<args_t...>{std::forward<args_t>(args)...};
+}
+
 } // namespace detail
 } // namespace dp_matrix
 } // inline namespace v1
