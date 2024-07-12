@@ -65,24 +65,27 @@ public:
 
     constexpr auto column_at(std::ptrdiff_t const index) noexcept
         -> std::invoke_result_t<dp_column_fn_t,
-                                decltype(base_t::dp_column()),
-                                decltype(base_t::dp_row()[0]),
-                                decltype(base_t::column_sequence()),
-                                decltype(seqan3::views::slice(base_t::row_sequence(), 0, 1)),
-                                decltype(base_t::substitution_model()),
-                                decltype(base_t::tracker())>
+                                decltype(dp_matrix::detail::make_dp_state(
+                                            base_t::dp_column(),
+                                            base_t::dp_row()[0],
+                                            base_t::column_sequence(),
+                                            seqan3::views::slice(base_t::row_sequence(), 0, 1),
+                                            base_t::substitution_model(),
+                                            base_t::tracker()
+                                        ))>
     {
         assert(index < base_t::column_count());
 
         std::ptrdiff_t const row_chunk_size = base_t::dp_row()[0].size() - 1;
         std::ptrdiff_t const row_offset = row_chunk_size * index;
-        return std::invoke(_dp_column_fn,
-                           base_t::dp_column(),
-                           base_t::dp_row()[index],
-                           base_t::column_sequence(),
-                           seqan3::views::slice(base_t::row_sequence(), row_offset, row_offset + row_chunk_size),
-                           base_t::substitution_model(),
-                           base_t::tracker());
+        return std::invoke(_dp_column_fn, dp_matrix::detail::make_dp_state(
+                            base_t::dp_column(),
+                            base_t::dp_row()[index],
+                            base_t::column_sequence(),
+                            seqan3::views::slice(base_t::row_sequence(), row_offset, row_offset + row_chunk_size),
+                            base_t::substitution_model(),
+                            base_t::tracker()
+                        ));
     }
 };
 

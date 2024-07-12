@@ -166,10 +166,10 @@ protected:
     }
 };
 
-template <typename lazy_wrapper_t, typename block_fn_t, typename ...dp_state_t>
-class _type : public dp_matrix::detail::column_base<block_fn_t, dp_state_t...>
+template <typename lazy_wrapper_t, typename block_fn_t, typename dp_state_t>
+class _type : public dp_matrix::detail::column_base<block_fn_t, dp_state_t>
 {
-    using base_t = dp_matrix::detail::column_base<block_fn_t, dp_state_t...>;
+    using base_t = dp_matrix::detail::column_base<block_fn_t, dp_state_t>;
     using dp_inner_column_t = std::remove_reference_t<decltype(std::declval<_type &>().dp_column()[0])>;
     using dp_wrapper_t = instantiate_t<lazy_wrapper_t, dp_inner_column_t>;
 
@@ -205,50 +205,23 @@ struct _fn
     constexpr auto operator()(dp_block_fn_t && dp_block_fn) const noexcept
     {
         std::tuple<dp_block_fn_t> tmp{std::forward<dp_block_fn_t>(dp_block_fn)};
-        return [fwd_capture = std::move(tmp)] (auto && ...dp_state) {
-            constexpr size_t idx =
-                dp_matrix::detail::dp_state_accessor_id_v<dp_matrix::detail::dp_state_accessor::id_dp_row>;
-
-            using dp_row_t = std::remove_reference_t<seqan3::pack_traits::at<idx, decltype(dp_state)...>>;
-            using modified_pack_list_t =
-                    seqan3::list_traits::transform<remove_rvalue_reference_t,
-                        seqan3::pack_traits::replace_at<instantiate_t<lazy_wrapper_t, dp_row_t>,
-                                                        idx,
-                                                        decltype(dp_state)...
-                        >
-                    >;
-
+        return [fwd_capture = std::move(tmp)] <typename dp_state_t> (dp_state_t && dp_state) {
             using fwd_dp_block_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
+            using dp_row_t = typename std::remove_reference_t<dp_state_t>::dp_row_type;
+            using wrapped_dp_row_t = instantiate_t<lazy_wrapper_t, dp_row_t>;
 
-            using column_t = apply_t<_column_saturated::_type,
-                                     concat_type_lists_t<type_list<lazy_wrapper_t, fwd_dp_block_fn_t>,
-                                                         modified_pack_list_t>>;
+            wrapped_dp_row_t wrapped_row{dp_state.dp_row()};
+            auto modified_state = dp_matrix::detail::make_dp_state(
+                                    std::move(dp_state).dp_column(),
+                                    std::move(wrapped_row),
+                                    std::move(dp_state).column_sequence(),
+                                    std::move(dp_state).row_sequence(),
+                                    std::move(dp_state).substitution_model(),
+                                    std::move(dp_state).tracker());
 
-            return std::apply([] (auto && ...args) { return column_t{std::forward<decltype(args)>(args)...}; },
-                        std::tuple_cat(fwd_capture,
-                                       _fn::convert_dp_row<idx>(std::forward<decltype(dp_state)>(dp_state)...)));
+            using column_t = _column_saturated::_type<lazy_wrapper_t, fwd_dp_block_fn_t, decltype(modified_state)>;
+            return column_t{std::forward<fwd_dp_block_fn_t>(std::get<0>(fwd_capture)), std::move(modified_state)};
         };
-    }
-
-private:
-    template <size_t idx, typename ...args_t>
-    static constexpr auto convert_dp_row(args_t && ...args) noexcept
-    {
-        auto tmp = std::forward_as_tuple(std::forward<args_t>(args)...);
-        using dp_row_t = std::tuple_element_t<idx, decltype(tmp)>;
-        using saturated_dp_row_t = instantiate_t<lazy_wrapper_t, std::remove_cvref_t<dp_row_t>>;
-        return std::tuple_cat(extract_args<0>(tmp, std::make_index_sequence<idx>()),
-                              std::tuple{saturated_dp_row_t{std::forward<dp_row_t>(std::get<idx>(tmp))}},
-                              extract_args<idx + 1>(tmp, std::make_index_sequence<sizeof...(args) - (idx + 1)>()));
-    }
-
-    template <size_t start_idx, typename tuple_t, size_t ...idx>
-    static constexpr auto extract_args(tuple_t && tpl, std::index_sequence<idx...> const &) noexcept
-    {
-        using base_tuple_t = std::remove_reference_t<tuple_t>;
-        static_assert(start_idx + (sizeof...(idx) - 1) < std::tuple_size_v<base_tuple_t>);
-
-        return std::forward_as_tuple(std::forward<std::tuple_element_t<start_idx + idx, base_tuple_t>>(std::get<start_idx + idx>(tpl))...);
     }
 };
 } // namespace _column_saturated

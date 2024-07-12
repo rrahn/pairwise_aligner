@@ -109,20 +109,20 @@ private:
     }
 };
 
-template <typename block_fn_t, typename ...dp_state_t>
-class column_base : public state_handle<dp_state_t...>
+template <typename block_fn_t, typename dp_state_t>
+class column_base : public dp_state_t
 {
 protected:
 
-    using base_t = state_handle<dp_state_t...>;
+    using base_t = dp_state_t;
 
     block_fn_t _block_fn{};
 
 public:
     column_base() = delete;
 
-    constexpr explicit column_base(block_fn_t block_fn, dp_state_t ...dp_state) noexcept :
-        base_t{std::forward<dp_state_t>(dp_state)...},
+    constexpr explicit column_base(block_fn_t block_fn, dp_state_t && dp_state) noexcept :
+        base_t{std::move(dp_state)},
         _block_fn{std::move(block_fn)}
     {
         rotate_row_scores_right(base_t::dp_row());
