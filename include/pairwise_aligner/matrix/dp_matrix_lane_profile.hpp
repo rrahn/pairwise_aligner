@@ -56,12 +56,27 @@ struct _fn
     constexpr auto operator()(wrappee_fn_t && wrappee_fn) const noexcept
     {
         std::tuple<wrappee_fn_t> tmp{std::forward<wrappee_fn_t>(wrappee_fn)};
-        return [fwd_capture = std::move(tmp)] (auto && ...args) {
+        return [fwd_capture = std::move(tmp)] <typename dp_state_t> (dp_state_t && dp_state, auto && ...args) {
             using fwd_wrappee_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
-            auto wrappee = std::invoke(std::forward<fwd_wrappee_fn_t &&>(get<0>(fwd_capture)),
-                                       std::forward<decltype(args)>(args)...);
 
-            return _type{std::move(wrappee)};
+            using substitution_model_t = typename dp_state_t::substitution_model_type;
+            using profile_t = typename substitution_model_t::profile_type;
+
+            profile_t profile{std::forward<dp_state_t>(dp_state)
+                                    .substitution_model()
+                                    .initialise_profile(std::forward<dp_state_t>(dp_state).row_sequence())};
+
+            return std::invoke(
+                    std::forward<fwd_wrappee_fn_t &&>(get<0>(fwd_capture)),
+                    dp_matrix::detail::make_dp_state(
+                        std::forward<dp_state_t>(dp_state).dp_column(),
+                        std::forward<dp_state_t>(dp_state).dp_row(),
+                        std::forward<dp_state_t>(dp_state).column_sequence(),
+                        std::move(profile),
+                        std::forward<dp_state_t>(dp_state).substitution_model(),
+                        std::forward<dp_state_t>(dp_state).tracker()
+                    ),
+                    std::forward<decltype(args)>(args)...);
         };
     }
 };
