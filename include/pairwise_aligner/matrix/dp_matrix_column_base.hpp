@@ -73,9 +73,10 @@ public:
 protected:
     template <typename ...args_t>
     constexpr auto make_matrix_block(args_t && ...args) const noexcept
-        -> std::invoke_result_t<block_closure_t, args_t...>
+        -> std::invoke_result_t<block_closure_t,
+                                decltype(dp_matrix::detail::make_dp_state(std::forward<args_t>(args)...))>
     {
-        return std::invoke(_block_closure, std::forward<args_t>(args)...);
+        return std::invoke(_block_closure, dp_matrix::detail::make_dp_state(std::forward<args_t>(args)...));
     }
 
 private:
@@ -143,9 +144,10 @@ protected:
     }
 
     template <typename ...args_t>
-    constexpr auto make_matrix_block(args_t && ...args) const noexcept -> std::invoke_result_t<block_fn_t, args_t...>
+    constexpr auto make_matrix_block(args_t && ...args) const noexcept ->
+        std::invoke_result_t<block_fn_t, decltype(dp_matrix::detail::make_dp_state(std::forward<args_t>(args)...))>
     {
-        return std::invoke(_block_fn, std::forward<args_t>(args)...);
+        return std::invoke(_block_fn, dp_matrix::detail::make_dp_state(std::forward<args_t>(args)...));
     }
 
 private:

@@ -107,10 +107,10 @@ namespace dp_matrix {
 
 namespace _block {
 
-template <typename lane_fn_t, typename lane_width_t, typename ...dp_state_t>
-class _type : public dp_matrix::detail::block_base<lane_fn_t, lane_width_t, dp_state_t...>
+template <typename lane_fn_t, typename lane_width_t, typename dp_state_t>
+class _type : public dp_matrix::detail::block_base<lane_fn_t, lane_width_t, dp_state_t>
 {
-    using base_t = dp_matrix::detail::block_base<lane_fn_t, lane_width_t, dp_state_t...>;
+    using base_t = dp_matrix::detail::block_base<lane_fn_t, lane_width_t, dp_state_t>;
 
 public:
     using base_t::base_t;
@@ -172,13 +172,10 @@ struct _fn
     constexpr auto operator()(dp_lane_fn_t && dp_lane_fn, dp_matrix::lane_width_t<lane_width> const &) const noexcept
     {
         std::tuple<dp_lane_fn_t> tmp{std::forward<dp_lane_fn_t>(dp_lane_fn)};
-        return [fwd_capture = std::move(tmp)] (auto && ...dp_state) {
+        return [fwd_capture = std::move(tmp)] <typename dp_state_t>(dp_state_t && dp_state) {
             using fwd_dp_lane_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
-            using block_t = _type<fwd_dp_lane_fn_t,
-                                  dp_matrix::lane_width_t<lane_width>,
-                                  remove_rvalue_reference_t<decltype(dp_state)>...>;
-            return block_t{std::forward<fwd_dp_lane_fn_t &&>(get<0>(fwd_capture)),
-                           std::forward<decltype(dp_state)>(dp_state)...};
+            using block_t = _type<fwd_dp_lane_fn_t, dp_matrix::lane_width_t<lane_width>, dp_state_t>;
+            return block_t{std::forward<fwd_dp_lane_fn_t &&>(get<0>(fwd_capture)), std::move(dp_state)};
         };
     }
 
