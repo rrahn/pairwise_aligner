@@ -59,10 +59,10 @@ struct _fn
     constexpr auto operator()(wrappee_fn_t && wrappee_fn) const noexcept
     {
         std::tuple<wrappee_fn_t> tmp{std::forward<wrappee_fn_t>(wrappee_fn)};
-        return [fwd_capture = std::move(tmp)] (auto && ...dp_state) {
+        return [fwd_capture = std::move(tmp)] (auto && ...args) {
             using fwd_wrappee_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
             auto wrappee = std::invoke(std::forward<fwd_wrappee_fn_t &&>(get<0>(fwd_capture)),
-                                       std::forward<decltype(dp_state)>(dp_state)...);
+                                       std::forward<decltype(args)>(args)...);
 
             return _type{std::move(wrappee)};
         };

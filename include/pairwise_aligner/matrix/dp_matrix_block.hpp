@@ -118,44 +118,51 @@ public:
     constexpr auto column_at(std::ptrdiff_t const index) noexcept
         -> decltype(base_t::make_lane(dp_matrix::detail::static_lane<lane_width_t>,
                                       base_t::lane_offset(index),
-                                      base_t::dp_column(),
-                                      base_t::dp_row(),
-                                      base_t::column_sequence(),
-                                      base_t::row_slice_at(index),
-                                      base_t::substitution_model(),
-                                      base_t::tracker()))
+                                      dp_matrix::detail::make_dp_state(
+                                        base_t::dp_column(),
+                                        base_t::dp_row(),
+                                        base_t::column_sequence(),
+                                        base_t::row_slice_at(index),
+                                        base_t::substitution_model(),
+                                        base_t::tracker()
+                                      )))
     {
         assert(index < base_t::column_count());
 
         return base_t::make_lane(dp_matrix::detail::static_lane<lane_width_t>,
                                  base_t::lane_offset(index),
-                                 base_t::dp_column(),
-                                 base_t::dp_row(),
-                                 base_t::column_sequence(),
-                                 base_t::row_slice_at(index),
-                                 base_t::substitution_model(),
-                                 base_t::tracker());
+                                 dp_matrix::detail::make_dp_state(
+                                    base_t::dp_column(),
+                                    base_t::dp_row(),
+                                    base_t::column_sequence(),
+                                    base_t::row_slice_at(index),
+                                    base_t::substitution_model(),
+                                    base_t::tracker()
+                                ));
     }
 
     constexpr auto final_lane() noexcept
         -> decltype(base_t::make_lane((dp_matrix::detail::dynamic_lane<lane_width_t>),
                                       (base_t::lane_offset(base_t::column_count() - 1)),
-                                      (base_t::dp_column()),
-                                      (base_t::dp_row()),
-                                      (base_t::column_sequence()),
-                                      (base_t::row_slice_at(0)),
-                                      (base_t::substitution_model()),
-                                      (base_t::tracker())))
+                                      dp_matrix::detail::make_dp_state(
+                                        (base_t::dp_column()),
+                                        (base_t::dp_row()),
+                                        (base_t::column_sequence()),
+                                        (base_t::row_slice_at(0)),
+                                        (base_t::substitution_model()),
+                                        (base_t::tracker())
+                                       )))
     {
         std::ptrdiff_t const last_index = base_t::column_count() - 1;
         return base_t::make_lane(dp_matrix::detail::dynamic_lane<lane_width_t>,
                                  base_t::lane_offset(last_index),
-                                 base_t::dp_column(),
-                                 base_t::dp_row(),
-                                 base_t::column_sequence(),
-                                 base_t::row_slice_at(last_index),
-                                 base_t::substitution_model(),
-                                 base_t::tracker());
+                                 dp_matrix::detail::make_dp_state(
+                                    base_t::dp_column(),
+                                    base_t::dp_row(),
+                                    base_t::column_sequence(),
+                                    base_t::row_slice_at(last_index),
+                                    base_t::substitution_model(),
+                                    base_t::tracker()));
     }
 };
 
