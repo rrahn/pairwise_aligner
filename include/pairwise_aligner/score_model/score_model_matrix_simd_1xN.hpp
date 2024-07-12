@@ -125,6 +125,8 @@ class _score_model_matrix_simd_1xN<score_t, dimension>::type::_interleaved_subst
         }
     };
 
+    class iterator;
+
     profile_t _interleaved_profile;
     size_t _size;
 
@@ -147,6 +149,14 @@ public:
         }, std::make_index_sequence<dimension>());
     }
 
+    iterator begin() const noexcept {
+        return iterator{*this, 0};
+    }
+
+    iterator end() const noexcept {
+        return iterator{*this, size()};
+    }
+
     constexpr auto operator[](size_t const offset) const noexcept
     {
         return proxy_reference{_interleaved_profile, offset};
@@ -167,6 +177,96 @@ private:
     void for_each_symbol(fn_t && fn, std::index_sequence<alphabet_rank...> const &) const noexcept
     {
         (fn(static_cast<scalar_index_t>(alphabet_rank)), ...);
+    }
+};
+
+template <typename score_t, size_t dimension>
+class _score_model_matrix_simd_1xN<score_t, dimension>::type::_interleaved_substitution_profile::iterator
+{
+    _interleaved_substitution_profile const * _profile;
+    size_t _index{0};
+
+public:
+
+    using value_type = proxy_reference;
+    using reference = proxy_reference;
+    using difference_type = std::ptrdiff_t;
+    using pointer = void;
+    using iterator_category = std::random_access_iterator_tag;
+
+    iterator() = default;
+    iterator(_interleaved_substitution_profile const & profile, size_t const index) :
+        _profile{std::addressof(profile)},
+        _index{index}
+    {}
+
+    reference operator*() const noexcept {
+        assert(_profile != nullptr);
+        return _profile->operator[](_index);
+    }
+
+    reference operator[](size_t const offset) const noexcept {
+        assert(_profile != nullptr);
+        return _profile->operator[](_index + offset);
+    }
+
+    iterator & operator++() noexcept {
+        ++_index;
+        return *this;
+    }
+
+    iterator operator++(int) noexcept {
+        iterator tmp{*this};
+        ++_index;
+        return tmp;
+    }
+
+    iterator & operator--() noexcept {
+        --_index;
+        return *this;
+    }
+
+    iterator operator--(int) noexcept {
+        iterator tmp{*this};
+        --_index;
+        return tmp;
+    }
+
+    iterator & operator+=(difference_type const offset) noexcept {
+        _index += offset;
+        return *this;
+    }
+
+    iterator & operator-=(difference_type const offset) noexcept {
+        _index -= offset;
+        return *this;
+    }
+
+    friend constexpr iterator operator+(iterator lhs, difference_type const offset) noexcept {
+        lhs += offset;
+        return lhs;
+    }
+
+    friend constexpr iterator operator+(difference_type const offset, iterator const & rhs) noexcept {
+        return rhs + offset;
+    }
+
+    friend constexpr iterator operator-(iterator lhs, difference_type const offset) noexcept {
+        lhs -= offset;
+        return lhs;
+    }
+
+    friend constexpr difference_type operator-(iterator const & lhs, iterator const & rhs) noexcept {
+        return lhs._index - rhs._index;
+    }
+
+    friend constexpr bool operator==(iterator const & lhs, iterator const & rhs) noexcept {
+        return lhs._index == rhs._index;
+    }
+
+    friend constexpr auto operator<=>(iterator const & lhs, iterator const & rhs) noexcept {
+        return lhs._index <=> rhs._index;
+
     }
 };
 
