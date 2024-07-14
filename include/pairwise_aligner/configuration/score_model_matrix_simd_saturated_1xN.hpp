@@ -245,9 +245,9 @@ struct traits
 
         auto make_dp_matrix_policy = [&] () constexpr {
             if constexpr (configuration_t::is_local)
-                return dp_matrix::matrix(dp_matrix::column_saturated_local(dp_matrix::block(dp_matrix::lane_profile(dp_matrix::lane))));
+                return dp_matrix::matrix(dp_matrix::lane_profile(dp_matrix::column_saturated_local(dp_matrix::block(dp_matrix::lane))));
             else
-                return dp_matrix::matrix(dp_matrix::column_saturated(dp_matrix::block(dp_matrix::lane_profile(dp_matrix::lane))));
+                return dp_matrix::matrix(dp_matrix::lane_profile(dp_matrix::column_saturated(dp_matrix::block(dp_matrix::lane))));
         };
 
         using dp_matrix_policy_t =

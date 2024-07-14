@@ -18,7 +18,6 @@
 #include <pairwise_aligner/dp_algorithm_template/dp_algorithm_attorney.hpp>
 #include <pairwise_aligner/result/aligner_result.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_cpo.hpp>
-#include <pairwise_aligner/score_model/strip_width.hpp>
 #include <pairwise_aligner/simd/simd_base.hpp>
 
 namespace seqan::pairwise_aligner

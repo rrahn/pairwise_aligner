@@ -16,7 +16,6 @@
 
 #include <pairwise_aligner/matrix/dp_matrix_lane.hpp>
 #include <pairwise_aligner/matrix/dp_matrix_lane_width.hpp>
-#include <pairwise_aligner/score_model/strip_width.hpp>
 
 namespace seqan::pairwise_aligner
 {
@@ -31,8 +30,7 @@ class _type : public wrappee_t
 {
     using base_t = wrappee_t;
     using substitution_model_t = typename base_t::substitution_model_type;
-    using last_lane_tag_t = typename base_t::last_lane_tag_type;
-    using profile_t = typename substitution_model_t::template profile_type<last_lane_tag_t::width>;
+    using profile_t = typename substitution_model_t::profile_type;
 
     profile_t _profile;
 
@@ -41,8 +39,7 @@ public:
     _type() = delete;
     _type(wrappee_t wrappee) noexcept :
         base_t{std::move(wrappee)},
-        _profile{base_t::substitution_model().initialise_profile(base_t::row_sequence(),
-                                                                 strip_width<last_lane_tag_t::width>)}
+        _profile{base_t::substitution_model().initialise_profile(base_t::row_sequence())}
     {}
 
     using base_t::base_t;
@@ -59,12 +56,27 @@ struct _fn
     constexpr auto operator()(wrappee_fn_t && wrappee_fn) const noexcept
     {
         std::tuple<wrappee_fn_t> tmp{std::forward<wrappee_fn_t>(wrappee_fn)};
-        return [fwd_capture = std::move(tmp)] (auto && ...args) {
+        return [fwd_capture = std::move(tmp)] <typename dp_state_t> (dp_state_t && dp_state, auto && ...args) {
             using fwd_wrappee_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
-            auto wrappee = std::invoke(std::forward<fwd_wrappee_fn_t &&>(get<0>(fwd_capture)),
-                                       std::forward<decltype(args)>(args)...);
 
-            return _type{std::move(wrappee)};
+            using substitution_model_t = typename dp_state_t::substitution_model_type;
+            using profile_t = typename substitution_model_t::profile_type;
+
+            profile_t profile{std::forward<dp_state_t>(dp_state)
+                                    .substitution_model()
+                                    .initialise_profile(std::forward<dp_state_t>(dp_state).row_sequence())};
+
+            return std::invoke(
+                    std::forward<fwd_wrappee_fn_t &&>(get<0>(fwd_capture)),
+                    dp_matrix::detail::make_dp_state(
+                        std::forward<dp_state_t>(dp_state).dp_column(),
+                        std::forward<dp_state_t>(dp_state).dp_row(),
+                        std::forward<dp_state_t>(dp_state).column_sequence(),
+                        std::move(profile),
+                        std::forward<dp_state_t>(dp_state).substitution_model(),
+                        std::forward<dp_state_t>(dp_state).tracker()
+                    ),
+                    std::forward<decltype(args)>(args)...);
         };
     }
 };

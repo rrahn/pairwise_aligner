@@ -85,7 +85,7 @@ TYPED_TEST(score_model_matrix_simd_test, access_same)
         // We have to get the profile first, for a sequence char:
         std::array<simd_index_t, TestFixture::stride> symbols{};
         symbols.fill(column_rank);
-        auto profile = this->matrix.initialise_profile(symbols, pa::strip_width<TestFixture::stride>);
+        auto profile = this->matrix.initialise_profile(symbols);
 
         // Receive score for every element
         for (size_t r = 0; r < TestFixture::dimension; ++r) {
@@ -123,7 +123,7 @@ TYPED_TEST(score_model_matrix_simd_test, access_rotate)
         // We have to get the profile first, for a sequence char:
         std::array<simd_index_t, TestFixture::stride> symbols{};
         symbols.fill(column_rank);
-        auto profile = this->matrix.initialise_profile(symbols, pa::strip_width<TestFixture::stride>);
+        auto profile = this->matrix.initialise_profile(symbols);
 
         // Fill the row symbols with values by rotating through the symbol list.
         for (size_t r = 0; r < TestFixture::dimension; ++r) {

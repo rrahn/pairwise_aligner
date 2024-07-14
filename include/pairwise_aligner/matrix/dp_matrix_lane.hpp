@@ -252,8 +252,8 @@ private:
 
 struct _fn
 {
-    template <typename last_lane_tag_t, typename dp_state_t>
-    constexpr auto operator()(last_lane_tag_t const &, std::ptrdiff_t const offset, dp_state_t dp_state)
+    template <typename dp_state_t, typename last_lane_tag_t>
+    constexpr auto operator()(dp_state_t dp_state, last_lane_tag_t const &, std::ptrdiff_t const offset)
         const noexcept
     {
         using lane_t = _type<last_lane_tag_t, dp_state_t>;
