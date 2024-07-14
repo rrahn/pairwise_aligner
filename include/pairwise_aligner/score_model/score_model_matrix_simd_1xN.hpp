@@ -110,9 +110,11 @@ class _score_model_matrix_simd_1xN<score_t, dimension>::type::_interleaved_subst
     using simd_score_t = score_type;
     using scalar_index_t = typename index_t::value_type;
 
-    using interleaved_scores_t = std::vector<index_t, seqan3::aligned_allocator<index_t, alignof(index_t)>>;
+    static constexpr size_t min_align_v = std::max<size_t>(alignof(index_t), 16);
+
+    using interleaved_scores_t = std::vector<index_t, seqan3::aligned_allocator<index_t, min_align_v>>;
     using profile_t = std::vector<interleaved_scores_t,
-                                  seqan3::aligned_allocator<interleaved_scores_t, alignof(index_t)>>;
+                                  seqan3::aligned_allocator<interleaved_scores_t, min_align_v>>;
 
     struct proxy_reference
     {
