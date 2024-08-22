@@ -15,7 +15,7 @@ include (diagnostics/list_missing_unit_tests)
 include (diagnostics/list_unused_unit_tests)
 include (include_dependencies/add_include_dependencies)
 
-option (PAIRWISE_ALIGNER_VERBOSE_TESTS "Run each test case individually" ON)
+option (PAIRWISE_ALIGNER_VERBOSE_TESTS "Run each test case individually" OFF)
 option (PAIRWISE_ALIGNER_USE_INCLUDE_DEPENDENCIES "Build tests in an hierarchical order (by an include graph, i.e. tests with less dependencies are build first)" OFF)
 
 if (PAIRWISE_ALIGNER_USE_INCLUDE_DEPENDENCIES)
