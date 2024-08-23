@@ -33,6 +33,11 @@ option (PAIRWISE_ALIGNER_BENCHMARK_ALIGN_LOOPS "Pass -falign-loops=32 to the ben
 find_path (SEQAN3_TEST_INCLUDE_DIR NAMES seqan3/test/tmp_directory.hpp HINTS "${CMAKE_CURRENT_LIST_DIR}/../../lib/seqan3/test/include/")
 find_path (PAIRWISE_ALIGNER_TEST_CMAKE_MODULE_DIR NAMES seqan3_test_component.cmake HINTS "${CMAKE_CURRENT_LIST_DIR}/../../lib/seqan3/test/cmake/")
 list(APPEND CMAKE_MODULE_PATH "${PAIRWISE_ALIGNER_TEST_CMAKE_MODULE_DIR}")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+
+# Select PAIRWISE_ALIGNER_SIMD_CXX_FLAGS flags based on the selected SIMD ISA for the pairwise aligner tests.
+# Note this variable will be set by the configure_simd_flags.cmake script.
+include (configure_simd_flags)
 
 set (SEQAN3_BENCHMARK_CLONE_DIR "${PROJECT_BINARY_DIR}/vendor/benchmark")
 set (SEQAN3_TEST_CLONE_DIR "${PROJECT_BINARY_DIR}/vendor/googletest")
@@ -48,12 +53,20 @@ file(MAKE_DIRECTORY ${SEQAN3_TEST_CLONE_DIR}/googletest/include/)
 
 # seqan::pairwise_aligner::test exposes a base set of required flags, includes, definitions and
 # libraries which are in common for **all** pairwise_aligner tests
+
 if (NOT TARGET seqan::pairwise_aligner::test)
+    # Set the compile options for the pairwise_aligner tests.
+    string(REPLACE " " ";" SIMD_FLAGS "${PAIRWISE_ALIGNER_SIMD_CXX_FLAGS}")
+    set (COMPILE_OPTIONS "-pedantic" "-Wall" "-Wextra" "-Werror" ${SIMD_FLAGS})
+
     add_library (pairwise_aligner_test INTERFACE)
-    target_compile_options (pairwise_aligner_test INTERFACE "-pedantic"  "-Wall" "-Wextra" "-Werror")
+    target_compile_options (pairwise_aligner_test INTERFACE ${COMPILE_OPTIONS})
     target_link_libraries (pairwise_aligner_test INTERFACE "seqan::pairwise_aligner" "pthread")
     target_include_directories (pairwise_aligner_test INTERFACE "${SEQAN3_TEST_INCLUDE_DIR}")
     add_library (seqan::pairwise_aligner::test ALIAS pairwise_aligner_test)
+
+    unset (SIMD_FLAGS)
+    unset (COMPILE_OPTIONS)
 endif ()
 
 # seqan::pairwise_aligner::test::performance specifies required flags, includes and libraries

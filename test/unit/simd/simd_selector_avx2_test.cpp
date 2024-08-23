@@ -78,9 +78,11 @@ TYPED_TEST(simd_selector_avx2_test, select_from_9_elements)
             4, 5, 6, 7, 8, 9, 1, 2
         };
 
+        using native_simd_t = typename simd_value_t::native_simd_type;
+
         for (size_t i = 0; i < expected_values.size(); ++i) {
             EXPECT_EQ(static_cast<int>(expected_values[i]),
-                      static_cast<int>(reinterpret_cast<simd_value_t const &>(actual)[i])) << "at index" << i;
+                      static_cast<int>(reinterpret_cast<native_simd_t const &>(actual)[i])) << "at index" << i;
         }
     } else {
         GTEST_SKIP() << "Test only available for AVX2.";
@@ -120,9 +122,11 @@ TYPED_TEST(simd_selector_avx2_test, select_from_32_elements_reverse)
             16, 15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1
         };
 
+        using native_simd_t = typename simd_value_t::native_simd_type;
+
         for (size_t i = 0; i < expected_values.size(); ++i) {
             EXPECT_EQ(static_cast<int>(expected_values[i]),
-                      static_cast<int>(reinterpret_cast<simd_value_t const &>(actual)[i])) << "at index " << i;
+                      static_cast<int>(reinterpret_cast<native_simd_t const &>(actual)[i])) << "at index " << i;
         }
 
     } else {
@@ -162,9 +166,11 @@ TYPED_TEST(simd_selector_avx2_test, select_from_32_elements_interleaved) {
             9, 25, 10, 26, 11, 27, 12, 28, 13, 29, 14, 30, 15, 31, 16, 32
         };
 
+        using native_simd_t = typename simd_value_t::native_simd_type;
+
         for (size_t i = 0; i < expected_values.size(); ++i) {
             EXPECT_EQ(static_cast<int>(expected_values[i]),
-                      static_cast<int>(reinterpret_cast<simd_value_t const &>(actual)[i])) << "at index " << i;
+                      static_cast<int>(reinterpret_cast<native_simd_t const &>(actual)[i])) << "at index " << i;
         }
     } else {
         GTEST_SKIP() << "Test only available for AVX2.";

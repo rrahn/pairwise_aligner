@@ -121,7 +121,8 @@ struct simd_selector<simd_offset_t, selector_tag<operand_count, 8, 512>>
     simd_selector(simd_offset_t const & offsets) noexcept
     {
         offsets_16_bit = _mm512_srli_epi16(reinterpret_cast<__m512i const &>(offsets), 1);
-        shuffle_mask = reinterpret_cast<__m512i &&>((offsets & simd_offset_t{static_cast<scalar_offset_t>(1)}) + mask);
+        simd_offset_t tmp = (offsets & simd_offset_t{static_cast<scalar_offset_t>(1)}) + mask;
+        shuffle_mask = reinterpret_cast<__m512i const &>(tmp);
     }
 
     template <typename value_t>

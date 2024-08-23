@@ -1,2 +1,2 @@
-pairwise_aligner_test (score_model_matrix_simd_1xN_test)
-pairwise_aligner_test (score_model_matrix_simd_NxN_test)
+pairwise_aligner_test (score_model_matrix_simd_1xN_test.cpp)
+pairwise_aligner_test (score_model_matrix_simd_NxN_test.cpp)
