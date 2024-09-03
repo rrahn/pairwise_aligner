@@ -166,21 +166,19 @@ public:
 struct _fn
 {
     template <typename dp_lane_fn_t, size_t lane_width>
-    constexpr auto operator()(dp_lane_fn_t && dp_lane_fn, dp_matrix::lane_width_t<lane_width> const &) const noexcept
+    constexpr auto operator()(dp_lane_fn_t dp_lane_fn, dp_matrix::lane_width_t<lane_width> const &) const noexcept
     {
-        std::tuple<dp_lane_fn_t> tmp{std::forward<dp_lane_fn_t>(dp_lane_fn)};
-        return [fwd_capture = std::move(tmp)] <typename dp_state_t>(dp_state_t && dp_state) {
-            using fwd_dp_lane_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
-            using block_t = _type<fwd_dp_lane_fn_t, dp_matrix::lane_width_t<lane_width>, dp_state_t>;
-            return block_t{std::forward<fwd_dp_lane_fn_t &&>(get<0>(fwd_capture)), std::move(dp_state)};
+        return [dp_lane_fn = std::move(dp_lane_fn)] <typename dp_state_t>(dp_state_t && dp_state) {
+            using block_t = _type<dp_lane_fn_t, dp_matrix::lane_width_t<lane_width>, dp_state_t>;
+            return block_t{std::move(dp_lane_fn), std::move(dp_state)};
         };
     }
 
     template <typename dp_lane_fn_t>
-    constexpr auto operator()(dp_lane_fn_t && dp_lane_fn) const noexcept
+    constexpr auto operator()(dp_lane_fn_t dp_lane_fn) const noexcept
         -> decltype(std::declval<_fn const &>()(std::declval<dp_lane_fn_t&&>(), lane_width<>))
     {
-        return (*this)(std::forward<dp_lane_fn_t>(dp_lane_fn), lane_width<>);
+        return (*this)(std::move(dp_lane_fn), lane_width<>);
     }
 };
 } // namespace _block

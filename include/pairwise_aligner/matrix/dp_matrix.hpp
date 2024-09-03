@@ -93,13 +93,11 @@ public:
 struct _fn
 {
     template <typename dp_column_fn_t>
-    constexpr auto operator()(dp_column_fn_t && dp_column_fn) const noexcept
+    constexpr auto operator()(dp_column_fn_t dp_column_fn) const noexcept
     {
-        return [fwd_capture = std::tuple<dp_column_fn_t>{std::forward<dp_column_fn_t>(dp_column_fn)}]
-               <typename dp_state_t> (dp_state_t && dp_state) {
-            using fwd_dp_column_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
-            using dp_matrix_t = _type<fwd_dp_column_fn_t, dp_state_t>;
-            return dp_matrix_t{std::forward<fwd_dp_column_fn_t &&>(get<0>(fwd_capture)), std::move(dp_state)};
+        return [dp_column_fn = std::move(dp_column_fn)] <typename dp_state_t> (dp_state_t && dp_state) {
+            using dp_matrix_t = _type<dp_column_fn_t, dp_state_t>;
+            return dp_matrix_t{std::move(dp_column_fn), std::move(dp_state)};
         };
     }
 };
