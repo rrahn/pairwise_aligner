@@ -14,6 +14,7 @@
 
 #include <immintrin.h>
 
+#include <algorithm>
 #include <concepts>
 #include <type_traits>
 
