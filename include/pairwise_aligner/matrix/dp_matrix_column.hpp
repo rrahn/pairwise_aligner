@@ -101,15 +101,11 @@ public:
 struct _fn
 {
     template <typename dp_block_fn_t>
-    constexpr auto operator()(dp_block_fn_t && dp_block_fn) const noexcept
+    constexpr auto operator()(dp_block_fn_t dp_block_fn) const noexcept
     {
-        return [fwd_capture = std::tuple<dp_block_fn_t>(std::forward<dp_block_fn_t>(dp_block_fn))]
-                <typename dp_state_t> (dp_state_t && dp_state) {
-            using fwd_dp_block_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
-            // static_assert(std::same_as<fwd_dp_block_fn_t, void>, "fwd_dp_block_fn_t");                         // seqan::pairwise_aligner::v1::dp_matrix::_block::_fn::operator()::._anon_186&&
-            // static_assert(std::same_as<decltype(std::get<0>(fwd_capture)), void>, "std::get<0>(fwd_capture)"); // seqan::pairwise_aligner::v1::dp_matrix::_block::_fn::operator()::._anon_186&
-            using column_t = _type<fwd_dp_block_fn_t, dp_state_t>;
-            return column_t{std::forward<fwd_dp_block_fn_t>(std::get<0>(fwd_capture)), std::move(dp_state)};
+        return [dp_block_fn = std::move(dp_block_fn)] <typename dp_state_t> (dp_state_t && dp_state) {
+            using column_t = _type<dp_block_fn_t, dp_state_t>;
+            return column_t{std::move(dp_block_fn), std::move(dp_state)};
         };
     }
 };

@@ -52,10 +52,9 @@ public:
 struct _fn
 {
     template <typename dp_column_fn_t>
-    constexpr auto operator()(dp_column_fn_t && dp_column_fn) const noexcept
+    constexpr auto operator()(dp_column_fn_t dp_column_fn) const noexcept
     {
-        std::tuple<dp_column_fn_t> tmp{std::forward<dp_column_fn_t>(dp_column_fn)};
-        return [fwd_capture = std::move(tmp)] <typename dp_state_t>(dp_state_t && dp_state) {
+        return [dp_column_fn = std::move(dp_column_fn)] <typename dp_state_t>(dp_state_t && dp_state) {
 
             using original_substitution_model_t = typename dp_state_t::substitution_model_type;
             using local_substitution_model_t = detail::local_substitution_model<original_substitution_model_t>;
@@ -68,10 +67,8 @@ struct _fn
                 local_substitution_model_t{std::forward<dp_state_t>(dp_state).substitution_model()},
                 std::forward<dp_state_t>(dp_state).tracker()
             );
-
-            using fwd_dp_column_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
-            using dp_matrix_t = _dp_matrix::_type<fwd_dp_column_fn_t, decltype(modified_state)>;
-            return dp_matrix_t{std::forward<fwd_dp_column_fn_t>(get<0>(fwd_capture)), std::move(modified_state)};
+            using dp_matrix_t = _dp_matrix::_type<dp_column_fn_t, decltype(modified_state)>;
+            return dp_matrix_t{std::move(dp_column_fn), std::move(modified_state)};
         };
     }
 };

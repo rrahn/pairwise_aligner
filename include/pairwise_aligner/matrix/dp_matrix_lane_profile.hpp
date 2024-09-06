@@ -53,11 +53,9 @@ public:
 struct _fn
 {
     template <typename wrappee_fn_t>
-    constexpr auto operator()(wrappee_fn_t && wrappee_fn) const noexcept
+    constexpr auto operator()(wrappee_fn_t wrappee_fn) const noexcept
     {
-        std::tuple<wrappee_fn_t> tmp{std::forward<wrappee_fn_t>(wrappee_fn)};
-        return [fwd_capture = std::move(tmp)] <typename dp_state_t> (dp_state_t && dp_state, auto && ...args) {
-            using fwd_wrappee_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
+        return [wrappee_fn = std::move(wrappee_fn)] <typename dp_state_t> (dp_state_t && dp_state, auto && ...args) {
 
             using substitution_model_t = typename dp_state_t::substitution_model_type;
             using profile_t = typename substitution_model_t::profile_type;
@@ -67,7 +65,7 @@ struct _fn
                                     .initialise_profile(std::forward<dp_state_t>(dp_state).row_sequence())};
 
             return std::invoke(
-                    std::forward<fwd_wrappee_fn_t &&>(get<0>(fwd_capture)),
+                    std::move(wrappee_fn),
                     dp_matrix::detail::make_dp_state(
                         std::forward<dp_state_t>(dp_state).dp_column(),
                         std::forward<dp_state_t>(dp_state).dp_row(),

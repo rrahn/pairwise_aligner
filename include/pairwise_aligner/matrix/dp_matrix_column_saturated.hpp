@@ -202,11 +202,9 @@ template <typename lazy_wrapper_t>
 struct _fn
 {
     template <typename dp_block_fn_t>
-    constexpr auto operator()(dp_block_fn_t && dp_block_fn) const noexcept
+    constexpr auto operator()(dp_block_fn_t dp_block_fn) const noexcept
     {
-        std::tuple<dp_block_fn_t> tmp{std::forward<dp_block_fn_t>(dp_block_fn)};
-        return [fwd_capture = std::move(tmp)] <typename dp_state_t> (dp_state_t && dp_state) {
-            using fwd_dp_block_fn_t = std::tuple_element_t<0, decltype(fwd_capture)>;
+        return [dp_block_fn = std::move(dp_block_fn)] <typename dp_state_t> (dp_state_t && dp_state) {
             using dp_row_t = typename std::remove_reference_t<dp_state_t>::dp_row_type;
             using wrapped_dp_row_t = instantiate_t<lazy_wrapper_t, dp_row_t>;
 
@@ -219,8 +217,8 @@ struct _fn
                                     std::move(dp_state).substitution_model(),
                                     std::move(dp_state).tracker());
 
-            using column_t = _column_saturated::_type<lazy_wrapper_t, fwd_dp_block_fn_t, decltype(modified_state)>;
-            return column_t{std::forward<fwd_dp_block_fn_t>(std::get<0>(fwd_capture)), std::move(modified_state)};
+            using column_t = _column_saturated::_type<lazy_wrapper_t, dp_block_fn_t, decltype(modified_state)>;
+            return column_t{std::move(dp_block_fn), std::move(modified_state)};
         };
     }
 };
