@@ -62,8 +62,8 @@ if (NOT ${PAIRWISE_ALIGNER_SIMD_ISA} STREQUAL "none")
             message (STATUS "Using explicit SIMD compile flags.")
             set (EXPLICIT_SIMD_CXX_FLAGS "-msse4"
                                          "-mavx2"
-                                         "-mavx512f -mavx512dq -mavx512cd -mavx512vl -mavx512bw"
-                                         "-mavx512f -mavx512dq -mavx512cd -mavx512vl -mavx512bw -mavx512vbmi")
+                                         "-march=skylake-avx512"
+                                         "-march=icelake-server")
             list (GET EXPLICIT_SIMD_CXX_FLAGS ${ITEM_INDEX} EXPLICIT_SIMD_CXX_FLAG)
             set (PAIRWISE_ALIGNER_SIMD_CXX_FLAGS ${EXPLICIT_SIMD_CXX_FLAG})
 

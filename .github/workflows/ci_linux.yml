@@ -30,18 +30,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        compiler: ["gcc-11", "gcc-12", "gcc-13"]
+        compiler: ["gcc-11", "gcc-12", "gcc-13", "gcc-14"]
         SIMD-ISA: ["native"]
         include:
-          - compiler: "gcc-13"
+          - compiler: "gcc-14"
             SIMD-ISA: "none"
-          - compiler: "gcc-13"
+          - compiler: "gcc-14"
             SIMD-ISA: "SSE4"
-          - compiler: "gcc-13"
+          - compiler: "gcc-14"
             SIMD-ISA: "AVX2"
-          - compiler: "gcc-13"
+          - compiler: "gcc-14"
             SIMD-ISA: "AVX512BW"
-          - compiler: "gcc-13"
+          - compiler: "gcc-14"
             SIMD-ISA: "AVX512VBMI"
     container:
       image: ghcr.io/seqan/${{ matrix.compiler }}
